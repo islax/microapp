@@ -5,18 +5,18 @@ import (
 	"net/http"
 	"strings"
 
-	"islax/microapp/app"
-	"islax/microapp/web"
+	"github.com/islax/microapp/config"
+	"github.com/islax/microapp/web"
 
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
 // Protect authenticates and makes sure that caller is authorized to make the call before
 // before invoking actual handler
-func Protect(app *app.App, handlerFunc func(w http.ResponseWriter, r *http.Request, token *JwtToken), allowedScopes []string, requireAdmin bool) func(w http.ResponseWriter, r *http.Request) {
+func Protect(config *config.Config, handlerFunc func(w http.ResponseWriter, r *http.Request, token *JwtToken), allowedScopes []string, requireAdmin bool) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tokenHeader := r.Header.Get("Authorization")
-		token, err := validateTokenHeader(app.Config, tokenHeader)
+		token, err := validateTokenHeader(config, tokenHeader)
 
 		if err != nil {
 			web.RespondErrorMessage(w, http.StatusForbidden, err.Error())
@@ -37,7 +37,7 @@ func Protect(app *app.App, handlerFunc func(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func validateTokenHeader(config *app.Config, tokenHeader string) (*JwtToken, error) {
+func validateTokenHeader(config *config.Config, tokenHeader string) (*JwtToken, error) {
 	if tokenHeader == "" { //Token is missing, returns with error code 403 Unauthorized
 		return nil, errors.New("Key_MissingAuthToken")
 	}

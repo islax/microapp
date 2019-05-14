@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"islax/microapp/model"
+	"github.com/islax/microapp/model"
 )
 
 // RespondJSON makes the response with payload as json format

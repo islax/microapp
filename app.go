@@ -1,13 +1,12 @@
-package app
+package main
 
 import (
 	"context"
 	"net/http"
 
 	"time"
-
-	"islax/microapp/events"
-
+	"github.com/islax/microapp/config"
+	"github.com/islax/microapp/events"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
@@ -21,7 +20,7 @@ type RouteSpecifier interface {
 //App structure for tenant microservice
 type App struct {
 	Name            string
-	Config          *Config
+	Config          *config.Config
 	DB              *gorm.DB
 	Router          *mux.Router
 	server          *http.Server
@@ -29,9 +28,9 @@ type App struct {
 	eventDispatcher events.EventDispatcher
 }
 
-//NewApp creates a new App
-func NewApp(appName string, appConfigOverride map[string]string, appLog *log.Logger, appDB *gorm.DB, appEventDispatcher events.EventDispatcher) *App {
-	appConfig := NewConfig(appConfigOverride)
+//New creates a new microApp
+func New(appName string, appConfigOverride map[string]string, appLog *log.Logger, appDB *gorm.DB, appEventDispatcher events.EventDispatcher) *App {
+	appConfig := config.NewConfig(appConfigOverride)
 	return &App{Name: appName, Config: appConfig, log: appLog, DB: appDB, eventDispatcher: appEventDispatcher}
 }
 
@@ -93,4 +92,8 @@ func (app *App) DispatchEvent(token string, topic string, payload interface{}) {
 	if app.eventDispatcher != nil {
 		app.eventDispatcher.DispatchEvent(token, topic, payload)
 	}
+}
+
+func main() {
+
 }
