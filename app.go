@@ -1,13 +1,14 @@
-package main
+package microapp
 
 import (
 	"context"
 	"net/http"
 
 	"time"
+
+	"github.com/gorilla/mux"
 	"github.com/islax/microapp/config"
 	"github.com/islax/microapp/events"
-	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 )
@@ -92,8 +93,4 @@ func (app *App) DispatchEvent(token string, topic string, payload interface{}) {
 	if app.eventDispatcher != nil {
 		app.eventDispatcher.DispatchEvent(token, topic, payload)
 	}
-}
-
-func main() {
-
 }
