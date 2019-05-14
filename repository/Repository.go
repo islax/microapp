@@ -44,16 +44,17 @@ func (uow *UnitOfWork) Commit() {
 	uow.committed = true
 }
 
-type gormRepository struct {
+// GormRepository implements Repository
+type GormRepository struct {
 }
 
 // NewRepository returns a new repository object
 func NewRepository() Repository {
-	return &gormRepository{}
+	return &GormRepository{}
 }
 
 // Get a record for specified entity with specific id
-func (repository *gormRepository) Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) error {
+func (repository *GormRepository) Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) error {
 	db := uow.DB
 	for _, association := range preloadAssociations {
 		db = db.Preload(association)
@@ -62,7 +63,7 @@ func (repository *gormRepository) Get(uow *UnitOfWork, out interface{}, id uuid.
 }
 
 // GetAll retrieves all the records for a specified entity and returns it
-func (repository *gormRepository) GetAll(uow *UnitOfWork, out interface{}, preloadAssociations []string) error {
+func (repository *GormRepository) GetAll(uow *UnitOfWork, out interface{}, preloadAssociations []string) error {
 	db := uow.DB
 	for _, association := range preloadAssociations {
 		db = db.Preload(association)
@@ -71,16 +72,16 @@ func (repository *gormRepository) GetAll(uow *UnitOfWork, out interface{}, prelo
 }
 
 // Add specified Entity
-func (repository *gormRepository) Add(uow *UnitOfWork, entity interface{}) error {
+func (repository *GormRepository) Add(uow *UnitOfWork, entity interface{}) error {
 	return uow.DB.Create(entity).Error
 }
 
 // Update specified Entity
-func (repository *gormRepository) Update(uow *UnitOfWork, entity interface{}) error {
+func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) error {
 	return uow.DB.Model(entity).Update(entity).Error
 }
 
 // Delete specified Entity
-func (repository *gormRepository) Delete(uow *UnitOfWork, entity interface{}) error {
+func (repository *GormRepository) Delete(uow *UnitOfWork, entity interface{}) error {
 	return uow.DB.Delete(entity).Error
 }
