@@ -1,4 +1,4 @@
-package error
+package web
 
 import (
 	"fmt"
