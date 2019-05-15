@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/islax/microapp/model"
+	model "github.com/islax/microapp/error"
 )
 
 // RespondJSON makes the response with payload as json format
@@ -28,9 +28,9 @@ func RespondErrorMessage(w http.ResponseWriter, code int, message string) {
 // RespondError returns a validation error else
 func RespondError(w http.ResponseWriter, err error) {
 	switch err.(type) {
-	case model.ValidationError:
+	case error.ValidationError:
 		RespondJSON(w, http.StatusBadRequest, err)
-	case model.HTTPError:
+	case error.HTTPError:
 		httpError := err.(model.HTTPError)
 		RespondErrorMessage(w, httpError.HTTPStatus, httpError.ErrorKey)
 	default:

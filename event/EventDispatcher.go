@@ -1,4 +1,4 @@
-package events
+package event
 
 // EventDispatcher interface must be implemented by Queue
 type EventDispatcher interface {

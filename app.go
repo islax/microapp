@@ -8,17 +8,18 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/islax/microapp/config"
-	"github.com/islax/microapp/events"
+	"github.com/islax/microapp/event"
+	"github.com/islax/microapp/repository"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 )
 
-//RouteSpecifier should be implemented by the class that sets routes for the API endpoints
+// RouteSpecifier should be implemented by the class that sets routes for the API endpoints
 type RouteSpecifier interface {
 	RegisterRoutes(router *mux.Router)
 }
 
-//App structure for tenant microservice
+// App structure for tenant microservice
 type App struct {
 	Name            string
 	Config          *config.Config
@@ -26,13 +27,18 @@ type App struct {
 	Router          *mux.Router
 	server          *http.Server
 	log             *log.Logger
-	eventDispatcher events.EventDispatcher
+	eventDispatcher event.EventDispatcher
 }
 
-//New creates a new microApp
-func New(appName string, appConfigOverride map[string]string, appLog *log.Logger, appDB *gorm.DB, appEventDispatcher events.EventDispatcher) *App {
+// New creates a new microApp
+func New(appName string, appConfigOverride map[string]string, appLog *log.Logger, appDB *gorm.DB, appEventDispatcher event.EventDispatcher) *App {
 	appConfig := config.NewConfig(appConfigOverride)
 	return &App{Name: appName, Config: appConfig, log: appLog, DB: appDB, eventDispatcher: appEventDispatcher}
+}
+
+// NewUnitOfWork creates new UnitOfWork
+func (app *App) NewUnitOfWork(readOnly bool) *repository.UnitOfWork {
+	return repository.NewUnitOfWork(app.DB, readOnly)
 }
 
 //Initialize initializes properties of the app
