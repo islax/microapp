@@ -52,7 +52,7 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 	}
 
 	app.server = &http.Server{
-		Addr:         "0.0.0.0:8080",
+		Addr:         "0.0.0.0:80",
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
