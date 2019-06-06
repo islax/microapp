@@ -9,6 +9,7 @@ import (
 type Repository interface {
 	Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) error
 	GetAll(uow *UnitOfWork, out interface{}, preloadAssociations []string) error
+	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, preloadAssociations []string) error
 	Add(uow *UnitOfWork, out interface{}) error
 	Update(uow *UnitOfWork, out interface{}) error
 	Delete(uow *UnitOfWork, out interface{}) error
