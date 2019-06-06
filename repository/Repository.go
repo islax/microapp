@@ -71,6 +71,15 @@ func (repository *GormRepository) GetAll(uow *UnitOfWork, out interface{}, prelo
 	return db.Find(out).Error
 }
 
+// GetAllForTenant returns all objects of specifeid tenantID
+func (repository *GormRepository) GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, preloadAssociations []string) error {
+	db := uow.DB
+	for _, association := range preloadAssociations {
+		db = db.Preload(association)
+	}
+	return db.Where("tenantID = ?", tenantID).Find(out).Error
+}
+
 // Add specified Entity
 func (repository *GormRepository) Add(uow *UnitOfWork, entity interface{}) error {
 	return uow.DB.Create(entity).Error
