@@ -12,5 +12,5 @@ type TenantBase struct {
 	TenantID  uuid.UUID  `gorm:"type:varchar(36);column:tenantId;"`
 	CreatedAt time.Time  `gorm:"column:createdOn"`
 	UpdatedAt time.Time  `gorm:"column:modifiedOn"`
-	DeletedAt *time.Time `sql:"index" gorm:"deletedOn"`
+	DeletedAt *time.Time `sql:"index" gorm:"column:deletedOn"`
 }
