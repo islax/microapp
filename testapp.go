@@ -83,16 +83,16 @@ func (testApp *TestApp) generateToken(tenantID string, userID string, scope []st
 	hmacSampleSecret := []byte(testApp.application.Config.GetString("ISLA_JWT_SECRET"))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iss":      "http://isla.cyberinc.com",
-		"aud":      "http://isla.cyberinc.com",
-		"foo":      "bar",
-		"iat":      time.Now().Unix(),
-		"exp":      time.Now().Add(time.Minute * 60).Unix(), // Expires in 1 hour
-		"tenantId": tenantID,
-		"userId":   userID,
-		"name":     "name",
-		"scope":    scope,
-		"admin":    admin,
+		"iss":    "http://isla.cyberinc.com",
+		"aud":    "http://isla.cyberinc.com",
+		"foo":    "bar",
+		"iat":    time.Now().Unix(),
+		"exp":    time.Now().Add(time.Minute * 60).Unix(), // Expires in 1 hour
+		"tenant": tenantID,
+		"user":   userID,
+		"name":   "username",
+		"scope":  scope,
+		"admin":  admin,
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
