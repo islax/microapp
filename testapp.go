@@ -71,6 +71,15 @@ func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 
 // GetToken gets a token to connect to API
 func (testApp *TestApp) GetToken(tenant string, name string, scope []string) string {
+	return testApp.generateToken(tenant, name, scope, false)
+}
+
+// GetAdminToken returns a test token
+func (testApp *TestApp) GetAdminToken(tenant string, name string, scope []string) string {
+	return testApp.generateToken(tenant, name, scope, true)
+}
+
+func (testApp *TestApp) generateToken(tenant string, name string, scope []string, admin bool) string {
 	hmacSampleSecret := []byte(testApp.application.Config.GetString("ISLA_JWT_SECRET"))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -80,8 +89,10 @@ func (testApp *TestApp) GetToken(tenant string, name string, scope []string) str
 		"iat":    time.Now().Unix(),
 		"exp":    time.Now().Add(time.Minute * 60).Unix(), // Expires in 1 hour
 		"tenant": tenant,
+		"user":   "00000000-0000-0000-0000-0000000000FA",
 		"name":   name,
 		"scope":  scope,
+		"admin":  admin,
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
