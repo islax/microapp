@@ -70,16 +70,16 @@ func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 }
 
 // GetToken gets a token to connect to API
-func (testApp *TestApp) GetToken(tenant string, name string, scope []string) string {
-	return testApp.generateToken(tenant, name, scope, false)
+func (testApp *TestApp) GetToken(tenantID string, userID string, scope []string) string {
+	return testApp.generateToken(tenantID, userID, scope, false)
 }
 
 // GetAdminToken returns a test token
-func (testApp *TestApp) GetAdminToken(tenant string, name string, scope []string) string {
-	return testApp.generateToken(tenant, name, scope, true)
+func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []string) string {
+	return testApp.generateToken(tenantID, userID, scope, true)
 }
 
-func (testApp *TestApp) generateToken(tenant string, name string, scope []string, admin bool) string {
+func (testApp *TestApp) generateToken(tenantID string, userID string, scope []string, admin bool) string {
 	hmacSampleSecret := []byte(testApp.application.Config.GetString("ISLA_JWT_SECRET"))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -88,9 +88,9 @@ func (testApp *TestApp) generateToken(tenant string, name string, scope []string
 		"foo":      "bar",
 		"iat":      time.Now().Unix(),
 		"exp":      time.Now().Add(time.Minute * 60).Unix(), // Expires in 1 hour
-		"tenantId": "00000000-0000-0000-0000-0000000094CD",
-		"userId":   "00000000-0000-0000-0000-0000000000FA",
-		"name":     name,
+		"tenantId": tenantID,
+		"userId":   userID,
+		"name":     "name",
 		"scope":    scope,
 		"admin":    admin,
 	})
