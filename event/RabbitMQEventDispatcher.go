@@ -19,13 +19,6 @@ func NewRabbitMQEventDispatcher(logger *log.Logger) *RabbitMQEventDispatcher {
 	return &RabbitMQEventDispatcher{logger: logger, exchangeName: "isla_Exchange"}
 }
 
-// func logError (message string, err error, contextLogger *log.Logger) {
-// 	if err != nil {
-// 		contextLogger.Error(message + ": " + err.Error())
-// 		return
-// 	}
-// }
-
 // DispatchEvent dispatches events to the message queue
 func (eventDispatcher *RabbitMQEventDispatcher) DispatchEvent(token string, topic string, payload interface{}) {
 	contextLogger := eventDispatcher.logger.WithFields(log.Fields{
