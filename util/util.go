@@ -10,8 +10,8 @@ func init() {
 	logx = log.New()
 }
 
-// IslaxLog returns preconfigured logger
-func IslaxLog() *log.Logger {
+// NewLogger returns preconfigured logger
+func NewLogger() *log.Logger {
 	formatter := &log.TextFormatter{
 		FullTimestamp: true,
 	}
