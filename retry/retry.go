@@ -9,7 +9,7 @@ func Do(attempts int, sleep time.Duration, fn func() error) error {
 	if err := fn(); err != nil {
 		if s, ok := err.(Stop); ok {
 			// Return the original error for later checking
-			return s.error
+			return s.OriginalError
 		}
 
 		if attempts--; attempts > 0 {
@@ -24,5 +24,9 @@ func Do(attempts int, sleep time.Duration, fn func() error) error {
 // Stop is used to return error and stop retrying
 // Return Stop{err}, if you want to stop despite Error
 type Stop struct {
-	error
+	OriginalError error
+}
+
+func (stop Stop) Error() string {
+	return stop.OriginalError.Error()
 }
