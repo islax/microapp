@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -31,6 +32,7 @@ type RabbitMQEventDispatcher struct {
 	sendChannel            chan *queueCommand
 	retryChannel           chan *retryCommand
 	connectionCloseChannel chan *amqp.Error
+	connectionMutex        sync.Mutex
 }
 
 // NewRabbitMQEventDispatcher create and returns a new RabbitMQEventDispatcher
@@ -69,6 +71,10 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 		var command *queueCommand
 		var retryCount int
 
+		// Ensure that connection process is not going on
+		eventDispatcher.connectionMutex.Lock()
+		eventDispatcher.connectionMutex.Unlock()
+
 		select {
 		case commandFromSendChannel := <-eventDispatcher.sendChannel:
 			command = commandFromSendChannel
@@ -100,7 +106,7 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 					contextLogger.Warn("Publish to queue failed. Trying again ... Error: " + err.Error())
 
 					go func(command *queueCommand, retryCount int) {
-						time.Sleep(500 * time.Millisecond)
+						time.Sleep(time.Second)
 						eventDispatcher.retryChannel <- &retryCommand{retryCount: retryCount, command: command}
 					}(command, retryCount+1)
 				} else {
@@ -120,7 +126,9 @@ func (eventDispatcher *RabbitMQEventDispatcher) rabbitConnector() {
 	for {
 		rabbitErr = <-eventDispatcher.connectionCloseChannel
 		if rabbitErr != nil {
-			connectionString := getConnectionString()
+			eventDispatcher.connectionMutex.Lock()
+
+			connectionString := getQueueConnectionString()
 			connection, channel := connectToRabbitMQ(eventDispatcher.logger, connectionString, eventDispatcher.exchangeName)
 
 			eventDispatcher.connection = connection
@@ -128,6 +136,8 @@ func (eventDispatcher *RabbitMQEventDispatcher) rabbitConnector() {
 			eventDispatcher.connectionCloseChannel = make(chan *amqp.Error)
 
 			eventDispatcher.connection.NotifyClose(eventDispatcher.connectionCloseChannel)
+
+			eventDispatcher.connectionMutex.Unlock()
 		}
 	}
 }
@@ -155,28 +165,28 @@ func connectToRabbitMQ(logger *log.Logger, connectionString string, exchangeName
 		}
 
 		logger.Warnf("Cannot connect to RabbitMQ. Trying again ... Error %s", err.Error())
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(5 * time.Second)
 	}
 }
 
-func getConnectionString() string {
-	var dbHost, dbPort, dbUser, dbPassword string
-	dbHost, ok := os.LookupEnv("ISLA_QUEUE_HOST")
+func getQueueConnectionString() string {
+	var queueHost, queuePort, queueUser, queuePassword string
+	queueHost, ok := os.LookupEnv("ISLA_QUEUE_HOST")
 	if !ok {
-		dbHost = "localhost"
+		queueHost = "localhost"
 	}
-	dbPassword, ok = os.LookupEnv("ISLA_QUEUE_PWD")
+	queuePassword, ok = os.LookupEnv("ISLA_QUEUE_PWD")
 	if !ok {
-		dbPassword = "guest"
+		queuePassword = "guest"
 	}
-	dbUser, ok = os.LookupEnv("ISLA_QUEUE_USER")
+	queueUser, ok = os.LookupEnv("ISLA_QUEUE_USER")
 	if !ok {
-		dbUser = "guest"
+		queueUser = "guest"
 	}
-	dbPort, ok = os.LookupEnv("ISLA_QUEUE_PORT")
+	queuePort, ok = os.LookupEnv("ISLA_QUEUE_PORT")
 	if !ok {
-		dbPort = "5672"
+		queuePort = "5672"
 	}
 
-	return fmt.Sprintf("amqp://%v:%v@%v:%v/", dbUser, dbPassword, dbHost, dbPort)
+	return fmt.Sprintf("amqp://%v:%v@%v:%v/", queueUser, queuePassword, queueHost, queuePort)
 }
