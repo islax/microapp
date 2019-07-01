@@ -1,4 +1,4 @@
-package util
+package log
 
 import (
 	log "github.com/sirupsen/logrus"
@@ -10,8 +10,8 @@ func init() {
 	logx = log.New()
 }
 
-// NewLogger returns preconfigured logger
-func NewLogger() *log.Logger {
+// New returns preconfigured logger
+func New() *log.Logger {
 	formatter := &log.TextFormatter{
 		FullTimestamp: true,
 	}
