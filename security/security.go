@@ -19,7 +19,7 @@ func Protect(config *config.Config, handlerFunc func(w http.ResponseWriter, r *h
 		token, err := validateTokenHeader(config, tokenHeader)
 
 		if err != nil {
-			web.RespondErrorMessage(w, http.StatusForbidden, err.Error())
+			web.RespondErrorMessage(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 
@@ -29,7 +29,7 @@ func Protect(config *config.Config, handlerFunc func(w http.ResponseWriter, r *h
 		}
 
 		if !token.isValidForScope(allowedScopes) {
-			web.RespondErrorMessage(w, http.StatusUnauthorized, "Key_Unauthorized")
+			web.RespondErrorMessage(w, http.StatusForbidden, "Key_Unauthorized")
 			return
 		}
 
