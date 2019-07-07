@@ -19,8 +19,8 @@ type Base struct {
 func ValidateParams(args ...Param) error {
 	errors := make(map[string]string)
 	for _, arg := range args {
-		if (arg.v) == "" {
-			errors[arg.k] = "Key_Required"
+		if (arg.V) == "" {
+			errors[arg.K] = "Key_Required"
 		}
 	}
 
@@ -33,6 +33,6 @@ func ValidateParams(args ...Param) error {
 
 // Param instances are passed to ValidateParams to check empty values
 type Param struct {
-	k string
-	v string
+	K string
+	V string
 }
