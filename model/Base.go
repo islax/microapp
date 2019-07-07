@@ -16,12 +16,11 @@ type Base struct {
 }
 
 // ValidateParams checks string parameters passed to it and returns error in case of blank values.
-func ValidateParams(params ...string) error {
+func ValidateParams(args ...Param) error {
 	errors := make(map[string]string)
-
-	for _, param := range params {
-		if param == "" {
-			errors[param] = "key_Required"
+	for _, arg := range args {
+		if (arg.v) == "" {
+			errors[arg.k] = "Key_Required"
 		}
 	}
 
@@ -30,4 +29,10 @@ func ValidateParams(params ...string) error {
 	}
 
 	return nil
+}
+
+// Param instances are passed to ValidateParams to check empty values
+type Param struct {
+	k string
+	v string
 }
