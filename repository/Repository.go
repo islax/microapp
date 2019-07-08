@@ -8,8 +8,8 @@ import (
 // Repository represents generic interface for interacting with DB
 type Repository interface {
 	Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) error
-	GetAll(uow *UnitOfWork, out interface{}, preloadAssociations []string) error
-	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, preloadAssociations []string) error
+	GetAll(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) error
+	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) error
 	Add(uow *UnitOfWork, out interface{}) error
 	Update(uow *UnitOfWork, out interface{}) error
 	Delete(uow *UnitOfWork, out interface{}) error
@@ -54,6 +54,43 @@ func NewRepository() Repository {
 	return &GormRepository{}
 }
 
+// QueryProcessor allows to modify the query before it is executed
+type QueryProcessor func(db *gorm.DB, out interface{}) (*gorm.DB, error)
+
+// PreloadAssociations specified associations to be preloaded
+func PreloadAssociations(preloadAssociations []string) QueryProcessor {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
+		if preloadAssociations != nil {
+			for _, association := range preloadAssociations {
+				db = db.Preload(association)
+			}
+		}
+		return db, nil
+	}
+}
+
+// Paginate will restrict the output of query
+func Paginate(limit int, offset int, count *int) QueryProcessor {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
+		if limit != -1 {
+			db = db.Limit(limit)
+		}
+		if offset > 0 {
+			db = db.Offset(offset)
+		}
+		db.Model(out).Count(count)
+		return db, nil
+	}
+}
+
+// Filter will filter the results
+func Filter(condition string, args ...interface{}) QueryProcessor {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
+		db = db.Where(condition, args)
+		return db, nil
+	}
+}
+
 // Get a record for specified entity with specific id
 func (repository *GormRepository) Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) error {
 	db := uow.DB
@@ -64,21 +101,26 @@ func (repository *GormRepository) Get(uow *UnitOfWork, out interface{}, id uuid.
 }
 
 // GetAll retrieves all the records for a specified entity and returns it
-func (repository *GormRepository) GetAll(uow *UnitOfWork, out interface{}, preloadAssociations []string) error {
+func (repository *GormRepository) GetAll(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) error {
 	db := uow.DB
-	for _, association := range preloadAssociations {
-		db = db.Preload(association)
+
+	if queryProcessors != nil {
+		var err error
+		for _, queryProcessor := range queryProcessors {
+			db, err = queryProcessor(db, out)
+			if err != nil {
+				return err
+			}
+		}
 	}
+
 	return db.Find(out).Error
 }
 
 // GetAllForTenant returns all objects of specifeid tenantID
-func (repository *GormRepository) GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, preloadAssociations []string) error {
-	db := uow.DB
-	for _, association := range preloadAssociations {
-		db = db.Preload(association)
-	}
-	return db.Where("tenantID = ?", tenantID).Find(out).Error
+func (repository *GormRepository) GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) error {
+	queryProcessors = append(queryProcessors, Filter("tenantID = ?", tenantID))
+	return repository.GetAll(uow, out, queryProcessors)
 }
 
 // Add specified Entity
