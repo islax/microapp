@@ -33,6 +33,7 @@ func Protect(config *config.Config, handlerFunc func(w http.ResponseWriter, r *h
 			return
 		}
 
+		token.Raw = tokenHeader
 		handlerFunc(w, r, token)
 	}
 }

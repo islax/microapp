@@ -15,6 +15,7 @@ type JwtToken struct {
 	TenantID uuid.UUID `json:"tenant,omitempty"`
 	Scopes   []string  `json:"scope,omitempty"`
 	Admin    bool      `json:"admin,omitempty"`
+	Raw      string    `json:"-"`
 	jwt.StandardClaims
 }
 
