@@ -10,8 +10,8 @@ func init() {
 	logx = log.New()
 }
 
-// New returns preconfigured logger
-func formatted() *log.Logger {
+// Formatted returns preconfigured logger
+func Formatted() *log.Logger {
 	formatter := &log.TextFormatter{
 		FullTimestamp: true,
 	}
