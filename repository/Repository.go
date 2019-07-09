@@ -1,6 +1,9 @@
 package repository
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 )
@@ -79,6 +82,44 @@ func Paginate(limit int, offset int, count *int) QueryProcessor {
 			db = db.Offset(offset)
 		}
 		db.Model(out).Count(count)
+		return db, nil
+	}
+}
+
+// PaginateForWeb will take limit and offset parameters from URL and  will set X-Total-Count header in response
+func PaginateForWeb(w http.ResponseWriter, r *http.Request) QueryProcessor {
+	queryParams := r.URL.Query()
+	limitParam := queryParams["limit"]
+	offsetParam := queryParams["offset"]
+
+	var err error
+	limit := -1
+	if limitParam != nil && len(limitParam) > 0 {
+		limit, err = strconv.Atoi(limitParam[0])
+		if err != nil {
+			limit = -1
+		}
+	}
+	offset := 0
+	if offsetParam != nil && len(offsetParam) > 0 {
+		offset, err = strconv.Atoi(offsetParam[0])
+		if err != nil {
+			offset = 0
+		}
+	}
+
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
+		if limit != -1 {
+			db = db.Limit(limit)
+		}
+		if offset > 0 {
+			db = db.Offset(offset)
+		}
+
+		var totalRecords int
+		db.Model(out).Count(&totalRecords)
+
+		w.Header().Set("X-Total-Count", strconv.Itoa(totalRecords))
 		return db, nil
 	}
 }
