@@ -11,7 +11,7 @@ func init() {
 }
 
 // New returns preconfigured logger
-func New() *log.Logger {
+func formatted() *log.Logger {
 	formatter := &log.TextFormatter{
 		FullTimestamp: true,
 	}
