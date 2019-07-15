@@ -71,20 +71,20 @@ func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 
 // GetToken gets a token to connect to API
 func (testApp *TestApp) GetToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, "", "", scope, false)
+	return testApp.generateToken(tenantID, userID, "", 0, scope, false)
 }
 
 // GetAdminToken returns a test token
 func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, "", "", scope, true)
+	return testApp.generateToken(tenantID, userID, "", 0, scope, true)
 }
 
 // GetTokenWithExternalID returns a test token with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
-func (testApp *TestApp) GetTokenWithExternalID(tenantID string, userID string, externalID string, externalType string, scope []string) string {
+func (testApp *TestApp) GetTokenWithExternalID(tenantID string, userID string, externalID string, externalType uint, scope []string) string {
 	return testApp.generateToken(tenantID, userID, externalID, externalType, scope, true)
 }
 
-func (testApp *TestApp) generateToken(tenantID string, userID string, externalID string, externalType string, scope []string, admin bool) string {
+func (testApp *TestApp) generateToken(tenantID string, userID string, externalID string, externalType uint, scope []string, admin bool) string {
 	hmacSampleSecret := []byte(testApp.application.Config.GetString("ISLA_JWT_SECRET"))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
