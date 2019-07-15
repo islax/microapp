@@ -10,12 +10,13 @@ import (
 // JwtToken represents the parsed Token from Authentication Header
 type JwtToken struct {
 	// UserID is id of user matchimg the token
-	UserID   uuid.UUID `json:"user,omitempty"`
-	UserName string    `json:"name,omitempty"`
-	TenantID uuid.UUID `json:"tenant,omitempty"`
-	Scopes   []string  `json:"scope,omitempty"`
-	Admin    bool      `json:"admin,omitempty"`
-	Raw      string    `json:"-"`
+	UserID     uuid.UUID `json:"user,omitempty"`
+	UserName   string    `json:"name,omitempty"`
+	TenantID   uuid.UUID `json:"tenant,omitempty"`
+	ExternalID uuid.UUID `json:"appliance,omitempty"`
+	Scopes     []string  `json:"scope,omitempty"`
+	Admin      bool      `json:"admin,omitempty"`
+	Raw        string    `json:"-"`
 	jwt.StandardClaims
 }
 
@@ -33,26 +34,6 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 		}
 	}
 	return allScopesMatched
-}
-
-// GetTenantID returns the tenantId associated with the Token
-func (token *JwtToken) GetTenantID() uuid.UUID {
-	return token.TenantID
-}
-
-// GetUserID returns the userId associated with the Token
-func (token *JwtToken) GetUserID() uuid.UUID {
-	return token.UserID
-}
-
-// GetUserName returns the userName associated with the Token
-func (token *JwtToken) GetUserName() string {
-	return token.UserName
-}
-
-// GetScopes returns the scopes associated with the Token
-func (token *JwtToken) GetScopes() []string {
-	return token.Scopes
 }
 
 func inArray(val string, array []string) (ok bool, i int) {
