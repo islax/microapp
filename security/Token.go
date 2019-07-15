@@ -7,6 +7,17 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// ExternalTypes enumeration holds values for several types an Id can have
+type ExternalTypes uint
+
+// state values
+const (
+	None      = 0
+	Appliance = 1 + iota
+	Session
+	User
+)
+
 // JwtToken represents the parsed Token from Authentication Header
 type JwtToken struct {
 	// UserID is id of user matchimg the token
