@@ -7,6 +7,7 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/gofrs/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Used
 	log "github.com/sirupsen/logrus"
@@ -71,12 +72,12 @@ func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 
 // GetToken gets a token to connect to API
 func (testApp *TestApp) GetToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, "", "", scope, false)
+	return testApp.generateToken(tenantID, userID, uuid.UUID{}.String(), "", scope, false)
 }
 
 // GetAdminToken returns a test token
 func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, "", "", scope, true)
+	return testApp.generateToken(tenantID, userID, uuid.UUID{}.String(), "", scope, true)
 }
 
 // GetTokenWithExternalID returns a test token with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
