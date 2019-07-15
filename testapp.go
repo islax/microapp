@@ -84,6 +84,7 @@ func (testApp *TestApp) GetTokenWithExternalID(tenantID string, userID string, e
 	return testApp.generateToken(tenantID, userID, externalID, externalType, scope, true)
 }
 
+// generateToken generates and return token
 func (testApp *TestApp) generateToken(tenantID string, userID string, externalID string, externalType uint, scope []string, admin bool) string {
 	hmacSampleSecret := []byte(testApp.application.Config.GetString("ISLA_JWT_SECRET"))
 
