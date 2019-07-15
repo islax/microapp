@@ -7,7 +7,6 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/islax/microapp/security"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Used
 	log "github.com/sirupsen/logrus"
@@ -72,36 +71,36 @@ func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 
 // GetToken gets a token to connect to API
 func (testApp *TestApp) GetToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, "", security.None, scope, false)
+	return testApp.generateToken(tenantID, userID, "", "", scope, false)
 }
 
 // GetAdminToken returns a test token
 func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, "", security.None, scope, true)
+	return testApp.generateToken(tenantID, userID, "", "", scope, true)
 }
 
 // GetTokenWithExternalID returns a test token with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
-func (testApp *TestApp) GetTokenWithExternalID(tenantID string, userID string, externalID string, externalType uint, scope []string) string {
-	return testApp.generateToken(tenantID, userID, externalID, externalType, scope, true)
+func (testApp *TestApp) GetTokenWithExternalID(tenantID string, userID string, externalID string, externalIDType string, scope []string) string {
+	return testApp.generateToken(tenantID, userID, externalID, externalIDType, scope, true)
 }
 
 // generateToken generates and return token
-func (testApp *TestApp) generateToken(tenantID string, userID string, externalID string, externalType uint, scope []string, admin bool) string {
+func (testApp *TestApp) generateToken(tenantID string, userID string, externalID string, externalIDType string, scope []string, admin bool) string {
 	hmacSampleSecret := []byte(testApp.application.Config.GetString("ISLA_JWT_SECRET"))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"iss":          "http://isla.cyberinc.com",
-		"aud":          "http://isla.cyberinc.com",
-		"foo":          "bar",
-		"iat":          time.Now().Unix(),
-		"exp":          time.Now().Add(time.Minute * 60).Unix(), // Expires in 1 hour
-		"tenant":       tenantID,
-		"user":         userID,
-		"externalId":   externalID,
-		"externalType": externalType,
-		"name":         "username",
-		"scope":        scope,
-		"admin":        admin,
+		"iss":              "http://isla.cyberinc.com",
+		"aud":              "http://isla.cyberinc.com",
+		"iat":              time.Now().Unix(),
+		"exp":              time.Now().Add(time.Minute * 60).Unix(), // Expires in 1 hour
+		"tenant":           tenantID,
+		"user":             userID,
+		"admin":            admin,
+		"name":             "username",
+		"scope":            scope,
+		"externalId":       externalID,
+		"externalIdType":   externalIDType,
+		"identityProvider": "",
 	})
 
 	// Sign and get the complete encoded token as a string using the secret

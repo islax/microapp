@@ -7,28 +7,26 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// ExternalTypes enumeration holds values for several types an Id can have
-type ExternalTypes uint
+// Appliance ExternalID Type
+const Appliance = "Appliance"
 
-// state values
-const (
-	None      = 0
-	Appliance = 1 + iota
-	Session
-	User
-)
+// Session ExternalID Type
+const Session = "Session"
+
+// User ExternalID Type
+const User = "User"
 
 // JwtToken represents the parsed Token from Authentication Header
 type JwtToken struct {
 	// UserID is id of user matchimg the token
-	UserID       uuid.UUID `json:"user,omitempty"`
-	UserName     string    `json:"name,omitempty"`
-	TenantID     uuid.UUID `json:"tenant,omitempty"`
-	ExternalID   uuid.UUID `json:"externalId,omitempty"`
-	ExternalType uint      `json:"externalType,omitempty"`
-	Scopes       []string  `json:"scope,omitempty"`
-	Admin        bool      `json:"admin,omitempty"`
-	Raw          string    `json:"-"`
+	UserID         uuid.UUID `json:"user,omitempty"`
+	UserName       string    `json:"name,omitempty"`
+	TenantID       uuid.UUID `json:"tenant,omitempty"`
+	ExternalID     uuid.UUID `json:"externalId,omitempty"`
+	ExternalIDType string    `json:"externalIdType,omitempty"`
+	Scopes         []string  `json:"scope,omitempty"`
+	Admin          bool      `json:"admin,omitempty"`
+	Raw            string    `json:"-"`
 	jwt.StandardClaims
 }
 
