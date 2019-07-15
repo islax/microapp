@@ -21,14 +21,14 @@ const (
 // JwtToken represents the parsed Token from Authentication Header
 type JwtToken struct {
 	// UserID is id of user matchimg the token
-	UserID       uuid.UUID `json:"user,omitempty"`
-	UserName     string    `json:"name,omitempty"`
-	TenantID     uuid.UUID `json:"tenant,omitempty"`
-	ExternalID   uuid.UUID `json:"externalId,omitempty"`
-	ExternalType uint      `json:"externalType,omitempty"`
-	Scopes       []string  `json:"scope,omitempty"`
-	Admin        bool      `json:"admin,omitempty"`
-	Raw          string    `json:"-"`
+	UserID   uuid.UUID `json:"user,omitempty"`
+	UserName string    `json:"name,omitempty"`
+	TenantID uuid.UUID `json:"tenant,omitempty"`
+	// ExternalID   uuid.UUID `json:"externalId,omitempty"`
+	// ExternalType uint      `json:"externalType,omitempty"`
+	Scopes []string `json:"scope,omitempty"`
+	Admin  bool     `json:"admin,omitempty"`
+	Raw    string   `json:"-"`
 	jwt.StandardClaims
 }
 
