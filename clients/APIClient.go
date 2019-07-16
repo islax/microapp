@@ -32,7 +32,7 @@ func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken
 		body = bytes.NewBuffer(bytePayload)
 	}
 
-	request, err := http.NewRequest(requestMethod, apiClient.baseURL+url, body)
+	request, err := http.NewRequest(requestMethod, apiClient.BaseURL+url, body)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken
 		return nil, err
 	}
 
-	response, err := apiClient.httpClient.Do(request)
+	response, err := apiClient.HTTPClient.Do(request)
 	if err != nil {
 		microLog.Formatted().Error(err)
 		return nil, err
