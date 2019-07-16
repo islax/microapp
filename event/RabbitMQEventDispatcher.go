@@ -99,6 +99,7 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 				amqp.Publishing{
 					ContentType: "application/json",
 					Body:        []byte(body),
+					Headers:     map[string]interface{}{"X-Authorization": command.token},
 				})
 
 			if err != nil {
