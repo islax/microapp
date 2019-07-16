@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
+	uuid "github.com/satori/go.uuid"
+
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/gofrs/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Used
 	log "github.com/sirupsen/logrus"
