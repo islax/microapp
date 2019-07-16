@@ -15,8 +15,8 @@ import (
 
 // APIClient represents the actual client calling microservice
 type APIClient struct {
-	baseURL    string
-	httpClient *http.Client
+	BaseURL    string
+	HTTPClient *http.Client
 }
 
 func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken string, payload map[string]interface{}) (interface{}, error) {
