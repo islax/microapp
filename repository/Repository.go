@@ -3,6 +3,9 @@ package repository
 import (
 	"net/http"
 	"strconv"
+	"time"
+
+	"github.com/islax/microapp/web"
 
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -120,6 +123,44 @@ func PaginateForWeb(w http.ResponseWriter, r *http.Request) QueryProcessor {
 		db.Model(out).Count(&totalRecords)
 
 		w.Header().Set("X-Total-Count", strconv.Itoa(totalRecords))
+		return db, nil
+	}
+}
+
+// TimeRangeForWeb will take limit and offset parameters from URL and  will set X-Total-Count header in response
+func TimeRangeForWeb(r *http.Request, fieldName string) QueryProcessor {
+	queryParams := r.URL.Query()
+	startParam, okStart := queryParams["start"]
+	endParam, okEnd := queryParams["end"]
+
+	var startTime, endTime time.Time
+	var err error
+	if okStart {
+		startTime, err = time.Parse(time.RFC3339, startParam[0])
+		if err != nil {
+			err = web.NewValidationError("Key_InvalidFields", map[string]string{"start": "Key_InvalidValue"})
+		}
+	}
+
+	if err == nil && okEnd {
+		endTime, err = time.Parse(time.RFC3339, endParam[0])
+		if err != nil {
+			err = web.NewValidationError("Key_InvalidFields", map[string]string{"end": "Key_InvalidValue"})
+		}
+	}
+
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
+		if err != nil {
+			return db, err
+		}
+
+		if okStart {
+			db = db.Where(fieldName+" >= ?", startTime)
+		}
+		if okEnd {
+			db = db.Where(fieldName+" <= ?", endTime)
+		}
+
 		return db, nil
 	}
 }
