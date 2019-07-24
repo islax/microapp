@@ -37,10 +37,12 @@ func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken
 		return nil, err
 	}
 
-	if strings.HasPrefix(rawToken, "Bearer") {
-		request.Header.Add("Authorization", rawToken)
-	} else {
-		request.Header.Add("Authorization", "Bearer "+rawToken)
+	if rawToken != "" {
+		if strings.HasPrefix(rawToken, "Bearer") {
+			request.Header.Add("Authorization", rawToken)
+		} else {
+			request.Header.Add("Authorization", "Bearer "+rawToken)
+		}
 	}
 	request.Header.Set("Content-Type", "application/json")
 
