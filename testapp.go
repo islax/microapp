@@ -81,9 +81,14 @@ func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []st
 	return testApp.generateToken(tenantID, userID, uuid.UUID{}.String(), "", "", "", scope, true)
 }
 
+// GetFullAdminToken returns a test token with all the fields along with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
+func (testApp *TestApp) GetFullAdminToken(tenantID string, userID string, username string, name string, externalID string, externalIDType string, scope []string) string {
+	return testApp.generateToken(tenantID, userID, username, name, externalID, externalIDType, scope, true)
+}
+
 // GetFullToken returns a test token with all the fields along with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
 func (testApp *TestApp) GetFullToken(tenantID string, userID string, username string, name string, externalID string, externalIDType string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, username, name, externalID, externalIDType, scope, true)
+	return testApp.generateToken(tenantID, userID, username, name, externalID, externalIDType, scope, false)
 }
 
 // generateToken generates and return token
