@@ -73,12 +73,12 @@ func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 
 // GetToken gets a token to connect to API
 func (testApp *TestApp) GetToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, uuid.UUID{}.String(), "", "", "", scope, false)
+	return testApp.generateToken(tenantID, userID, "", "", uuid.UUID{}.String(), "", scope, false)
 }
 
 // GetAdminToken returns a test token
 func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, uuid.UUID{}.String(), "", "", "", scope, true)
+	return testApp.generateToken(tenantID, userID, "", "", uuid.UUID{}.String(), "", scope, true)
 }
 
 // GetFullAdminToken returns a test token with all the fields along with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
@@ -103,7 +103,7 @@ func (testApp *TestApp) generateToken(tenantID string, userID string, username s
 		"tenant":           tenantID,
 		"user":             userID,
 		"admin":            admin,
-		"email":            username,
+		"name":             username,
 		"displayName":      name,
 		"scope":            scope,
 		"externalId":       externalID,
