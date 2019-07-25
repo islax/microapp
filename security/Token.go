@@ -41,7 +41,9 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 		if ok, _ := inArray(allowedScope, token.Scopes); !ok {
 			scopeParts := strings.Split(allowedScope, ":")
 			if ok, _ := inArray(scopeParts[0]+":*", token.Scopes); !ok {
-				allScopesMatched = false
+				if ok, _ := inArray("*:"+scopeParts[1], token.Scopes); !ok {
+					allScopesMatched = false
+				}
 			}
 		}
 	}
