@@ -73,21 +73,21 @@ func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 
 // GetToken gets a token to connect to API
 func (testApp *TestApp) GetToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, uuid.UUID{}.String(), "", scope, false)
+	return testApp.generateToken(tenantID, userID, uuid.UUID{}.String(), "", "", "", scope, false)
 }
 
 // GetAdminToken returns a test token
 func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, uuid.UUID{}.String(), "", scope, true)
+	return testApp.generateToken(tenantID, userID, uuid.UUID{}.String(), "", "", "", scope, true)
 }
 
-// GetTokenWithExternalID returns a test token with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
-func (testApp *TestApp) GetTokenWithExternalID(tenantID string, userID string, externalID string, externalIDType string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, externalID, externalIDType, scope, true)
+// GetFullToken returns a test token with all the fields along with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
+func (testApp *TestApp) GetFullToken(tenantID string, userID string, username string, name string, externalID string, externalIDType string, scope []string) string {
+	return testApp.generateToken(tenantID, userID, username, name, externalID, externalIDType, scope, true)
 }
 
 // generateToken generates and return token
-func (testApp *TestApp) generateToken(tenantID string, userID string, externalID string, externalIDType string, scope []string, admin bool) string {
+func (testApp *TestApp) generateToken(tenantID string, userID string, username string, name string, externalID string, externalIDType string, scope []string, admin bool) string {
 	hmacSampleSecret := []byte(testApp.application.Config.GetString("ISLA_JWT_SECRET"))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -98,7 +98,8 @@ func (testApp *TestApp) generateToken(tenantID string, userID string, externalID
 		"tenant":           tenantID,
 		"user":             userID,
 		"admin":            admin,
-		"name":             "username",
+		"email":            username,
+		"displayName":      name,
 		"scope":            scope,
 		"externalId":       externalID,
 		"externalIdType":   externalIDType,
