@@ -119,10 +119,13 @@ func PaginateForWeb(w http.ResponseWriter, r *http.Request) QueryProcessor {
 			db = db.Offset(offset)
 		}
 
-		var totalRecords int
-		db.Model(out).Count(&totalRecords)
+		if out != nil {
+			var totalRecords int
+			db.Model(out).Count(&totalRecords)
 
-		w.Header().Set("X-Total-Count", strconv.Itoa(totalRecords))
+			w.Header().Set("X-Total-Count", strconv.Itoa(totalRecords))
+		}
+
 		return db, nil
 	}
 }
