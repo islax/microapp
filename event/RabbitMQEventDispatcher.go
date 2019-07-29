@@ -43,7 +43,7 @@ func NewRabbitMQEventDispatcher(logger *log.Logger) (*RabbitMQEventDispatcher, e
 
 	dispatcher := &RabbitMQEventDispatcher{
 		logger:                 logger,
-		exchangeName:           "isla_Exchange",
+		exchangeName:           "isla_exchange",
 		sendChannel:            sendChannel,
 		retryChannel:           retryChannel,
 		connectionCloseChannel: connectionCloseChannel,

@@ -62,7 +62,7 @@ func (monitor *rabbitMQEventMonitor) connectToRabbitMQ(queueName string, eventsT
 				monitor.logger.Errorf("Failed to open a channel")
 			} else {
 				err = queueChannel.ExchangeDeclare(
-					"isla_Exchange", // name
+					"isla_exchange", // name
 					"topic",         // type
 					true,            // durable
 					false,           // auto-deleted
@@ -89,7 +89,7 @@ func (monitor *rabbitMQEventMonitor) connectToRabbitMQ(queueName string, eventsT
 							err = queueChannel.QueueBind(
 								q.Name,          // queue name
 								normalizedEvent, // routing key
-								"isla_Exchange", // exchange
+								"isla_exchange", // exchange
 								false,
 								nil)
 							if err != nil {
