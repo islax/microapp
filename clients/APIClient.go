@@ -94,13 +94,20 @@ func (apiClient *APIClient) DoGetList(requestString string, rawToken string) ([]
 	if err != nil {
 		return nil, err
 	}
-
-	mapResponse, ok := response.([]map[string]interface{})
+	sliceOfGenericObjects, ok := response.([]interface{})
 	if !ok {
 		return nil, errors.New("Could not parse Json to map")
 	}
-
-	return mapResponse, nil
+	var sliceOfMapObjects []map[string]interface{}
+	for _, obj := range sliceOfGenericObjects {
+		mapObject, ok := obj.(map[string]interface{})
+		if ok {
+			sliceOfMapObjects = append(sliceOfMapObjects, mapObject)
+		} else {
+			return nil, errors.New("Could not parse Json to map")
+		}
+	}
+	return sliceOfMapObjects, nil
 }
 
 // DoPost is a generic method to carry out RESTful calls to the other external microservices in ISLA
