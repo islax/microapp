@@ -50,3 +50,13 @@ func (config *Config) GetString(key string) string {
 func (config *Config) GetInt(key string) int {
 	return config.viper.GetInt(key)
 }
+
+//GetMapString returns the value associated with the key as a map of strings
+func (config *Config) GetMapString(key string) map[string]string {
+	return config.viper.GetStringMapString(key)
+}
+
+//GetgMap returns the value associated with the key as a map of interfaces
+func (config *Config) GetgMap(key string) map[string]interface{} {
+	return config.viper.GetStringMap(key)
+}
