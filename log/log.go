@@ -4,18 +4,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var logx *log.Logger
-
-func init() {
-	logx = log.New()
+// Logx is custom initialized logger
+type Logx struct {
+	logger *log.Logger
 }
 
 // Formatted returns preconfigured logger
-func Formatted() *log.Logger {
+func (logx *Logx) Formatted() *log.Logger {
 	formatter := &log.TextFormatter{
 		FullTimestamp: true,
 	}
-	logx.SetReportCaller(true)
-	logx.SetFormatter(formatter)
-	return logx
+	logx.logger.SetReportCaller(true)
+	logx.logger.SetFormatter(formatter)
+	return logx.logger
 }
