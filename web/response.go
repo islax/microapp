@@ -3,6 +3,8 @@ package web
 import (
 	"encoding/json"
 	"net/http"
+
+	microLog "github.com/islax/microapp/log"
 )
 
 // RespondJSON makes the response with payload as json format
@@ -11,6 +13,7 @@ func RespondJSON(w http.ResponseWriter, status int, payload interface{}) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
+		microLog.Formatted().Error([]byte(err.Error()))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
