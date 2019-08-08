@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	microLog "github.com/islax/microapp/log"
@@ -28,8 +29,12 @@ func UnmarshalJSON(r *http.Request, target interface{}) error {
 	err = json.Unmarshal(body, target)
 	if err != nil {
 		microLog.Formatted().Errorf("%#v", err)
+		microLog.Formatted().Printf("error decoding request: %v", err)
+		if e, ok := err.(*json.SyntaxError); ok {
+			log.Printf("syntax error at byte offset %d", e.Offset)
+		}
+		microLog.Formatted().Printf("request: %q", body)
 		return errors.New("Key_InternalError")
 	}
-
 	return nil
 }
