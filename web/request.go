@@ -17,7 +17,7 @@ func UnmarshalJSON(r *http.Request, target interface{}) error {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		microLog.Formatted().Error(err)
+		microLog.Formatted().Errorf("%#v", err)
 		return errors.New("Key_InternalError")
 	}
 
@@ -27,7 +27,7 @@ func UnmarshalJSON(r *http.Request, target interface{}) error {
 
 	err = json.Unmarshal(body, target)
 	if err != nil {
-		microLog.Formatted().Error(err)
+		microLog.Formatted().Errorf("%#v", err)
 		return errors.New("Key_InternalError")
 	}
 
