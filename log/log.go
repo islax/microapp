@@ -12,10 +12,9 @@ func init() {
 
 // Formatted returns preconfigured logger
 func Formatted() *log.Logger {
-	formatter := &log.TextFormatter{
-		FullTimestamp: true,
-	}
+
+	logx.SetFormatter(&log.JSONFormatter{})
 	logx.SetReportCaller(true)
-	logx.SetFormatter(formatter)
+
 	return logx
 }
