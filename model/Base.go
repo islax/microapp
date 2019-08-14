@@ -1,6 +1,7 @@
 package model
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/islax/microapp/web"
@@ -29,4 +30,28 @@ func ValidateParams(params map[string]interface{}) error {
 	}
 
 	return nil
+}
+
+// ValidateString checks whether the given string conforms to the given constraint. Valid constraints are ANC - Alphanumeric, ANH - Alphanumeric & hyphen, URL - URL, EML - Email.
+// If the given constraint doesnot match any of the predefined constraint then it will be treated as a regular expression.
+func ValidateString(value string, constraint string) (bool, error) {
+	var regularExpression *regexp.Regexp
+	var err error
+	switch constraint {
+	case "ANC":
+		regularExpression, _ = regexp.Compile("^[A-Za-z0-9]+$")
+	case "ANH":
+		regularExpression, _ = regexp.Compile("^[A-Za-z0-9-]+$")
+	case "URL":
+		regularExpression, _ = regexp.Compile("(http:\\/\\/www\\.|https:\\/\\/www\\.|http:\\/\\/|https:\\/\\/)?[a-z0-9]+([\\-\\.]{1}[a-z0-9]+)*\\.[a-z]{2,5}(:[0-9]{1,5})?(\\/.*)?$")
+	case "EML":
+		regularExpression, _ = regexp.Compile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	default:
+		regularExpression, err = regexp.Compile(constraint)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	return regularExpression.MatchString(value), nil
 }
