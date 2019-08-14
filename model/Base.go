@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"regexp"
 	"time"
 
@@ -32,26 +33,47 @@ func ValidateParams(params map[string]interface{}) error {
 	return nil
 }
 
-// ValidateString checks whether the given string conforms to the given constraint. Valid constraints are ANC - Alphanumeric, ANH - Alphanumeric & hyphen, URL - URL, EML - Email.
-// If the given constraint doesnot match any of the predefined constraint then it will be treated as a regular expression.
-func ValidateString(value string, constraint string) (bool, error) {
+// ValidateString checks whether the given string conforms to the given constraint. Valid constraints are AlphaNumeric, AlphaNumericAndHyphen, Email, URL and RegEx.
+// If the given constraint is RegEx, then the 3rd parameter should contain a valid regular expression.
+func ValidateString(value string, constraint StringType, regex ...string) (bool, error) {
 	var regularExpression *regexp.Regexp
 	var err error
 	switch constraint {
-	case "ANC":
+	case AlphaNumeric:
 		regularExpression, _ = regexp.Compile("^[A-Za-z0-9]+$")
-	case "ANH":
+	case AlphaNumericAndHyphen:
 		regularExpression, _ = regexp.Compile("^[A-Za-z0-9-]+$")
-	case "URL":
+	case URL:
 		regularExpression, _ = regexp.Compile("(http:\\/\\/www\\.|https:\\/\\/www\\.|http:\\/\\/|https:\\/\\/)?[a-z0-9]+([\\-\\.]{1}[a-z0-9]+)*\\.[a-z]{2,5}(:[0-9]{1,5})?(\\/.*)?$")
-	case "EML":
+	case Email:
 		regularExpression, _ = regexp.Compile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
-	default:
-		regularExpression, err = regexp.Compile(constraint)
+	case RegEx:
+		if len(regex) < 1 {
+			return false, errors.New("If the constraint is 'RegEx', then a valid regex is needed as 3rd parameter")
+		}
+		regularExpression, err = regexp.Compile(regex[0])
 		if err != nil {
 			return false, err
 		}
+	default:
+		return false, nil
 	}
 
 	return regularExpression.MatchString(value), nil
 }
+
+//StringType represents the type of the string
+type StringType string
+
+const (
+	//AlphaNumeric represents string containing only alphabets and numbers
+	AlphaNumeric StringType = "AlphaNumeric"
+	//AlphaNumericAndHyphen represents string containing alphabets, numbers and hyphen
+	AlphaNumericAndHyphen StringType = "AlphaNumericAndHyphen"
+	//Email represents string containing email address
+	Email StringType = "Email"
+	//URL represents string containing URL
+	URL StringType = "URL"
+	//RegEx represents string containing regular expression
+	RegEx StringType = "RegEx"
+)
