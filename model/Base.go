@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/islax/microapp/web"
@@ -15,6 +16,42 @@ type Base struct {
 	CreatedAt time.Time  `gorm:"column:createdOn"`
 	UpdatedAt time.Time  `gorm:"column:modifiedOn"`
 	DeletedAt *time.Time `sql:"index" gorm:"column:deletedOn"`
+}
+
+//FieldData represents the data associated with a field
+type FieldData struct {
+	Name        string
+	Value       interface{}
+	Type        string
+	Required    bool
+	Constraints []*ConstraintDetail
+}
+
+//ConstraintDetail respresents constraint detail
+type ConstraintDetail struct {
+	Type           ConstraintType
+	ConstraintData interface{}
+}
+
+//NewStringFieldData creates new FieldData with type string and no constraint
+func NewStringFieldData(name string, value interface{}) *FieldData {
+	return &FieldData{
+		Name:     name,
+		Value:    value,
+		Type:     "string",
+		Required: true,
+	}
+}
+
+//NewStringFieldDataWithConstraint creates new FieldData with type string and constraint
+func NewStringFieldDataWithConstraint(name string, value interface{}, constraints []*ConstraintDetail) *FieldData {
+	return &FieldData{
+		Name:        name,
+		Value:       value,
+		Type:        "string",
+		Required:    true,
+		Constraints: constraints,
+	}
 }
 
 // ValidateParams checks string parameters passed to it and returns error in case of blank values.
@@ -33,9 +70,39 @@ func ValidateParams(params map[string]interface{}) error {
 	return nil
 }
 
-// ValidateString checks whether the given string conforms to the given constraint. Valid constraints are AlphaNumeric, AlphaNumericAndHyphen, Email, URL and RegEx.
+// ValidateFields checks string parameters passed to it and returns error in case of blank values.
+func ValidateFields(fields []*FieldData) error {
+	errors := make(map[string]string)
+	for _, field := range fields {
+		if field.Type == "string" {
+			valAsString, ok := field.Value.(string)
+			if !ok {
+				errors[field.Name] = "Key_StringExpected"
+			} else if field.Required && strings.TrimSpace(valAsString) == "" {
+				errors[field.Name] = "Key_Required"
+			} else if strings.TrimSpace(valAsString) != "" && len(field.Constraints) > 0 {
+				for _, constraint := range field.Constraints {
+					if constraint.Type == RegEx {
+						ok, _ = ValidateString(valAsString, constraint.Type, constraint.ConstraintData.(string))
+					} else {
+						ok, _ = ValidateString(valAsString, constraint.Type)
+					}
+					if !ok {
+						errors[field.Name] = "Key_InvalidValue"
+					}
+				}
+			}
+		}
+	}
+	if len(errors) > 0 {
+		return web.NewValidationError("Key_InvalidFields", errors)
+	}
+	return nil
+}
+
+// ValidateString checks whether the given data conforms to the given constraint. Valid constraints are AlphaNumeric, AlphaNumericAndHyphen, Email, URL and RegEx.
 // If the given constraint is RegEx, then the 3rd parameter should contain a valid regular expression.
-func ValidateString(value string, constraint StringType, regex ...string) (bool, error) {
+func ValidateString(value string, constraint ConstraintType, regex ...string) (bool, error) {
 	var regularExpression *regexp.Regexp
 	var err error
 	switch constraint {
@@ -62,18 +129,18 @@ func ValidateString(value string, constraint StringType, regex ...string) (bool,
 	return regularExpression.MatchString(value), nil
 }
 
-//StringType represents the type of the string
-type StringType string
+//ConstraintType represents the type of the string
+type ConstraintType string
 
 const (
 	//AlphaNumeric represents string containing only alphabets and numbers
-	AlphaNumeric StringType = "AlphaNumeric"
+	AlphaNumeric ConstraintType = "AlphaNumeric"
 	//AlphaNumericAndHyphen represents string containing alphabets, numbers and hyphen
-	AlphaNumericAndHyphen StringType = "AlphaNumericAndHyphen"
+	AlphaNumericAndHyphen ConstraintType = "AlphaNumericAndHyphen"
 	//Email represents string containing email address
-	Email StringType = "Email"
+	Email ConstraintType = "Email"
 	//URL represents string containing URL
-	URL StringType = "URL"
+	URL ConstraintType = "URL"
 	//RegEx represents string containing regular expression
-	RegEx StringType = "RegEx"
+	RegEx ConstraintType = "RegEx"
 )
