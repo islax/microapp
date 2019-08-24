@@ -15,7 +15,7 @@ func UnmarshalJSON(r *http.Request, target interface{}) error {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		// microLog.Formatted().Errorf("%#v", err)
+		// microLog.Logger.Errorf("%#v", err)
 		return errors.New("Key_InternalError")
 	}
 
@@ -25,12 +25,12 @@ func UnmarshalJSON(r *http.Request, target interface{}) error {
 
 	err = json.Unmarshal(body, target)
 	if err != nil {
-		// microLog.Formatted().Errorf("%#v", err)
-		// microLog.Formatted().Printf("error decoding request: %v", err)
+		// microLog.Logger.Errorf("%#v", err)
+		// microLog.Logger.Printf("error decoding request: %v", err)
 		// if e, ok := err.(*json.SyntaxError); ok {
 		// 	log.Printf("syntax error at byte offset %d", e.Offset)
 		// }
-		// microLog.Formatted().Printf("request: %q", body)
+		// microLog.Logger.Printf("request: %q", body)
 		return errors.New("Key_InternalError")
 	}
 	return nil

@@ -24,7 +24,7 @@ func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken
 	if payload != nil {
 		bytePayload, err := json.Marshal(payload)
 		stringPayload := string(bytePayload)
-		microLog.Formatted().Info(stringPayload)
+		microLog.Logger.Info(stringPayload)
 
 		if err != nil {
 			return nil, err
@@ -47,13 +47,13 @@ func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken
 	request.Header.Set("Content-Type", "application/json")
 
 	if err != nil {
-		microLog.Formatted().Error(err)
+		microLog.Logger.Error(err)
 		return nil, err
 	}
 
 	response, err := apiClient.HTTPClient.Do(request)
 	if err != nil {
-		microLog.Formatted().Error(err)
+		microLog.Logger.Error(err)
 		return nil, err
 	}
 
@@ -61,7 +61,7 @@ func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken
 	if response.StatusCode > 300 { // All 3xx, 4xx, 5xx are considered errors
 		errorBytes, _ := ioutil.ReadAll(response.Body)
 		errorString := string(errorBytes)
-		microLog.Formatted().Error(errorString)
+		microLog.Logger.Error(errorString)
 		return nil, errors.New("Received Status Code " + strconv.Itoa(response.StatusCode))
 	}
 
