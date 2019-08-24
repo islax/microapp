@@ -1,20 +1,29 @@
 package log
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
-var logx *log.Logger
+var logger *logrus.Logger
 
 func init() {
-	logx = log.New()
+	customFormattedLogger := CustomLogger{}
+	logger = customFormattedLogger.formatIt()
 }
 
-// Formatted returns preconfigured logger
-func Formatted() *log.Logger {
+// CustomLogger is custom logger
+type CustomLogger struct {
+	customlogger *logrus.Logger
+}
 
-	logx.SetFormatter(&log.JSONFormatter{})
-	logx.SetReportCaller(true)
-
-	return logx
+func (cl *CustomLogger) formatIt() *logrus.Logger {
+	cl.customlogger = logrus.New()
+	cl.customlogger.SetFormatter(&logrus.TextFormatter{
+		DisableColors: false,
+		FullTimestamp: true,
+	})
+	filenameHook := NewHook()
+	filenameHook.Field = "line"
+	cl.customlogger.AddHook(filenameHook)
+	return cl.customlogger
 }
