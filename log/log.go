@@ -4,11 +4,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var logger *logrus.Logger
+// Logger is custom formatted text logger
+var Logger *logrus.Logger
 
 func init() {
 	customFormattedLogger := CustomLogger{}
-	logger = customFormattedLogger.formatIt()
+	Logger = customFormattedLogger.formatIt()
 }
 
 // CustomLogger is custom logger
