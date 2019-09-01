@@ -22,3 +22,14 @@ func NewEventMonitor(logger *logrus.Logger, eventsToMonitor []string, eventSigna
 
 	return monitor, nil
 }
+
+func NewEventMonitorForQueue(logger *logrus.Logger, queueName string, eventsToMonitor []string, eventSignal chan *EventInfo) (EventMonitor, error) {
+	monitor := &rabbitMQEventMonitor{logger: logger, queueName: queueName, eventSignal: eventSignal}
+
+	err := monitor.initialize(eventsToMonitor)
+	if err != nil {
+		return nil, err
+	}
+
+	return monitor, nil
+}
