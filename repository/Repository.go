@@ -112,18 +112,19 @@ func PaginateForWeb(w http.ResponseWriter, r *http.Request) QueryProcessor {
 	}
 
 	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
-		if limit != -1 {
-			db = db.Limit(limit)
-		}
-		if offset > 0 {
-			db = db.Offset(offset)
-		}
 
 		if out != nil {
 			var totalRecords int
 			db.Model(out).Count(&totalRecords)
 
 			w.Header().Set("X-Total-Count", strconv.Itoa(totalRecords))
+		}
+
+		if limit != -1 {
+			db = db.Limit(limit)
+		}
+		if offset > 0 {
+			db = db.Offset(offset)
 		}
 
 		return db, nil
