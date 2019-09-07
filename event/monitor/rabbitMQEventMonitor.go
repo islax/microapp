@@ -77,7 +77,7 @@ func (monitor *rabbitMQEventMonitor) connectToRabbitMQ(queueName string, eventsT
 						monitor.queueName, // name
 						false,             // durable
 						false,             // delete when unused
-						true,              // exclusive
+						false,             // exclusive
 						false,             // no-wait
 						nil,               // arguments
 					)
