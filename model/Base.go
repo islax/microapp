@@ -13,8 +13,8 @@ import (
 // Base contains common columns for all tables.
 type Base struct {
 	ID        uuid.UUID  `gorm:"type:varchar(36);primary_key;"`
-	CreatedAt time.Time  `gorm:"column:createdOn"`
-	UpdatedAt time.Time  `gorm:"column:modifiedOn;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+	CreatedAt time.Time  `gorm:"column:createdOn;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time  `gorm:"column:modifiedOn;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"`
 	DeletedAt *time.Time `sql:"index" gorm:"column:deletedOn"`
 }
 
