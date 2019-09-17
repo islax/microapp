@@ -14,7 +14,7 @@ import (
 type Base struct {
 	ID        uuid.UUID  `gorm:"type:varchar(36);primary_key;"`
 	CreatedAt time.Time  `gorm:"column:createdOn"`
-	UpdatedAt time.Time  `gorm:"column:modifiedOn"`
+	UpdatedAt time.Time  `gorm:"column:modifiedOn;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
 	DeletedAt *time.Time `sql:"index" gorm:"column:deletedOn"`
 }
 
