@@ -10,7 +10,7 @@ import (
 type TenantBase struct {
 	ID        uuid.UUID  `gorm:"type:varchar(36);primary_key;"`
 	TenantID  uuid.UUID  `gorm:"type:varchar(36);column:tenantId;"`
-	CreatedAt time.Time  `gorm:"column:createdOn;default:CURRENT_TIMESTAMP;"`
-	UpdatedAt time.Time  `gorm:"column:modifiedOn;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;"`
+	CreatedAt time.Time  `gorm:"column:createdOn"`
+	UpdatedAt time.Time  `gorm:"column:modifiedOn"`
 	DeletedAt *time.Time `sql:"index" gorm:"column:deletedOn"`
 }
