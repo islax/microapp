@@ -159,10 +159,10 @@ func TimeRangeForWeb(r *http.Request, fieldName string) QueryProcessor {
 		}
 
 		if okStart {
-			db = db.Where(fieldName+" >= ?", startTime)
+			db = db.Where(fieldName+" >= ?", startTime.UTC())
 		}
 		if okEnd {
-			db = db.Where(fieldName+" <= ?", endTime)
+			db = db.Where(fieldName+" <= ?", endTime.UTC())
 		}
 
 		return db, nil
