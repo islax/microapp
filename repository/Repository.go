@@ -205,7 +205,7 @@ func (repository *GormRepository) GetAll(uow *UnitOfWork, out interface{}, query
 
 // GetAllForTenant returns all objects of specifeid tenantID
 func (repository *GormRepository) GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) error {
-	queryProcessors = append(queryProcessors, Filter("tenantID = ?", tenantID))
+	queryProcessors = append([]QueryProcessor{Filter("tenantID = ?", tenantID)}, queryProcessors...)
 	return repository.GetAll(uow, out, queryProcessors)
 }
 
