@@ -169,6 +169,14 @@ func TimeRangeForWeb(r *http.Request, fieldName string) QueryProcessor {
 	}
 }
 
+// Order will filter the results
+func Order(value interface{}, reorder bool) QueryProcessor {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
+		db = db.Order(value, reorder)
+		return db, nil
+	}
+}
+
 // Filter will filter the results
 func Filter(condition string, args ...interface{}) QueryProcessor {
 	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
