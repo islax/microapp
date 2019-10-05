@@ -1,8 +1,10 @@
 package repository
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/islax/microapp/web"
@@ -230,4 +232,27 @@ func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) er
 // Delete specified Entity
 func (repository *GormRepository) Delete(uow *UnitOfWork, entity interface{}) error {
 	return uow.DB.Delete(entity).Error
+}
+
+// AddFiltersFromQueryParams will check for given filter(s) in the query params, if value found creates the db filter. filterDetail format - "filterName[:type]".
+func AddFiltersFromQueryParams(r *http.Request, filterDetails ...string) ([]QueryProcessor, error) {
+	queryParams := r.URL.Query()
+	filters := make([]QueryProcessor, 0)
+	for _, filterNameAndTypeStr := range filterDetails {
+		filterNameAndType := strings.Split(filterNameAndTypeStr, ":")
+		filterValueAsStr := queryParams.Get(filterNameAndType[0])
+		if filterValueAsStr != "" {
+			if len(filterNameAndType) > 1 && filterNameAndType[1] == "datetime" {
+				filterValueAsTime, err := time.Parse(time.RFC3339, filterValueAsStr)
+				if err != nil {
+					return nil, web.NewValidationError("Key_InvalidFields", map[string]string{filterNameAndType[0]: "Key_InvalidValue"})
+				}
+				filters = append(filters, Filter(fmt.Sprintf("%v = ?", filterNameAndType[0]), filterValueAsTime))
+			} else {
+				filters = append(filters, Filter(fmt.Sprintf("%v = ?", filterNameAndType[0]), filterValueAsStr))
+			}
+		}
+	}
+
+	return filters, nil
 }
