@@ -123,3 +123,12 @@ func (apiClient *APIClient) DoPost(requestString string, rawToken string, payloa
 	}
 	return mapResponse, nil
 }
+
+// DoDelete is a generic method to carry out RESTful calls to the other external microservices in ISLA
+func (apiClient *APIClient) DoDelete(requestString string, rawToken string, payload map[string]interface{}) error {
+	_, err := apiClient.doRequest(requestString, http.MethodDelete, rawToken, payload)
+	if err != nil {
+		return err
+	}
+	return nil
+}
