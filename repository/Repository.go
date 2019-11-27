@@ -187,6 +187,17 @@ func Filter(condition string, args ...interface{}) QueryProcessor {
 	}
 }
 
+// ORFilterWithDifferentConditionsButSameFilterValue will filter the results based on OR
+func ORFilterWithDifferentConditionsButSameFilterValue(args string, condition ...string) QueryProcessor {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
+		db = db.Where(condition[0], args)
+		for i := 1; i < len(condition); i++ {
+			db = db.Or(condition[i], args)
+		}
+		return db, nil
+	}
+}
+
 // Get a record for specified entity with specific id
 func (repository *GormRepository) Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) error {
 	db := uow.DB
