@@ -187,13 +187,22 @@ func Filter(condition string, args ...interface{}) QueryProcessor {
 	}
 }
 
-// ORFilterWithDifferentConditionsButSameFilterValue will filter the results based on OR
-func ORFilterWithDifferentConditionsButSameFilterValue(args string, condition ...string) QueryProcessor {
+// FilterWithOR will filter the results based on OR
+func FilterWithOR(columnName []string, condition []string, filterValues []interface{}) QueryProcessor {
 	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
-		db = db.Where(condition[0], args)
-		for i := 1; i < len(condition); i++ {
-			db = db.Or(condition[i], args)
+		if len(condition) == 1 {
+			db = db.Where(columnName[0]+" "+condition[0]+" ", filterValues[0])
+			return db, nil
 		}
+		str := ""
+		for i := 0; i < len(columnName); i++ {
+			if i == len(columnName)-1 {
+				str = str + columnName[i] + " " + condition[i] + " ?"
+			} else {
+				str = str + columnName[i] + " " + condition[i] + " ?" + " OR "
+			}
+		}
+		db = db.Where(str, filterValues...)
 		return db, nil
 	}
 }
