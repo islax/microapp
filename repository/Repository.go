@@ -190,16 +190,19 @@ func Filter(condition string, args ...interface{}) QueryProcessor {
 // FilterWithOR will filter the results based on OR
 func FilterWithOR(columnName []string, condition []string, filterValues []interface{}) QueryProcessor {
 	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
+		if len(condition) != len(columnName) && len(condition) != len(filterValues) {
+			return db, nil
+		}
 		if len(condition) == 1 {
-			db = db.Where(columnName[0]+" "+condition[0]+" ", filterValues[0])
+			db = db.Where(fmt.Sprintf("%v %v ?", columnName[0], condition[0]), filterValues[0])
 			return db, nil
 		}
 		str := ""
 		for i := 0; i < len(columnName); i++ {
 			if i == len(columnName)-1 {
-				str = str + columnName[i] + " " + condition[i] + " ?"
+				str = fmt.Sprintf("%v%v %v ?", str, columnName[i], condition[i])
 			} else {
-				str = str + columnName[i] + " " + condition[i] + " ?" + " OR "
+				str = fmt.Sprintf("%v%v %v ? OR ", str, columnName[i], condition[i])
 			}
 		}
 		db = db.Where(str, filterValues...)
@@ -274,5 +277,40 @@ func AddFiltersFromQueryParams(r *http.Request, filterDetails ...string) ([]Quer
 		}
 	}
 
+	return filters, nil
+}
+
+// AddFiltersFromQueryParamsWithOR will check for given filter(s) in the query params, if value found adds it in array and creates the db filter. filterDetail format - "filterName[:type]". All Filters are using 'OR'
+func AddFiltersFromQueryParamsWithOR(r *http.Request, filterDetails ...string) ([]QueryProcessor, error) {
+	queryParams := r.URL.Query()
+	filters := make([]QueryProcessor, 0)
+	columnName := []string{}
+	condition := []string{}
+	filterInterface := make([]interface{}, 0)
+	for _, filterNameAndTypeStr := range filterDetails {
+		filterNameAndType := strings.Split(filterNameAndTypeStr, ":")
+		filterValueAsStr := queryParams.Get(filterNameAndType[0])
+		if filterValueAsStr != "" {
+			filterValueArray := strings.Split(filterValueAsStr, ",")
+			for _, filterValueArrayAsString := range filterValueArray {
+				if filterValueArrayAsString != "" {
+					if len(filterNameAndType) > 1 && filterNameAndType[1] == "datetime" {
+						_, err := time.Parse(time.RFC3339, filterValueArrayAsString)
+						if err != nil {
+							return nil, web.NewValidationError("Key_InvalidFields", map[string]string{filterNameAndType[0]: "Key_InvalidValue"})
+						}
+						columnName = append(columnName, filterNameAndType[0])
+						condition = append(condition, "like")
+						filterInterface = append(filterInterface, fmt.Sprintf("%v%v%v", "%", strings.TrimSpace(filterValueArrayAsString), "%"))
+					} else {
+						columnName = append(columnName, filterNameAndType[0])
+						condition = append(condition, "like")
+						filterInterface = append(filterInterface, fmt.Sprintf("%v%v%v", "%", strings.TrimSpace(filterValueArrayAsString), "%"))
+					}
+				}
+			}
+		}
+	}
+	filters = append(filters, FilterWithOR(columnName, condition, filterInterface))
 	return filters, nil
 }
