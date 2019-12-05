@@ -293,6 +293,7 @@ func AddFiltersFromQueryParamsWithOR(r *http.Request, filterDetails ...string) (
 		if filterValueAsStr != "" {
 			filterValueArray := strings.Split(filterValueAsStr, ",")
 			for _, filterValueArrayAsString := range filterValueArray {
+				filterValueArrayAsString = strings.TrimSpace(filterValueArrayAsString)
 				if filterValueArrayAsString != "" {
 					if len(filterNameAndType) > 1 && filterNameAndType[1] == "datetime" {
 						_, err := time.Parse(time.RFC3339, filterValueArrayAsString)
@@ -301,11 +302,11 @@ func AddFiltersFromQueryParamsWithOR(r *http.Request, filterDetails ...string) (
 						}
 						columnName = append(columnName, filterNameAndType[0])
 						condition = append(condition, "like")
-						filterInterface = append(filterInterface, fmt.Sprintf("%v%v%v", "%", strings.TrimSpace(filterValueArrayAsString), "%"))
+						filterInterface = append(filterInterface, fmt.Sprintf("%v%v%v", "%", filterValueArrayAsString, "%"))
 					} else {
 						columnName = append(columnName, filterNameAndType[0])
 						condition = append(condition, "like")
-						filterInterface = append(filterInterface, fmt.Sprintf("%v%v%v", "%", strings.TrimSpace(filterValueArrayAsString), "%"))
+						filterInterface = append(filterInterface, fmt.Sprintf("%v%v%v", "%", filterValueArrayAsString, "%"))
 					}
 				}
 			}
