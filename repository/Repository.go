@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -314,4 +315,86 @@ func AddFiltersFromQueryParamsWithOR(r *http.Request, filterDetails ...string) (
 	}
 	filters = append(filters, FilterWithOR(columnName, condition, filterInterface))
 	return filters, nil
+}
+
+// GetOrder will check for valid sorting columns, substituting column and return the Order Query. Format for orderBy : ColumnName1:1,ColumnName2:0 etc. 0 -> Asc, 1 -> Desc
+// Format For SubsituteKeyWithValue : map[string][]string{"Key": []string{"Value1", "Value2"}}
+func GetOrder(orderBy string, validSortingColumn []string, subsituteKeyWithValue map[string][]string) (QueryProcessor, error) {
+	orderByQuery := ""
+	orderByArray := strings.Split(orderBy, ",")
+	for _, orderInfo := range orderByArray {
+		orderInfoSplit := strings.Split(orderInfo, ":")
+		if len(orderInfoSplit) == 2 {
+			columnName := orderInfoSplit[0]
+			orderType := GetOrderType(orderInfoSplit[1])
+			query, err := getOrderQuery(columnName, orderType, validSortingColumn, subsituteKeyWithValue)
+			if err != nil {
+				return nil, err
+			}
+			orderByQuery = fmt.Sprintf("%v%v", orderByQuery, query)
+		} else {
+			if len(orderInfoSplit) > 0 && orderInfoSplit[0] != "" {
+				query, err := getOrderQuery(orderInfoSplit[0], "Asc", validSortingColumn, subsituteKeyWithValue)
+				if err != nil {
+					return nil, err
+				}
+				orderByQuery = fmt.Sprintf("%v%v", orderByQuery, query)
+			}
+		}
+	}
+	return Order(strings.TrimRight(orderByQuery, ","), true), nil
+}
+
+// Contains checks if value present in array
+func Contains(arr []string, str string) bool {
+	for _, a := range arr {
+		if a == str {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsKey checks if key present in map
+func ContainsKey(keyValuePair map[string][]string, keyToCheck string) bool {
+	if _, keyFound := keyValuePair[keyToCheck]; keyFound {
+		return true
+	}
+	return false
+}
+
+// GetOrderType returns the type of order
+func GetOrderType(order string) string {
+	if order == "1" {
+		return "Desc"
+	}
+	return "Asc"
+}
+
+// getOrderQuery returns the query string for order
+func getOrderQuery(columnName string, orderType string, validSortingColumn []string, subsituteKeyWithValue map[string][]string) (string, error) {
+	orderByQuery := ""
+	if validSortingColumn != nil && Contains(validSortingColumn, columnName) {
+		if subsituteKeyWithValue != nil && ContainsKey(subsituteKeyWithValue, columnName) {
+			value := subsituteKeyWithValue[columnName]
+			for _, eachValue := range value {
+				if eachValue != "" {
+					orderByQuery = fmt.Sprintf("%v%v %v,", orderByQuery, eachValue, orderType)
+				}
+			}
+		} else {
+			if columnName != "" || orderType != "" {
+				orderByQuery = fmt.Sprintf("%v%v %v,", orderByQuery, columnName, orderType)
+			}
+		}
+	} else {
+		return "", web.NewValidationError("Key_InvalidFields", map[string]string{"field": errors.New(columnName).Error(), "error": "Key_SortIssue"})
+	}
+	return orderByQuery, nil
+}
+
+// DoesColumnExistInTable returns bool if the column exist in table
+func DoesColumnExistInTable(uow *UnitOfWork, tableName string, ColumnName string) bool {
+	//tableName := uow.DB.NewScope(rules).TableName() // rules --> model, need to send from client controller
+	return uow.DB.Dialect().HasColumn(tableName, ColumnName)
 }
