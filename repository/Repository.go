@@ -319,7 +319,7 @@ func AddFiltersFromQueryParamsWithOR(r *http.Request, filterDetails ...string) (
 
 // GetOrder will check for valid sorting columns, substituting column and return the Order Query. Format for orderBy : ColumnName1:1,ColumnName2:0 etc. 0 -> Asc, 1 -> Desc
 // Format For SubsituteKeyWithValue : map[string][]string{"Key": []string{"Value1", "Value2"}}
-func GetOrder(orderBy string, validSortingColumn []string, subsituteKeyWithValue map[string][]string) (QueryProcessor, error) {
+func GetOrder(orderBy string, validSortingColumn []string, subsituteKeyWithValue map[string][]string, returnType string) (interface{}, error) {
 	orderByQuery := ""
 	orderByArray := strings.Split(orderBy, ",")
 	for _, orderInfo := range orderByArray {
@@ -342,7 +342,10 @@ func GetOrder(orderBy string, validSortingColumn []string, subsituteKeyWithValue
 			}
 		}
 	}
-	return Order(strings.TrimRight(orderByQuery, ","), true), nil
+	if returnType == "queryProcessor" {
+		return Order(strings.TrimRight(orderByQuery, ","), true), nil
+	}
+	return strings.TrimRight(orderByQuery, ","), nil
 }
 
 // Contains checks if value present in array
