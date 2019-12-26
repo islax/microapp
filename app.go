@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"net/http"
+	"strconv"
 
 	"time"
 
@@ -47,6 +48,7 @@ func (app *App) NewUnitOfWork(readOnly bool) *repository.UnitOfWork {
 
 //Initialize initializes properties of the app
 func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
+	logger := app.log
 	app.Router = mux.NewRouter()
 	app.Router.Use(mux.CORSMethodMiddleware(app.Router))
 	app.Router.Use(app.loggingMiddleware)
@@ -55,8 +57,20 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 		routeSpecifier.RegisterRoutes(app.Router)
 	}
 
+	apiPort := "80"
+
+	if app.Config.IsSet("api.port") {
+		port := app.Config.GetString("api.port")
+		if _, err := strconv.Atoi(port); err != nil {
+			logger.Error("API port needs to be a number. " + port + " is not a number.\n")
+		} else {
+			apiPort = port
+		}
+	}
+
+	logger.Info("Api server will start on port: "+apiPort)
 	app.server = &http.Server{
-		Addr:         "0.0.0.0:80",
+		Addr:         "0.0.0.0:" + apiPort,
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
@@ -69,7 +83,7 @@ func (app *App) Start() {
 	if err := app.server.ListenAndServe(); err != nil {
 		log.Println(err)
 	} else {
-		log.Println("Server started")
+		log.Info("Server started")
 	}
 }
 
