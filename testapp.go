@@ -120,3 +120,12 @@ func (testApp *TestApp) generateToken(tenantID string, userID string, username s
 
 	return tokenString
 }
+
+// SetControllerRouteProviderAndInitialize sets the controllerRouteProvider and initializes application
+func (testApp *TestApp) SetControllerRouteProviderAndInitialize(controllerRouteProvider func(*App) []RouteSpecifier) {
+	testApp.controllerRouteProvider = controllerRouteProvider
+	testApp.PrepareEmptyTables()
+	testApp.application.Initialize(testApp.controllerRouteProvider(testApp.application))
+
+	go testApp.application.Start()
+}
