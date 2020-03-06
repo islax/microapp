@@ -3,6 +3,7 @@ package microapp
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -49,6 +50,7 @@ func (testApp *TestApp) Initialize() {
 func (testApp *TestApp) Stop() {
 	testApp.application.Stop()
 	testApp.application.DB.Close()
+	os.Remove("./test_islax.db")
 }
 
 // PrepareEmptyTables clears all table of data
@@ -128,4 +130,18 @@ func (testApp *TestApp) SetControllerRouteProviderAndInitialize(controllerRouteP
 	testApp.application.Initialize(testApp.controllerRouteProvider(testApp.application))
 
 	go testApp.application.Start()
+}
+
+// SaveToDB saves the entity to database
+func (testApp *TestApp) SaveToDB(entity interface{}) error {
+	return testApp.application.DB.Create(entity).Error
+}
+
+// GetByID saves the entity to database
+func (testApp *TestApp) GetByID(ID string, preloads []string, entity interface{}) error {
+	db := testApp.application.DB
+	for _, preload := range preloads {
+		db = db.Preload(preload)
+	}
+	return db.Where("id = ?", ID).Find(entity).Error
 }
