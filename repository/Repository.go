@@ -81,13 +81,15 @@ func PreloadAssociations(preloadAssociations []string) QueryProcessor {
 // Paginate will restrict the output of query
 func Paginate(limit int, offset int, count *int) QueryProcessor {
 	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
+		if out != nil {
+			db.Model(out).Count(count)
+		}
 		if limit != -1 {
 			db = db.Limit(limit)
 		}
 		if offset > 0 {
 			db = db.Offset(offset)
 		}
-		db.Model(out).Count(count)
 		return db, nil
 	}
 }
@@ -285,38 +287,38 @@ func AddFiltersFromQueryParams(r *http.Request, filterDetails ...string) ([]Quer
 // filterDetail format - "filterName[:type]".
 // Same field Filters are using 'OR' , 'AND' would be done between different fields
 func AddFiltersFromQueryParamsWithOR(r *http.Request, filterDetails ...string) ([]QueryProcessor, error) {
-    queryParams := r.URL.Query()
-    filters := make([]QueryProcessor, 0)
-    for _, filterNameAndTypeStr := range filterDetails {
-        filterNameAndType := strings.Split(filterNameAndTypeStr, ":")
-        filterValueAsStr := queryParams.Get(filterNameAndType[0])
-        if filterValueAsStr != "" {
-            filterValueArray := strings.Split(filterValueAsStr, ",")
-            columnName := []string{}
-            condition := []string{}
-            filterInterface := make([]interface{}, 0)
-            for _, filterValueArrayAsString := range filterValueArray {
-                filterValueArrayAsString = strings.TrimSpace(filterValueArrayAsString)
-                if filterValueArrayAsString != "" {
-                    if len(filterNameAndType) > 1 && filterNameAndType[1] == "datetime" {
-                        _, err := time.Parse(time.RFC3339, filterValueArrayAsString)
-                        if err != nil {
-                            return nil, web.NewValidationError("Key_InvalidFields", map[string]string{filterNameAndType[0]: "Key_InvalidValue"})
-                        }
-                        columnName = append(columnName, filterNameAndType[0])
-                        condition = append(condition, "like")
-                        filterInterface = append(filterInterface, fmt.Sprintf("%v%v%v", "%", filterValueArrayAsString, "%"))
-                    } else {
-                        columnName = append(columnName, filterNameAndType[0])
-                        condition = append(condition, "like")
-                        filterInterface = append(filterInterface, fmt.Sprintf("%v%v%v", "%", filterValueArrayAsString, "%"))
-                    }
-                }
-            }
-            filters = append(filters, FilterWithOR(columnName, condition, filterInterface))
-        }
-    }
-    return filters, nil
+	queryParams := r.URL.Query()
+	filters := make([]QueryProcessor, 0)
+	for _, filterNameAndTypeStr := range filterDetails {
+		filterNameAndType := strings.Split(filterNameAndTypeStr, ":")
+		filterValueAsStr := queryParams.Get(filterNameAndType[0])
+		if filterValueAsStr != "" {
+			filterValueArray := strings.Split(filterValueAsStr, ",")
+			columnName := []string{}
+			condition := []string{}
+			filterInterface := make([]interface{}, 0)
+			for _, filterValueArrayAsString := range filterValueArray {
+				filterValueArrayAsString = strings.TrimSpace(filterValueArrayAsString)
+				if filterValueArrayAsString != "" {
+					if len(filterNameAndType) > 1 && filterNameAndType[1] == "datetime" {
+						_, err := time.Parse(time.RFC3339, filterValueArrayAsString)
+						if err != nil {
+							return nil, web.NewValidationError("Key_InvalidFields", map[string]string{filterNameAndType[0]: "Key_InvalidValue"})
+						}
+						columnName = append(columnName, filterNameAndType[0])
+						condition = append(condition, "like")
+						filterInterface = append(filterInterface, fmt.Sprintf("%v%v%v", "%", filterValueArrayAsString, "%"))
+					} else {
+						columnName = append(columnName, filterNameAndType[0])
+						condition = append(condition, "like")
+						filterInterface = append(filterInterface, fmt.Sprintf("%v%v%v", "%", filterValueArrayAsString, "%"))
+					}
+				}
+			}
+			filters = append(filters, FilterWithOR(columnName, condition, filterInterface))
+		}
+	}
+	return filters, nil
 }
 
 // GetOrder will check for valid sorting columns, substituting column and return the Order Query. Format for orderBy : ColumnName1:1,ColumnName2:0 etc. 0 -> Asc, 1 -> Desc
