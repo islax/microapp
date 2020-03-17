@@ -11,7 +11,7 @@ type ValidationError struct {
 }
 
 func (e ValidationError) Error() string {
-	return fmt.Sprintf("Error: %s", e.ErrorKey)
+	return fmt.Sprintf("Error: [%s - %s]", e.ErrorKey, e.Errors)
 }
 
 // NewValidationError creates an new instance of Validation Error
