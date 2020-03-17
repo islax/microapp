@@ -11,7 +11,7 @@ import (
 // BaseService base service interface
 type BaseService interface {
 	GetPaginationParams(queryParams map[string][]string) (int, int)
-	CreateOrderByString(orderBy []string, validOrderByAttrs []string, orderByAttrAndDBCloum map[string][]string) string
+	CreateOrderByString(orderBy []string, validOrderByAttrs []string, orderByAttrAndDBCloum map[string][]string) (string, error)
 }
 
 // BaseServiceImpl base service implementation
