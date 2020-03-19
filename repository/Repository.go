@@ -185,7 +185,7 @@ func Order(value interface{}, reorder bool) QueryProcessor {
 // Filter will filter the results
 func Filter(condition string, args ...interface{}) QueryProcessor {
 	return func(db *gorm.DB, out interface{}) (*gorm.DB, error) {
-		db = db.Where(condition, args)
+		db = db.Where(condition, args...)
 		return db, nil
 	}
 }
