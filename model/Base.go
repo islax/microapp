@@ -43,13 +43,24 @@ func NewStringFieldData(name string, value interface{}) *FieldData {
 	}
 }
 
-//NewStringFieldDataWithConstraint creates new FieldData with type string and constraint
+// NewStringFieldDataWithConstraint creates new FieldData with type string and constraint
 func NewStringFieldDataWithConstraint(name string, value interface{}, constraints []*ConstraintDetail) *FieldData {
 	return &FieldData{
 		Name:        name,
 		Value:       value,
 		Type:        "string",
 		Required:    true,
+		Constraints: constraints,
+	}
+}
+
+// NewOptionalStringFieldDataWithConstraints creates new FieldData with type string, required param value and constraints
+func NewOptionalStringFieldDataWithConstraints(name string, value interface{}, constraints []*ConstraintDetail) *FieldData {
+	return &FieldData{
+		Name:        name,
+		Value:       value,
+		Type:        "string",
+		Required:    false,
 		Constraints: constraints,
 	}
 }

@@ -117,6 +117,26 @@ func TestValidateFields(t *testing.T) {
 			}},
 			false,
 		},
+
+		{
+			"Single optional field with AlphaNumeric constraint and valid value",
+			args{[]*FieldData{
+				NewOptionalStringFieldDataWithConstraints("AlphaNumericValue", "123wqwe", []*ConstraintDetail{
+					&ConstraintDetail{AlphaNumeric, nil},
+				}),
+			}},
+			false,
+		},
+
+		{
+			"Single optional field with AlphaNumeric constraint and empty",
+			args{[]*FieldData{
+				NewOptionalStringFieldDataWithConstraints("AlphaNumericValue", "", []*ConstraintDetail{
+					&ConstraintDetail{AlphaNumeric, nil},
+				}),
+			}},
+			false,
+		},
 	}
 
 	for _, tt := range tests {
