@@ -19,7 +19,7 @@ type Repository interface {
 	Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) error
 	GetAll(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) error
 	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) error
-	GetCountForTenant(uow *UnitOfWork, tenantID uuid.UUID, model interface{}, queryProcessors []QueryProcessor, out *int) error
+	GetCountForTenant(uow *UnitOfWork, tenantID uuid.UUID, model interface{}, queryProcessors []QueryProcessor) (int, error)
 	Add(uow *UnitOfWork, out interface{}) error
 	Update(uow *UnitOfWork, out interface{}) error
 	Delete(uow *UnitOfWork, out interface{}) error
@@ -247,20 +247,25 @@ func (repository *GormRepository) GetAllForTenant(uow *UnitOfWork, out interface
 }
 
 // GetCountForTenant gets count of the given model for specified tenantID
-func (repository *GormRepository) GetCountForTenant(uow *UnitOfWork, tenantID uuid.UUID, model interface{}, queryProcessors []QueryProcessor, out *int) error {
+func (repository *GormRepository) GetCountForTenant(uow *UnitOfWork, tenantID uuid.UUID, model interface{}, queryProcessors []QueryProcessor) (int, error) {
 
-	db := uow.DB.Model(model)
+	db := uow.DB.Where("tenantID = ?", tenantID)
 
 	if queryProcessors != nil {
 		var err error
 		for _, queryProcessor := range queryProcessors {
 			db, err = queryProcessor(db, model)
 			if err != nil {
-				return err
+				return -1, err
 			}
 		}
 	}
-	return db.Count(&out).Error
+	var count int
+	err := db.Debug().Model(model).Count(&count).Error
+	if err != nil {
+		return -1, err
+	}
+	return count, nil
 }
 
 // Add specified Entity
