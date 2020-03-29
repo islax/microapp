@@ -1,9 +1,12 @@
 package microapp
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -66,10 +69,41 @@ func (testApp *TestApp) ExecuteRequest(req *http.Request) *httptest.ResponseReco
 	return rr
 }
 
+// AssertErrorResponse checks if the http response contains expected errorKey, errorField and errorMessage
+func (testApp *TestApp) AssertErrorResponse(t *testing.T, response *httptest.ResponseRecorder, expectedErrorKey string, expectedErrorField string, expectedError string) {
+	testApp.CheckResponseCode(t, http.StatusBadRequest, response.Code)
+	var errData map[string]interface{}
+	if err := json.Unmarshal(response.Body.Bytes(), &errData); err != nil {
+		t.Errorf("Unable to parse response: %v", err)
+	}
+	if errData["errorKey"] != expectedErrorKey {
+		t.Errorf("Expected errorKey [%v], Actual [%v]!", expectedErrorKey, errData["errorKey"])
+	}
+	errors := errData["errors"].(map[string]interface{})
+	if fmt.Sprintf("%v", errors[expectedErrorField]) != expectedError {
+		t.Errorf("Expected error [%v], Actual [%v]!", expectedError, errors[expectedErrorField])
+	}
+}
+
+// AssertXTotalCount checks if the http response header contains expected x-total-count
+func (testApp *TestApp) AssertXTotalCount(t *testing.T, response *httptest.ResponseRecorder, expectedXTotalCount int) {
+	xTotalCount := response.Header().Get("X-Total-Count")
+	if xTotalCount == "" {
+		t.Fatalf("Expected X-Total-Count [%v], not found!", expectedXTotalCount)
+	}
+
+	xTotalCountInt, err := strconv.Atoi(xTotalCount)
+	if err != nil {
+		t.Fatalf("Expected X-Total-Count [%v], Actual [%v]!", expectedXTotalCount, xTotalCount)
+	} else if expectedXTotalCount != xTotalCountInt {
+		t.Fatalf("Expected X-Total-Count [%v], Actual [%v]!", expectedXTotalCount, xTotalCountInt)
+	}
+}
+
 // CheckResponseCode checks if the http response is as expected
 func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 	if expected != actual {
-		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
+		t.Fatalf("Expected response code %d. Got %d\n", expected, actual)
 	}
 }
 

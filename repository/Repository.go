@@ -17,6 +17,7 @@ import (
 // Repository represents generic interface for interacting with DB
 type Repository interface {
 	Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) error
+	GetForTenant(uow *UnitOfWork, out interface{}, id uuid.UUID, tenantID uuid.UUID, preloadAssociations []string) error
 	GetAll(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) error
 	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) error
 	GetCountForTenant(uow *UnitOfWork, tenantID uuid.UUID, model interface{}, queryProcessors []QueryProcessor) (int, error)
@@ -221,6 +222,15 @@ func (repository *GormRepository) Get(uow *UnitOfWork, out interface{}, id uuid.
 		db = db.Preload(association)
 	}
 	return db.First(out, "id = ?", id).Error
+}
+
+// GetForTenant a record for specified entity with specific id and for specified tenant
+func (repository *GormRepository) GetForTenant(uow *UnitOfWork, out interface{}, id uuid.UUID, tenantID uuid.UUID, preloadAssociations []string) error {
+	db := uow.DB
+	for _, association := range preloadAssociations {
+		db = db.Preload(association)
+	}
+	return db.First(out, "id = ? AND tenantid = ?", id, tenantID).Error
 }
 
 // GetAll retrieves all the records for a specified entity and returns it
