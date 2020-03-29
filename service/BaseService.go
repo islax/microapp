@@ -93,7 +93,7 @@ func (service *BaseServiceImpl) CreateOrderByString(orderByAttrs []string, valid
 }
 
 // GetByIDForTenant gets object by id and tenantid
-func (service *BaseServiceImpl) GetByIDForTenant(uow *repository.UnitOfWork, ID string, tenantID uuid.UUID, out []interface{}) error {
+func (service *BaseServiceImpl) GetByIDForTenant(uow *repository.UnitOfWork, ID string, tenantID uuid.UUID, out interface{}) error {
 	repo := repository.NewRepository()
 	err := repo.GetForTenant(uow, out, ID, tenantID, []string{})
 	if err != nil {
