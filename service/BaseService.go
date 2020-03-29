@@ -92,13 +92,13 @@ func (service *BaseServiceImpl) CreateOrderByString(orderByAttrs []string, valid
 	return retOrderByStr, nil
 }
 
-// GetByID gets object by id
-func (service *BaseServiceImpl) GetByID(uow *repository.UnitOfWork, tenantID uuid.UUID, ID uuid.UUID, out []interface{}) error {
+// GetByIDForTenant gets object by id and tenantid
+func (service *BaseServiceImpl) GetByIDForTenant(uow *repository.UnitOfWork, ID string, tenantID uuid.UUID, out []interface{}) error {
 	repo := repository.NewRepository()
 	err := repo.GetForTenant(uow, out, ID, tenantID, []string{})
 	if err != nil {
 		if err.Error() == "record not found" {
-			return web.NewValidationError("Key_InvalidField", map[string]string{"id": "Key_ObjectNotFound"})
+			return web.NewHTTPError("Key_ObjectNotFound", http.StatusNotFound)
 		}
 		return web.NewHTTPError("Key_InternalError", http.StatusInternalServerError)
 	}
