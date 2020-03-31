@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -69,6 +70,103 @@ func (testApp *TestApp) ExecuteRequest(req *http.Request) *httptest.ResponseReco
 	return rr
 }
 
+// AssertEqualWithFieldsToIgnore asserts whether two objects are equal
+func (testApp *TestApp) AssertEqualWithFieldsToIgnore(t *testing.T, expected interface{}, actual interface{}, fieldsToIgnore []string, mapOfExpectedToActualField map[string]string) {
+	expectedElems := reflect.ValueOf(expected).Elem()
+	actualElem := reflect.ValueOf(actual).Elem()
+	typeOfExpectedElems := reflect.ValueOf(expected).Elem().Type()
+
+	mapOfIgnoreFields := make(map[string]bool)
+	for _, ignoreField := range fieldsToIgnore {
+		mapOfIgnoreFields[ignoreField] = true
+	}
+
+	for i := 0; i < expectedElems.NumField(); i++ {
+		expectedFieldName := typeOfExpectedElems.Field(i).Name
+		// t.Logf("Expected assert field: %v", expectedFieldName)
+		if !mapOfIgnoreFields[expectedFieldName] {
+			expectedField := expectedElems.Field(i)
+			expectedFieldMetadata := typeOfExpectedElems.Field(i).Type
+
+			if expectedFieldMetadata.Kind() == reflect.Struct {
+				for j := 0; j < expectedFieldMetadata.NumField(); j++ {
+					if !mapOfIgnoreFields[expectedFieldMetadata.Field(j).Name] {
+						expectedValue := testApp.getReflectFieldValueAsString(expectedField.Field(j), expectedFieldMetadata.Field(j).Type)
+
+						actualFieldName := expectedFieldMetadata.Field(j).Name
+						// t.Logf("Expected assert field (nested): %v", actualFieldName)
+						if v, ok := mapOfExpectedToActualField[actualFieldName]; ok {
+							actualFieldName = v
+						}
+						// t.Logf("Actual assert field (nested): %v", actualFieldName)
+						actualField := actualElem.FieldByName(actualFieldName)
+						if actualField.Kind() == reflect.Ptr {
+							actualField = actualField.Elem()
+						}
+						actualValue := fmt.Sprintf("%v", actualField.Interface())
+
+						if expectedValue != actualValue {
+							t.Errorf("Expected %v [%v], Actual [%v]!", actualFieldName, expectedValue, actualValue)
+						}
+					}
+				}
+			} else {
+				expectedValue := testApp.getReflectFieldValueAsString(expectedField, expectedFieldMetadata)
+
+				actualFieldName := expectedFieldName
+				if v, ok := mapOfExpectedToActualField[actualFieldName]; ok {
+					actualFieldName = v
+				}
+				// t.Logf("Actual assert field: %v", actualFieldName)
+				actualField := actualElem.FieldByName(actualFieldName)
+				if actualField.Kind() == reflect.Ptr {
+					actualField = actualField.Elem()
+				}
+				actualValue := fmt.Sprintf("%v", actualField.Interface())
+
+				if expectedValue != actualValue {
+					t.Errorf("Expected %v [%v], Actual [%v]!", actualFieldName, expectedValue, actualValue)
+				}
+			}
+		}
+	}
+}
+
+// AssertEqualWithFieldsToCheck asserts whether two objects are equal
+func (testApp *TestApp) AssertEqualWithFieldsToCheck(t *testing.T, expected interface{}, actual interface{}, fieldsToChk []string, mapOfExpectedToActualField map[string]string) {
+	expectedElems := reflect.ValueOf(expected).Elem()
+	actualElems := reflect.ValueOf(actual).Elem()
+	typeOfExpectedElems := reflect.ValueOf(expected).Elem().Type()
+
+	for _, attrToChk := range fieldsToChk {
+		expectedFieldMetadata, _ := typeOfExpectedElems.FieldByName(attrToChk)
+		expectedField := expectedElems.FieldByName(attrToChk)
+		if expectedField.Kind() == reflect.Ptr {
+			expectedField = expectedField.Elem()
+		}
+		var expectedValue string
+		if fmt.Sprintf("%v", expectedFieldMetadata.Type) == "time.Time" {
+			expectedValue = expectedField.Interface().(time.Time).Format(time.RFC3339)
+		} else {
+			expectedValue = fmt.Sprintf("%v", expectedField.Interface())
+		}
+
+		actualAttrName := attrToChk
+		if v, ok := mapOfExpectedToActualField[attrToChk]; ok {
+			actualAttrName = v
+		}
+		actualField := actualElems.FieldByName(actualAttrName)
+		if actualField.Kind() == reflect.Ptr {
+			actualField = actualField.Elem()
+		}
+		actualValue := fmt.Sprintf("%v", actualField.Interface())
+
+		if expectedValue != actualValue {
+			t.Errorf("Expected %v [%v], Actual [%v]!", attrToChk, expectedValue, actualValue)
+		}
+	}
+}
+
 // AssertErrorResponse checks if the http response contains expected errorKey, errorField and errorMessage
 func (testApp *TestApp) AssertErrorResponse(t *testing.T, response *httptest.ResponseRecorder, expectedErrorKey string, expectedErrorField string, expectedError string) {
 	testApp.CheckResponseCode(t, http.StatusBadRequest, response.Code)
@@ -107,14 +205,18 @@ func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 	}
 }
 
-// GetToken gets a token to connect to API
-func (testApp *TestApp) GetToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, "", "", uuid.UUID{}.String(), "", scope, false)
-}
-
 // GetAdminToken returns a test token
 func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []string) string {
 	return testApp.generateToken(tenantID, userID, "", "", uuid.UUID{}.String(), "", scope, true)
+}
+
+// GetByID saves the entity to database
+func (testApp *TestApp) GetByID(ID string, preloads []string, entity interface{}) error {
+	db := testApp.application.DB
+	for _, preload := range preloads {
+		db = db.Preload(preload)
+	}
+	return db.Where("id = ?", ID).Find(entity).Error
 }
 
 // GetFullAdminToken returns a test token with all the fields along with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
@@ -125,6 +227,25 @@ func (testApp *TestApp) GetFullAdminToken(tenantID string, userID string, userna
 // GetFullToken returns a test token with all the fields along with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
 func (testApp *TestApp) GetFullToken(tenantID string, userID string, username string, name string, externalID string, externalIDType string, scope []string) string {
 	return testApp.generateToken(tenantID, userID, username, name, externalID, externalIDType, scope, false)
+}
+
+// GetToken gets a token to connect to API
+func (testApp *TestApp) GetToken(tenantID string, userID string, scope []string) string {
+	return testApp.generateToken(tenantID, userID, "", "", uuid.UUID{}.String(), "", scope, false)
+}
+
+// SaveToDB saves the entity to database
+func (testApp *TestApp) SaveToDB(entity interface{}) error {
+	return testApp.application.DB.Create(entity).Error
+}
+
+// SetControllerRouteProviderAndInitialize sets the controllerRouteProvider and initializes application
+func (testApp *TestApp) SetControllerRouteProviderAndInitialize(controllerRouteProvider func(*App) []RouteSpecifier) {
+	testApp.controllerRouteProvider = controllerRouteProvider
+	testApp.PrepareEmptyTables()
+	testApp.application.Initialize(testApp.controllerRouteProvider(testApp.application))
+
+	go testApp.application.Start()
 }
 
 // generateToken generates and return token
@@ -157,25 +278,16 @@ func (testApp *TestApp) generateToken(tenantID string, userID string, username s
 	return tokenString
 }
 
-// SetControllerRouteProviderAndInitialize sets the controllerRouteProvider and initializes application
-func (testApp *TestApp) SetControllerRouteProviderAndInitialize(controllerRouteProvider func(*App) []RouteSpecifier) {
-	testApp.controllerRouteProvider = controllerRouteProvider
-	testApp.PrepareEmptyTables()
-	testApp.application.Initialize(testApp.controllerRouteProvider(testApp.application))
-
-	go testApp.application.Start()
-}
-
-// SaveToDB saves the entity to database
-func (testApp *TestApp) SaveToDB(entity interface{}) error {
-	return testApp.application.DB.Create(entity).Error
-}
-
-// GetByID saves the entity to database
-func (testApp *TestApp) GetByID(ID string, preloads []string, entity interface{}) error {
-	db := testApp.application.DB
-	for _, preload := range preloads {
-		db = db.Preload(preload)
+func (testApp *TestApp) getReflectFieldValueAsString(fieldElem reflect.Value, fieldType reflect.Type) string {
+	var strValue string
+	if fieldElem.Kind() == reflect.Ptr {
+		fieldElem = fieldElem.Elem()
 	}
-	return db.Where("id = ?", ID).Find(entity).Error
+
+	if fmt.Sprintf("%v", fieldType) == "time.Time" {
+		strValue = fieldElem.Interface().(time.Time).Format(time.RFC3339)
+	} else {
+		strValue = fmt.Sprintf("%v", fieldElem.Interface())
+	}
+	return strValue
 }
