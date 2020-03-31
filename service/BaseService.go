@@ -93,9 +93,9 @@ func (service *BaseServiceImpl) CreateOrderByString(orderByAttrs []string, valid
 }
 
 // GetByIDForTenant gets object by id and tenantid
-func (service *BaseServiceImpl) GetByIDForTenant(uow *repository.UnitOfWork, ID string, tenantID uuid.UUID, out interface{}) error {
+func (service *BaseServiceImpl) GetByIDForTenant(uow *repository.UnitOfWork, out interface{}, ID string, tenantID uuid.UUID, preloads []string) error {
 	repo := repository.NewRepository()
-	err := repo.GetForTenant(uow, out, ID, tenantID, []string{})
+	err := repo.GetForTenant(uow, out, ID, tenantID, preloads)
 	if err != nil {
 		if err.Error() == "record not found" {
 			return web.NewHTTPError("Key_ObjectNotFound", http.StatusNotFound)
