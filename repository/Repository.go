@@ -25,6 +25,8 @@ type Repository interface {
 	Update(uow *UnitOfWork, out interface{}) error
 	Delete(uow *UnitOfWork, out interface{}) error
 	AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) error
+	RemoveAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) error
+	ReplaceAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) error
 }
 
 // UnitOfWork represents a connection
