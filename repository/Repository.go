@@ -24,6 +24,7 @@ type Repository interface {
 	Add(uow *UnitOfWork, out interface{}) error
 	Update(uow *UnitOfWork, out interface{}) error
 	Delete(uow *UnitOfWork, out interface{}) error
+	AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) error
 }
 
 // UnitOfWork represents a connection
@@ -291,6 +292,11 @@ func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) er
 // Delete specified Entity
 func (repository *GormRepository) Delete(uow *UnitOfWork, entity interface{}) error {
 	return uow.DB.Delete(entity).Error
+}
+
+// AddAssociations adds associations to the given out entity
+func (repository *GormRepository) AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) error {
+	return uow.DB.Model(out).Association(associationName).Append(associations...).Error
 }
 
 // AddFiltersFromQueryParams will check for given filter(s) in the query params, if value found creates the db filter. filterDetail format - "filterName[:type]".
