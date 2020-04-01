@@ -299,6 +299,16 @@ func (repository *GormRepository) AddAssociations(uow *UnitOfWork, out interface
 	return uow.DB.Model(out).Association(associationName).Append(associations...).Error
 }
 
+// RemoveAssociations removes associations from the given out entity
+func (repository *GormRepository) RemoveAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) error {
+	return uow.DB.Model(out).Association(associationName).Delete(associations...).Error
+}
+
+// ReplaceAssociations removes associations from the given out entity
+func (repository *GormRepository) ReplaceAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) error {
+	return uow.DB.Model(out).Association(associationName).Replace(associations...).Error
+}
+
 // AddFiltersFromQueryParams will check for given filter(s) in the query params, if value found creates the db filter. filterDetail format - "filterName[:type]".
 func AddFiltersFromQueryParams(r *http.Request, filterDetails ...string) ([]QueryProcessor, error) {
 	queryParams := r.URL.Query()
