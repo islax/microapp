@@ -70,6 +70,11 @@ func (testApp *TestApp) ExecuteRequest(req *http.Request) *httptest.ResponseReco
 	return rr
 }
 
+// AddAssociations adds associations to the given entity
+func (testApp *TestApp) AddAssociations(entity interface{}, associationName string, associations ...interface{}) error {
+	return testApp.application.DB.Model(entity).Association(associationName).Append(associations...).Error
+}
+
 // AssertEqualWithFieldsToIgnore asserts whether two objects are equal
 func (testApp *TestApp) AssertEqualWithFieldsToIgnore(t *testing.T, expected interface{}, actual interface{}, fieldsToIgnore []string, mapOfExpectedToActualField map[string]string) {
 	expectedElems := reflect.ValueOf(expected).Elem()
