@@ -1,13 +1,16 @@
 package microapp
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -203,6 +206,21 @@ func (testApp *TestApp) AssertXTotalCount(t *testing.T, response *httptest.Respo
 	}
 }
 
+// CallAPI invokes http API
+func (testApp *TestApp) CallAPI(httpMethod string, apiURL string, token string, req interface{}) *httptest.ResponseRecorder {
+
+	var payload io.Reader
+	if req != nil {
+		reqJSON, _ := json.Marshal(req)
+		payload = bytes.NewBuffer(reqJSON)
+	}
+
+	httpReq, _ := http.NewRequest(httpMethod, apiURL, payload)
+
+	httpReq.Header.Add("Authorization", fmt.Sprintf("Bearer %v", token))
+	return testApp.ExecuteRequest(httpReq)
+}
+
 // CheckResponseCode checks if the http response is as expected
 func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 	if expected != actual {
@@ -215,13 +233,28 @@ func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []st
 	return testApp.generateToken(tenantID, userID, "", "", uuid.UUID{}.String(), "", scope, true)
 }
 
-// GetByID saves the entity to database
-func (testApp *TestApp) GetByID(ID string, preloads []string, entity interface{}) error {
+// GetAll gets all from DB
+func (testApp *TestApp) GetAll(out interface{}, preloads []string, whereClause string, whereParams []interface{}, orderBy string) error {
 	db := testApp.application.DB
 	for _, preload := range preloads {
 		db = db.Preload(preload)
 	}
-	return db.Where("id = ?", ID).Find(entity).Error
+	if strings.TrimSpace(whereClause) != "" {
+		db.Where(whereClause, whereParams...)
+	}
+	if strings.TrimSpace(orderBy) != "" {
+		db.Order(orderBy, true)
+	}
+	return db.Find(out).Error
+}
+
+// GetByID gets entity by ids
+func (testApp *TestApp) GetByID(out interface{}, preloads []string, id string) error {
+	db := testApp.application.DB
+	for _, preload := range preloads {
+		db = db.Preload(preload)
+	}
+	return db.Where("id = ?", id).Find(out).Error
 }
 
 // GetFullAdminToken returns a test token with all the fields along with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
