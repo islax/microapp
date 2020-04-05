@@ -240,10 +240,10 @@ func (testApp *TestApp) GetAll(out interface{}, preloads []string, whereClause s
 		db = db.Preload(preload)
 	}
 	if strings.TrimSpace(whereClause) != "" {
-		db.Where(whereClause, whereParams...)
+		db = db.Where(whereClause, whereParams...)
 	}
 	if strings.TrimSpace(orderBy) != "" {
-		db.Order(orderBy, true)
+		db = db.Order(orderBy, true)
 	}
 	return db.Find(out).Error
 }
