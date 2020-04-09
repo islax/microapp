@@ -68,7 +68,7 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 		}
 	}
 
-	logger.Info("Api server will start on port: "+apiPort)
+	logger.Info("Api server will start on port: " + apiPort)
 	app.server = &http.Server{
 		Addr:         "0.0.0.0:" + apiPort,
 		WriteTimeout: time.Second * 15,
@@ -84,6 +84,25 @@ func (app *App) Start() {
 		log.Println(err)
 	} else {
 		log.Info("Server started")
+	}
+}
+
+//StartSecure starts https server and listens to the requests
+func (app *App) StartSecure(securityCert string, securityKey string) {
+	certFile := app.Config.GetString(securityCert)
+	if certFile == "" {
+		log.Fatal("Cert file could not be found. Installer aborted.")
+	}
+
+	keyFile := app.Config.GetString(securityKey)
+	if certFile == "" {
+		log.Fatal("Key file could not be found. Installer aborted.")
+	}
+
+	if err := app.server.ListenAndServeTLS(certFile, keyFile); err != nil {
+		log.Println(err)
+	} else {
+		log.Info("Server started on secured transport layer.")
 	}
 }
 
