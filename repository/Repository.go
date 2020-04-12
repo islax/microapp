@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -372,35 +371,54 @@ func AddFiltersFromQueryParamsWithOR(r *http.Request, filterDetails ...string) (
 	return filters, nil
 }
 
-// GetOrder will check for valid sorting columns, substituting column and return the Order Query. Format for orderBy : ColumnName1:1,ColumnName2:0 etc. 0 -> Asc, 1 -> Desc
-// Format For SubsituteKeyWithValue : map[string][]string{"Key": []string{"Value1", "Value2"}}
-func GetOrder(orderBy string, validSortingColumn []string, subsituteKeyWithValue map[string][]string, returnType string) (interface{}, error) {
-	orderByQuery := ""
-	orderByArray := strings.Split(orderBy, ",")
-	for _, orderInfo := range orderByArray {
-		orderInfoSplit := strings.Split(orderInfo, ":")
-		if len(orderInfoSplit) == 2 {
-			columnName := orderInfoSplit[0]
-			orderType := GetOrderType(orderInfoSplit[1])
-			query, err := getOrderQuery(columnName, orderType, validSortingColumn, subsituteKeyWithValue)
-			if err != nil {
-				return nil, err
+// GetOrderBy creates order by query processor
+// orderByAttrs - ["column1:0", "column2:1"], validOrderByAttrs - ["column1", "column2", "column3"],
+// orderByAttrAndDBCloum - {"cloumn3": ["dbColunm4", "dbColumn5"]}
+func GetOrderBy(orderByAttrs []string, validOrderByAttrs []string, orderByAttrAndDBCloum map[string][]string, reorder bool) (QueryProcessor, error) {
+
+	retOrderByStr := ""
+	validOrderByAttrsAsMap := make(map[string]bool)
+	validOrderByDirection := map[string]string{"ASC": "ASC", "0": "ASC", "A": "ASC", "DESC": "DESC", "1": "DESC", "D": "DESC"}
+
+	for _, validOrderByAttr := range validOrderByAttrs {
+		validOrderByAttrsAsMap[validOrderByAttr] = true
+	}
+
+	for i, orderByAttr := range orderByAttrs {
+		if i > 0 {
+			retOrderByStr += ","
+		}
+		if strings.TrimSpace(orderByAttr) != "" {
+			attrAndDirection := strings.Split(orderByAttr, ",")
+			if len(attrAndDirection) > 2 {
+				return nil, web.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidFormat"})
 			}
-			orderByQuery = fmt.Sprintf("%v%v", orderByQuery, query)
-		} else {
-			if len(orderInfoSplit) > 0 && orderInfoSplit[0] != "" {
-				query, err := getOrderQuery(orderInfoSplit[0], "Asc", validSortingColumn, subsituteKeyWithValue)
-				if err != nil {
-					return nil, err
+			if validOrderByAttrsAsMap[attrAndDirection[0]] { //Chk if its a valid orderby column
+				orderByDirection := ""
+				if len(attrAndDirection) == 2 { // 2 - order by contains direction too
+					if direction, ok := validOrderByDirection[strings.ToUpper(attrAndDirection[1])]; ok {
+						orderByDirection = fmt.Sprintf(" %v", direction)
+					} else {
+						return nil, web.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidDirection"})
+					}
 				}
-				orderByQuery = fmt.Sprintf("%v%v", orderByQuery, query)
+				if dbColumns, ok := orderByAttrAndDBCloum[attrAndDirection[0]]; ok { //Chk if it has any db column mapping
+					for j, dbColumn := range dbColumns {
+						if j > 0 {
+							retOrderByStr += ","
+						}
+						retOrderByStr = fmt.Sprintf("%v%v%v", retOrderByStr, dbColumn, orderByDirection)
+					}
+				} else {
+					retOrderByStr = fmt.Sprintf("%v%v%v", retOrderByStr, attrAndDirection[0], orderByDirection)
+				}
+
+			} else {
+				return nil, web.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidAttribute"})
 			}
 		}
 	}
-	if returnType == "queryProcessor" {
-		return Order(strings.TrimRight(orderByQuery, ","), true), nil
-	}
-	return strings.TrimRight(orderByQuery, ","), nil
+	return Order(retOrderByStr, reorder), nil
 }
 
 // Contains checks if value present in array
@@ -427,28 +445,6 @@ func GetOrderType(order string) string {
 		return "Desc"
 	}
 	return "Asc"
-}
-
-// getOrderQuery returns the query string for order
-func getOrderQuery(columnName string, orderType string, validSortingColumn []string, subsituteKeyWithValue map[string][]string) (string, error) {
-	orderByQuery := ""
-	if validSortingColumn != nil && Contains(validSortingColumn, columnName) {
-		if subsituteKeyWithValue != nil && ContainsKey(subsituteKeyWithValue, columnName) {
-			value := subsituteKeyWithValue[columnName]
-			for _, eachValue := range value {
-				if eachValue != "" {
-					orderByQuery = fmt.Sprintf("%v%v %v,", orderByQuery, eachValue, orderType)
-				}
-			}
-		} else {
-			if columnName != "" || orderType != "" {
-				orderByQuery = fmt.Sprintf("%v%v %v,", orderByQuery, columnName, orderType)
-			}
-		}
-	} else {
-		return "", web.NewValidationError("Key_InvalidFields", map[string]string{"field": errors.New(columnName).Error(), "error": "Key_SortIssue"})
-	}
-	return orderByQuery, nil
 }
 
 // DoesColumnExistInTable returns bool if the column exist in table
