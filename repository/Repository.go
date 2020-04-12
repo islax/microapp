@@ -418,7 +418,10 @@ func GetOrderBy(orderByAttrs []string, validOrderByAttrs []string, orderByAttrAn
 			}
 		}
 	}
-	return Order(retOrderByStr, reorder), nil
+	if retOrderByStr != "" {
+		return Order(retOrderByStr, reorder), nil
+	}
+	return nil, nil
 }
 
 // Contains checks if value present in array
