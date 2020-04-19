@@ -23,6 +23,7 @@ type Repository interface {
 	Add(uow *UnitOfWork, out interface{}) error
 	Update(uow *UnitOfWork, out interface{}) error
 	Delete(uow *UnitOfWork, out interface{}) error
+	DeleteForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID) error
 	AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) error
 	RemoveAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) error
 	ReplaceAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) error
@@ -293,6 +294,11 @@ func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) er
 // Delete specified Entity
 func (repository *GormRepository) Delete(uow *UnitOfWork, entity interface{}) error {
 	return uow.DB.Delete(entity).Error
+}
+
+// DeleteForTenant all recrod(s) of specified entity / entity type for given tenant
+func (repository *GormRepository) DeleteForTenant(uow *UnitOfWork, entity interface{}, tenantID uuid.UUID) error {
+	return uow.DB.Delete(entity, "tenantid = ?", tenantID).Error
 }
 
 // AddAssociations adds associations to the given out entity
