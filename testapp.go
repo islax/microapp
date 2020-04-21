@@ -288,7 +288,7 @@ func (testApp *TestApp) SetControllerRouteProviderAndInitialize(controllerRouteP
 
 // generateToken generates and return token
 func (testApp *TestApp) generateToken(tenantID string, userID string, username string, name string, externalID string, externalIDType string, scope []string, admin bool) string {
-	hmacSampleSecret := []byte(testApp.application.Config.GetString("ISLA_JWT_SECRET"))
+	hmacSampleSecret := []byte(testApp.application.Config.GetString("JWT_SECRET"))
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iss":              "http://isla.cyberinc.com",
