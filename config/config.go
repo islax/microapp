@@ -15,7 +15,7 @@ type Config struct {
 func NewConfig(defaults map[string]string) *Config {
 	config := &Config{viper: viper.New()}
 
-	config.viper.SetDefault("ISLA_JWT_SECRET", "Secret key for test")
+	config.viper.SetDefault("JWT_SECRET", "Secret key for test")
 
 	config.viper.SetEnvPrefix("ISLA")
 	config.viper.AutomaticEnv()
