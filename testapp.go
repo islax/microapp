@@ -19,7 +19,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Used
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
 // TestApp Provides convinience methods for test
@@ -39,8 +39,8 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 
 	db.LogMode(verbose)
 
-	logger := log.New()
-	application := New(appName, nil, logger, db, nil)
+	logger := zerolog.New(os.Stdout)
+	application := New(appName, map[string]interface{}{"API_PORT": "9100"}, logger, db, nil)
 
 	return &TestApp{application: application, controllerRouteProvider: controllerRouteProvider, dbInitializer: dbInitializer}
 }

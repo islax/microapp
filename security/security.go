@@ -16,7 +16,7 @@ import (
 func Protect(config *config.Config, handlerFunc func(w http.ResponseWriter, r *http.Request, token *JwtToken), allowedScopes []string, requireAdmin bool) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tokenHeader := r.Header.Get("Authorization")
-		token, err := validateTokenHeader(config, tokenHeader)
+		token, err := GetTokenFromRawAuthHeader(config, tokenHeader)
 
 		if err != nil {
 			web.RespondErrorMessage(w, http.StatusUnauthorized, err.Error())
@@ -33,16 +33,17 @@ func Protect(config *config.Config, handlerFunc func(w http.ResponseWriter, r *h
 			return
 		}
 
-		token.Raw = tokenHeader
 		handlerFunc(w, r, token)
 	}
 }
 
-func validateTokenHeader(config *config.Config, tokenHeader string) (*JwtToken, error) {
-	if tokenHeader == "" { //Token is missing, returns with error code 403 Unauthorized
+// GetTokenFromRawAuthHeader validates and gets JwtToken from given raw auth header token string
+// rawAuthHeaderToken should be of format `Bearer {token-body}`
+func GetTokenFromRawAuthHeader(config *config.Config, rawAuthHeaderToken string) (*JwtToken, error) {
+	if rawAuthHeaderToken == "" { //Token is missing, returns with error code 403 Unauthorized
 		return nil, errors.New("Key_MissingAuthToken")
 	}
-	splitted := strings.Split(tokenHeader, " ") //The token normally comes in format `Bearer {token-body}`, we check if the retrieved token matched this requirement
+	splitted := strings.Split(rawAuthHeaderToken, " ") //The token normally comes in format `Bearer {token-body}`, we check if the retrieved token matched this requirement
 	if len(splitted) != 2 {
 		return nil, errors.New("Key_InvalidAuthToken")
 	}
@@ -61,6 +62,8 @@ func validateTokenHeader(config *config.Config, tokenHeader string) (*JwtToken, 
 	if !token.Valid { //Token is invalid, maybe not signed on this server
 		return nil, errors.New("Key_InvalidAuthToken")
 	}
+
+	tk.Raw = rawAuthHeaderToken
 
 	return tk, nil
 }

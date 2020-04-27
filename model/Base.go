@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/islax/microapp/web"
+	microaAppErrors "github.com/islax/microapp/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -44,23 +44,12 @@ func NewStringFieldData(name string, value interface{}) *FieldData {
 }
 
 // NewStringFieldDataWithConstraint creates new FieldData with type string and constraint
-func NewStringFieldDataWithConstraint(name string, value interface{}, constraints []*ConstraintDetail) *FieldData {
+func NewStringFieldDataWithConstraint(name string, value interface{}, required bool, constraints []*ConstraintDetail) *FieldData {
 	return &FieldData{
 		Name:        name,
 		Value:       value,
 		Type:        "string",
-		Required:    true,
-		Constraints: constraints,
-	}
-}
-
-// NewOptionalStringFieldDataWithConstraints creates new FieldData with type string, required param value and constraints
-func NewOptionalStringFieldDataWithConstraints(name string, value interface{}, constraints []*ConstraintDetail) *FieldData {
-	return &FieldData{
-		Name:        name,
-		Value:       value,
-		Type:        "string",
-		Required:    false,
+		Required:    required,
 		Constraints: constraints,
 	}
 }
@@ -75,7 +64,7 @@ func ValidateParams(params map[string]interface{}) error {
 	}
 
 	if len(errors) > 0 {
-		return web.NewValidationError("Key_InvalidFields", errors)
+		return microaAppErrors.NewValidationError("Key_InvalidFields", errors)
 	}
 
 	return nil
@@ -106,7 +95,7 @@ func ValidateFields(fields []*FieldData) error {
 		}
 	}
 	if len(errors) > 0 {
-		return web.NewValidationError("Key_InvalidFields", errors)
+		return microaAppErrors.NewValidationError("Key_InvalidFields", errors)
 	}
 	return nil
 }

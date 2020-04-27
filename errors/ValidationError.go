@@ -1,4 +1,4 @@
-package web
+package errors
 
 import (
 	"fmt"

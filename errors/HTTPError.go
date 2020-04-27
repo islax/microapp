@@ -1,4 +1,4 @@
-package web
+package errors
 
 // HTTPError Represent an error to be sent back on repsonse
 type HTTPError struct {
