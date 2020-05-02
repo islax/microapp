@@ -1,10 +1,31 @@
-package errors
+package error
 
 import (
 	"fmt"
 	"runtime"
 	"strconv"
 )
+
+// IsUnexpectedError returns whether the given error is an UnexpectedError
+func IsUnexpectedError(err error) bool {
+	_, ok := err.(UnexpectedError)
+	return ok
+}
+
+// NewUnexpectedError creates a new unexpected error
+func NewUnexpectedError(errCode string, err error) UnexpectedError {
+	return createUnexpectedErrorImpl(errCode, err)
+}
+
+// NewDataReadWriteError creates a new read write error
+func NewDataReadWriteError(err error) UnexpectedError {
+	return NewUnexpectedError(ErrorCodeReadWriteFailure, err)
+}
+
+// NewCryptoError creates a new encryptions / decryptions error
+func NewCryptoError(err error) UnexpectedError {
+	return NewUnexpectedError(ErrorCodeCryptoFailure, err)
+}
 
 // UnexpectedError represents an unexpected error interface
 type UnexpectedError interface {
@@ -38,21 +59,6 @@ func (e unexpectedErrorImpl) GetErrorCode() string {
 // GetStackTrace returns the error stack trace
 func (e unexpectedErrorImpl) GetStackTrace() string {
 	return e.stackTrace
-}
-
-// NewUnexpectedError creates a new unexpected error
-func NewUnexpectedError(errCode string, err error) UnexpectedError {
-	return createUnexpectedErrorImpl(errCode, err)
-}
-
-// NewDataReadWriteError creates a new read write error
-func NewDataReadWriteError(err error) UnexpectedError {
-	return NewUnexpectedError("Key_ReadWriteFailure", err)
-}
-
-// NewCryptoError creates a new encryptions / decryptions error
-func NewCryptoError(err error) UnexpectedError {
-	return NewUnexpectedError("Key_CryptoFailure", err)
 }
 
 func createUnexpectedErrorImpl(errCode string, err error) unexpectedErrorImpl {

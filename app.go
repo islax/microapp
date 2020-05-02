@@ -138,7 +138,7 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 		}
 	}
 
-	logger.Debug().Msg("Api server will start on port: " + apiPort)
+	logger.Debug().Str("appname", app.Name).Msg("Api server will start on port: " + apiPort)
 	app.server = &http.Server{
 		Addr:         "0.0.0.0:" + apiPort,
 		WriteTimeout: time.Second * 15,
@@ -260,4 +260,9 @@ func (app *App) NewExecutionContext(uow *repository.UnitOfWork, token *security.
 // NewExecutionContextWithCustomToken creates new exectuion context with custom made token
 func (app *App) NewExecutionContextWithCustomToken(uow *repository.UnitOfWork, tenantID uuid.UUID, userID uuid.UUID, username string, action string) microappCtx.ExecutionContext {
 	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: tenantID, UserID: userID, UserName: username}, action, app.log)
+}
+
+// NewExecutionContextWithSystemToken creates new exectuion context with sys default token
+func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, action string) microappCtx.ExecutionContext {
+	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: uuid.Nil, UserID: uuid.Nil, UserName: "SysUser"}, action, app.log)
 }

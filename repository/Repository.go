@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	microappErrors "github.com/islax/microapp/errors"
+	microappError "github.com/islax/microapp/error"
 
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -15,20 +15,20 @@ import (
 
 // Repository represents generic interface for interacting with DB
 type Repository interface {
-	Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) microappErrors.DatabaseError
-	GetForTenant(uow *UnitOfWork, out interface{}, id string, tenantID uuid.UUID, preloadAssociations []string) microappErrors.DatabaseError
-	GetAll(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappErrors.DatabaseError
-	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappErrors.DatabaseError
-	GetCountForTenant(uow *UnitOfWork, out *int, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappErrors.DatabaseError
+	Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) microappError.DatabaseError
+	GetForTenant(uow *UnitOfWork, out interface{}, id string, tenantID uuid.UUID, preloadAssociations []string) microappError.DatabaseError
+	GetAll(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
+	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError
+	GetCountForTenant(uow *UnitOfWork, out *int, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 
-	Add(uow *UnitOfWork, out interface{}) microappErrors.DatabaseError
-	Update(uow *UnitOfWork, out interface{}) microappErrors.DatabaseError
-	Delete(uow *UnitOfWork, out interface{}) microappErrors.DatabaseError
-	DeleteForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID) microappErrors.DatabaseError
+	Add(uow *UnitOfWork, out interface{}) microappError.DatabaseError
+	Update(uow *UnitOfWork, out interface{}) microappError.DatabaseError
+	Delete(uow *UnitOfWork, out interface{}) microappError.DatabaseError
+	DeleteForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID) microappError.DatabaseError
 
-	AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappErrors.DatabaseError
-	RemoveAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappErrors.DatabaseError
-	ReplaceAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappErrors.DatabaseError
+	AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError
+	RemoveAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError
+	ReplaceAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError
 }
 
 // UnitOfWork represents a connection
@@ -71,11 +71,11 @@ func NewRepository() Repository {
 }
 
 // QueryProcessor allows to modify the query before it is executed
-type QueryProcessor func(db *gorm.DB, out interface{}) (*gorm.DB, microappErrors.DatabaseError)
+type QueryProcessor func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError)
 
 // PreloadAssociations specified associations to be preloaded
 func PreloadAssociations(preloadAssociations []string) QueryProcessor {
-	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappErrors.DatabaseError) {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
 		if preloadAssociations != nil {
 			for _, association := range preloadAssociations {
 				db = db.Preload(association)
@@ -87,10 +87,10 @@ func PreloadAssociations(preloadAssociations []string) QueryProcessor {
 
 // Paginate will restrict the output of query
 func Paginate(limit int, offset int, count *int) QueryProcessor {
-	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappErrors.DatabaseError) {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
 		if out != nil {
 			if err := db.Model(out).Count(count).Error; err != nil {
-				return db, microappErrors.NewDatabaseError(err)
+				return db, microappError.NewDatabaseError(err)
 			}
 		}
 		if limit != -1 {
@@ -125,12 +125,12 @@ func PaginateForWeb(w http.ResponseWriter, r *http.Request) QueryProcessor {
 		}
 	}
 
-	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappErrors.DatabaseError) {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
 
 		if out != nil {
 			var totalRecords int
 			if err := db.Model(out).Count(&totalRecords).Error; err != nil {
-				return db, microappErrors.NewDatabaseError(err)
+				return db, microappError.NewDatabaseError(err)
 			}
 
 			w.Header().Set("X-Total-Count", strconv.Itoa(totalRecords))
@@ -158,20 +158,20 @@ func TimeRangeForWeb(r *http.Request, fieldName string) QueryProcessor {
 	if okStart {
 		startTime, err = time.Parse(time.RFC3339, startParam[0])
 		if err != nil {
-			err = microappErrors.NewValidationError("Key_InvalidFields", map[string]string{"start": "Key_InvalidValue"})
+			err = microappError.NewValidationError("Key_InvalidFields", map[string]string{"start": "Key_InvalidValue"})
 		}
 	}
 
 	if err == nil && okEnd {
 		endTime, err = time.Parse(time.RFC3339, endParam[0])
 		if err != nil {
-			err = microappErrors.NewValidationError("Key_InvalidFields", map[string]string{"end": "Key_InvalidValue"})
+			err = microappError.NewValidationError("Key_InvalidFields", map[string]string{"end": "Key_InvalidValue"})
 		}
 	}
 
-	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappErrors.DatabaseError) {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
 		if err != nil {
-			return db, microappErrors.NewDatabaseError(err)
+			return db, microappError.NewDatabaseError(err)
 		}
 
 		if okStart {
@@ -187,7 +187,7 @@ func TimeRangeForWeb(r *http.Request, fieldName string) QueryProcessor {
 
 // Order will order the results
 func Order(value interface{}, reorder bool) QueryProcessor {
-	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappErrors.DatabaseError) {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
 		db = db.Order(value, reorder)
 		return db, nil
 	}
@@ -195,7 +195,7 @@ func Order(value interface{}, reorder bool) QueryProcessor {
 
 // Filter will filter the results
 func Filter(condition string, args ...interface{}) QueryProcessor {
-	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappErrors.DatabaseError) {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
 		db = db.Where(condition, args...)
 		return db, nil
 	}
@@ -203,7 +203,7 @@ func Filter(condition string, args ...interface{}) QueryProcessor {
 
 // FilterWithOR will filter the results with an 'OR'
 func FilterWithOR(columnName []string, condition []string, filterValues []interface{}) QueryProcessor {
-	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappErrors.DatabaseError) {
+	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
 		if len(condition) != len(columnName) && len(condition) != len(filterValues) {
 			return db, nil
 		}
@@ -225,31 +225,31 @@ func FilterWithOR(columnName []string, condition []string, filterValues []interf
 }
 
 // Get a record for specified entity with specific id
-func (repository *GormRepository) Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) microappErrors.DatabaseError {
+func (repository *GormRepository) Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) microappError.DatabaseError {
 	db := uow.DB
 	for _, association := range preloadAssociations {
 		db = db.Preload(association)
 	}
 	if err := db.First(out, "id = ?", id).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
 
 // GetForTenant a record for specified entity with specific id and for specified tenant
-func (repository *GormRepository) GetForTenant(uow *UnitOfWork, out interface{}, id string, tenantID uuid.UUID, preloadAssociations []string) microappErrors.DatabaseError {
+func (repository *GormRepository) GetForTenant(uow *UnitOfWork, out interface{}, id string, tenantID uuid.UUID, preloadAssociations []string) microappError.DatabaseError {
 	db := uow.DB
 	for _, association := range preloadAssociations {
 		db = db.Preload(association)
 	}
 	if err := db.First(out, "id = ? AND tenantid = ?", id, tenantID).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
 
 // GetAll retrieves all the records for a specified entity and returns it
-func (repository *GormRepository) GetAll(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappErrors.DatabaseError {
+func (repository *GormRepository) GetAll(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
 	db := uow.DB
 
 	if queryProcessors != nil {
@@ -257,24 +257,24 @@ func (repository *GormRepository) GetAll(uow *UnitOfWork, out interface{}, query
 		for _, queryProcessor := range queryProcessors {
 			db, err = queryProcessor(db, out)
 			if err != nil {
-				return microappErrors.NewDatabaseError(err)
+				return microappError.NewDatabaseError(err)
 			}
 		}
 	}
 	if err := db.Find(out).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
 
 // GetAllForTenant returns all objects of specifeid tenantID
-func (repository *GormRepository) GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappErrors.DatabaseError {
+func (repository *GormRepository) GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError {
 	queryProcessors = append([]QueryProcessor{Filter("tenantID = ?", tenantID)}, queryProcessors...)
 	return repository.GetAll(uow, out, queryProcessors)
 }
 
 // GetCountForTenant gets count of the given entity type for specified tenant
-func (repository *GormRepository) GetCountForTenant(uow *UnitOfWork, count *int, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappErrors.DatabaseError {
+func (repository *GormRepository) GetCountForTenant(uow *UnitOfWork, count *int, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
 
 	db := uow.DB.Where("tenantID = ?", tenantID)
 
@@ -283,68 +283,68 @@ func (repository *GormRepository) GetCountForTenant(uow *UnitOfWork, count *int,
 		for _, queryProcessor := range queryProcessors {
 			db, err = queryProcessor(db, entity)
 			if err != nil {
-				return microappErrors.NewDatabaseError(err)
+				return microappError.NewDatabaseError(err)
 			}
 		}
 	}
 	if err := db.Debug().Model(entity).Count(count).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
 
 // Add specified Entity
-func (repository *GormRepository) Add(uow *UnitOfWork, entity interface{}) microappErrors.DatabaseError {
+func (repository *GormRepository) Add(uow *UnitOfWork, entity interface{}) microappError.DatabaseError {
 	if err := uow.DB.Create(entity).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
 
 // Update specified Entity
-func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) microappErrors.DatabaseError {
+func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) microappError.DatabaseError {
 	if err := uow.DB.Model(entity).Update(entity).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
 
 // Delete specified Entity
-func (repository *GormRepository) Delete(uow *UnitOfWork, entity interface{}) microappErrors.DatabaseError {
+func (repository *GormRepository) Delete(uow *UnitOfWork, entity interface{}) microappError.DatabaseError {
 	if err := uow.DB.Delete(entity).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
 
 // DeleteForTenant all recrod(s) of specified entity / entity type for given tenant
-func (repository *GormRepository) DeleteForTenant(uow *UnitOfWork, entity interface{}, tenantID uuid.UUID) microappErrors.DatabaseError {
+func (repository *GormRepository) DeleteForTenant(uow *UnitOfWork, entity interface{}, tenantID uuid.UUID) microappError.DatabaseError {
 	if err := uow.DB.Delete(entity, "tenantid = ?", tenantID).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
 
 // AddAssociations adds associations to the given out entity
-func (repository *GormRepository) AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappErrors.DatabaseError {
+func (repository *GormRepository) AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError {
 	if err := uow.DB.Model(out).Association(associationName).Append(associations...).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
 
 // RemoveAssociations removes associations from the given out entity
-func (repository *GormRepository) RemoveAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappErrors.DatabaseError {
+func (repository *GormRepository) RemoveAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError {
 	if err := uow.DB.Model(out).Association(associationName).Delete(associations...).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
 
 // ReplaceAssociations removes associations from the given out entity
-func (repository *GormRepository) ReplaceAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappErrors.DatabaseError {
+func (repository *GormRepository) ReplaceAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError {
 	if err := uow.DB.Model(out).Association(associationName).Replace(associations...).Error; err != nil {
-		return microappErrors.NewDatabaseError(err)
+		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
@@ -360,7 +360,7 @@ func AddFiltersFromQueryParams(r *http.Request, filterDetails ...string) ([]Quer
 			if len(filterNameAndType) > 1 && filterNameAndType[1] == "datetime" {
 				filterValueAsTime, err := time.Parse(time.RFC3339, filterValueAsStr)
 				if err != nil {
-					return nil, microappErrors.NewValidationError("Key_InvalidFields", map[string]string{filterNameAndType[0]: "Key_InvalidValue"})
+					return nil, microappError.NewValidationError("Key_InvalidFields", map[string]string{filterNameAndType[0]: "Key_InvalidValue"})
 				}
 				filters = append(filters, Filter(fmt.Sprintf("%v = ?", filterNameAndType[0]), filterValueAsTime))
 			} else {
@@ -392,7 +392,7 @@ func AddFiltersFromQueryParamsWithOR(r *http.Request, filterDetails ...string) (
 					if len(filterNameAndType) > 1 && filterNameAndType[1] == "datetime" {
 						_, err := time.Parse(time.RFC3339, filterValueArrayAsString)
 						if err != nil {
-							return nil, microappErrors.NewValidationError("Key_InvalidFields", map[string]string{filterNameAndType[0]: "Key_InvalidValue"})
+							return nil, microappError.NewValidationError("Key_InvalidFields", map[string]string{filterNameAndType[0]: "Key_InvalidValue"})
 						}
 						columnName = append(columnName, filterNameAndType[0])
 						condition = append(condition, "like")
@@ -430,7 +430,7 @@ func GetOrderBy(orderByAttrs []string, validOrderByAttrs []string, orderByAttrAn
 		if strings.TrimSpace(orderByAttr) != "" {
 			attrAndDirection := strings.Split(orderByAttr, ",")
 			if len(attrAndDirection) > 2 {
-				return nil, microappErrors.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidFormat"})
+				return nil, microappError.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidFormat"})
 			}
 			if validOrderByAttrsAsMap[attrAndDirection[0]] { //Chk if its a valid orderby column
 				orderByDirection := ""
@@ -438,7 +438,7 @@ func GetOrderBy(orderByAttrs []string, validOrderByAttrs []string, orderByAttrAn
 					if direction, ok := validOrderByDirection[strings.ToUpper(attrAndDirection[1])]; ok {
 						orderByDirection = fmt.Sprintf(" %v", direction)
 					} else {
-						return nil, microappErrors.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidDirection"})
+						return nil, microappError.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidDirection"})
 					}
 				}
 				if dbColumns, ok := orderByAttrAndDBCloum[attrAndDirection[0]]; ok { //Chk if it has any db column mapping
@@ -453,7 +453,7 @@ func GetOrderBy(orderByAttrs []string, validOrderByAttrs []string, orderByAttrAn
 				}
 
 			} else {
-				return nil, microappErrors.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidAttribute"})
+				return nil, microappError.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidAttribute"})
 			}
 		}
 	}

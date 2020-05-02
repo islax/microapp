@@ -5,27 +5,27 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	microAppErrors "github.com/islax/microapp/errors"
+	microappError "github.com/islax/microapp/error"
 )
 
 // UnmarshalJSON checks for empty body and then parses JSON into the target
 func UnmarshalJSON(r *http.Request, target interface{}) error {
 	if r.Body == nil {
-		return microAppErrors.NewValidationError("Key_InvalidPayload", map[string]string{"payload": "Key_EmptyBody"})
+		return microappError.NewInvalidRequestPayloadError(microappError.ErrorCodeEmptyRequestBody)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return microAppErrors.NewDataReadWriteError(err)
+		return microappError.NewDataReadWriteError(err)
 	}
 
 	if len(body) == 0 {
-		return microAppErrors.NewValidationError("Key_InvalidPayload", map[string]string{"payload": "Key_EmptyBody"})
+		return microappError.NewInvalidRequestPayloadError(microappError.ErrorCodeEmptyRequestBody)
 	}
 
 	err = json.Unmarshal(body, target)
 	if err != nil {
-		return microAppErrors.NewValidationError("Key_InvalidPayload", map[string]string{"payload": "Key_InvalidJSON"})
+		return microappError.NewInvalidRequestPayloadError(microappError.ErrorCodeInvalidJSON)
 	}
 	return nil
 }

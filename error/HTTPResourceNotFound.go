@@ -1,4 +1,9 @@
-package errors
+package error
+
+// NewHTTPResourceNotFound creates an new instance of HTTP Error
+func NewHTTPResourceNotFound(resourceName, resourceValue string) HTTPResourceNotFound {
+	return HTTPResourceNotFound{"Key_ResourceNotFound", resourceName, resourceValue}
+}
 
 // HTTPResourceNotFound represents HTTP 404 error
 type HTTPResourceNotFound struct {
@@ -10,9 +15,4 @@ type HTTPResourceNotFound struct {
 // Error returns the error string
 func (e HTTPResourceNotFound) Error() string {
 	return e.ErrorKey
-}
-
-// NewHTTPResourceNotFound creates an new instance of HTTP Error
-func NewHTTPResourceNotFound(resourceName, resourceValue string) HTTPResourceNotFound {
-	return HTTPResourceNotFound{"Key_ResourceNotFound", resourceName, resourceValue}
 }

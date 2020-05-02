@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	microaAppErrors "github.com/islax/microapp/errors"
+	microappError "github.com/islax/microapp/error"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -59,12 +59,12 @@ func ValidateParams(params map[string]interface{}) error {
 	errors := make(map[string]string)
 	for key, value := range params {
 		if (value.(string)) == "" {
-			errors[key] = "Key_Required"
+			errors[key] = microappError.ErrorCodeRequired
 		}
 	}
 
 	if len(errors) > 0 {
-		return microaAppErrors.NewValidationError("Key_InvalidFields", errors)
+		return microappError.NewInvalidFieldsError(errors)
 	}
 
 	return nil
@@ -77,32 +77,32 @@ func ValidateFields(fields []*FieldData) error {
 		if field.Type == "string" {
 			valAsString, ok := field.Value.(string)
 			if !ok {
-				errors[field.Name] = "Key_StringExpected"
+				errors[field.Name] = microappError.ErrorCodeStringExpected
 			} else if field.Required && strings.TrimSpace(valAsString) == "" {
-				errors[field.Name] = "Key_Required"
+				errors[field.Name] = microappError.ErrorCodeRequired
 			} else if strings.TrimSpace(valAsString) != "" && len(field.Constraints) > 0 {
 				for _, constraint := range field.Constraints {
 					if constraint.Type == RegEx {
-						ok, _ = ValidateString(valAsString, constraint.Type, constraint.ConstraintData.(string))
+						ok, _ = ValidateString(valAsString, constraint.Type, constraint.ConstraintData)
 					} else {
-						ok, _ = ValidateString(valAsString, constraint.Type)
+						ok, _ = ValidateString(valAsString, constraint.Type, nil)
 					}
 					if !ok {
-						errors[field.Name] = "Key_InvalidValue"
+						errors[field.Name] = microappError.ErrorCodeInvalidValue
 					}
 				}
 			}
 		}
 	}
 	if len(errors) > 0 {
-		return microaAppErrors.NewValidationError("Key_InvalidFields", errors)
+		return microappError.NewInvalidFieldsError(errors)
 	}
 	return nil
 }
 
 // ValidateString checks whether the given data conforms to the given constraint. Valid constraints are AlphaNumeric, AlphaNumericAndHyphen, Email, URL and RegEx.
-// If the given constraint is RegEx, then the 3rd parameter should contain a valid regular expression.
-func ValidateString(value string, constraint ConstraintType, regex ...string) (bool, error) {
+// If the given constraint is RegEx, then the constraintData should contain a valid regular expression.
+func ValidateString(value string, constraint ConstraintType, constraintData interface{}) (bool, error) {
 	var regularExpression *regexp.Regexp
 	var err error
 	switch constraint {
@@ -115,12 +115,12 @@ func ValidateString(value string, constraint ConstraintType, regex ...string) (b
 	case Email:
 		regularExpression, _ = regexp.Compile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 	case RegEx:
-		if len(regex) < 1 {
-			return false, errors.New("If the constraint is 'RegEx', then a valid regex is needed as 3rd parameter")
+		if constraintData == nil {
+			return false, microappError.NewUnexpectedError(microappError.ErrorCodeRequired, errors.New("If the constraint is 'RegEx', then a valid regex is needed as constraintData"))
 		}
-		regularExpression, err = regexp.Compile(regex[0])
+		regularExpression, err = regexp.Compile(constraintData.(string))
 		if err != nil {
-			return false, err
+			return false, microappError.NewUnexpectedError(microappError.ErrorCodeInvalidValue, err)
 		}
 	default:
 		return false, nil

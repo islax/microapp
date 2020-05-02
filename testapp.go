@@ -49,7 +49,6 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 func (testApp *TestApp) Initialize() {
 	testApp.application.Initialize(testApp.controllerRouteProvider(testApp.application))
 	testApp.PrepareEmptyTables()
-
 	go testApp.application.Start()
 }
 
@@ -57,6 +56,7 @@ func (testApp *TestApp) Initialize() {
 func (testApp *TestApp) Stop() {
 	testApp.application.Stop()
 	testApp.application.DB.Close()
+
 	os.Remove("./test_islax.db")
 }
 

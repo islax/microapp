@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	microappErrors "github.com/islax/microapp/errors"
+	microappError "github.com/islax/microapp/error"
 	microlog "github.com/islax/microapp/log"
 )
 
@@ -46,14 +46,14 @@ func RespondErrorMessage(w http.ResponseWriter, code int, message string) {
 // RespondError returns a validation error else
 func RespondError(w http.ResponseWriter, err error) {
 	switch err.(type) {
-	case microappErrors.ValidationError:
+	case microappError.ValidationError:
 		RespondJSON(w, http.StatusBadRequest, err)
-	case microappErrors.HTTPResourceNotFound:
+	case microappError.HTTPResourceNotFound:
 		RespondJSON(w, http.StatusNotFound, err)
-	case microappErrors.HTTPError:
-		httpError := err.(microappErrors.HTTPError)
+	case microappError.HTTPError:
+		httpError := err.(microappError.HTTPError)
 		RespondErrorMessage(w, httpError.HTTPStatus, httpError.ErrorKey)
 	default:
-		RespondErrorMessage(w, http.StatusInternalServerError, "Key_InternalError")
+		RespondErrorMessage(w, http.StatusInternalServerError, microappError.ErrorCodeInternalError)
 	}
 }
