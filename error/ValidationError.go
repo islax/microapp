@@ -13,12 +13,12 @@ func IsValidationError(err error) bool {
 // NewInvalidFieldsError creates a new invalid fields validation Error.
 // 'failedFieldValidations' - map key should be the name of the field and value should be the error code.
 func NewInvalidFieldsError(failedFieldValidations map[string]string) ValidationError {
-	return ValidationError{ErrorKey: ErrorKeyInvalidFields, Errors: failedFieldValidations}
+	return ValidationError{ErrorKey: ErrorCodeInvalidFields, Errors: failedFieldValidations}
 }
 
 // NewInvalidRequestPayloadError creates a new invalid request payload validation Error.
 func NewInvalidRequestPayloadError(errorCode string) ValidationError {
-	return ValidationError{ErrorKey: ErrorKeyInvalidRequestPayload, Errors: map[string]string{"payload": errorCode}}
+	return ValidationError{ErrorKey: ErrorCodeInvalidRequestPayload, Errors: map[string]string{"payload": errorCode}}
 }
 
 // NewValidationError creates a new invalid fields validation Error.

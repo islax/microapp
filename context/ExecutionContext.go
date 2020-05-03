@@ -36,9 +36,9 @@ func NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, a
 	var executionCtxLogger zerolog.Logger
 	if token != nil {
 		executionCtxLogger = logger.With().
-			Str("actionByTenantId", token.TenantID.String()).
-			Str("actionByUserId", token.UserID.String()).
-			Str("actionByUsername", token.UserName).
+			Str("tenantId", token.TenantID.String()).
+			Str("userId", token.UserID.String()).
+			Str("username", token.UserName).
 			Str("action", action).
 			Str("corelationId", cid.String()).Logger()
 
@@ -99,7 +99,7 @@ func (context executionContextImpl) LogError(err error, validationMessage, error
 
 // LogJSONParseError log JSON payload parsing error
 func (context executionContextImpl) LogJSONParseError(err error) {
-	context.LogError(err, microappError.MessageInvalidPayload, microappError.MessageUnexpectedErrWhileRequetPayloadParsing)
+	context.LogError(err, log.MessageInvalidPayload, log.MessageUnexpectedErrWhileRequetPayloadParsing)
 }
 
 // LoggerEventActionCompletion logger event with eventType success and eventCode action complete
