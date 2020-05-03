@@ -40,7 +40,7 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	db.LogMode(verbose)
 
 	logger := zerolog.New(os.Stdout)
-	application := New(appName, map[string]interface{}{"API_PORT": "9100"}, logger, db, nil)
+	application := New(appName, map[string]interface{}{}, logger, db, nil)
 
 	return &TestApp{application: application, controllerRouteProvider: controllerRouteProvider, dbInitializer: dbInitializer}
 }

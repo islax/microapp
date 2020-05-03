@@ -22,6 +22,8 @@ const (
 	ErrorCodeInternalError = "Key_InternalError"
 	// ErrorCodeInvalidJSON error code for invalid JSON
 	ErrorCodeInvalidJSON = "Key_InvalidJSON"
+	// ErrorCodeInvalidPublicKey error code for invalid public cert
+	ErrorCodeInvalidPublicKey = "Key_InvalidPublicKey"
 	// ErrorCodeInvalidValue error code for invalid value
 	ErrorCodeInvalidValue = "Key_InvalidValue"
 	// ErrorCodeNotExists error code for not exists

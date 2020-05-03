@@ -10,7 +10,19 @@ import (
 )
 
 // ExecutionContext execution context
-type ExecutionContext struct {
+type ExecutionContext interface {
+	GetActionName() string
+	GetCorelationID() uuid.UUID
+	GetToken() *security.JwtToken
+	GetUOW() *repository.UnitOfWork
+	AddLoggerStrFields(strFields map[string]string)
+	Logger(eventType, eventCode string) *zerolog.Logger
+	LoggerEventActionCompletion() *zerolog.Event
+	LogError(err error, validationMessage, errorMessage string)
+	LogJSONParseError(err error)
+}
+
+type executionContextImpl struct {
 	CorelationID uuid.UUID
 	UOW          *repository.UnitOfWork
 	Token        *security.JwtToken
@@ -36,11 +48,27 @@ func NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, a
 			Str("corelationId", cid.String()).Logger()
 	}
 
-	return ExecutionContext{CorelationID: cid, UOW: uow, Token: token, Action: action, logger: executionCtxLogger}
+	return executionContextImpl{CorelationID: cid, UOW: uow, Token: token, Action: action, logger: executionCtxLogger}
+}
+
+func (context executionContextImpl) GetActionName() string {
+	return context.Action
+}
+
+func (context executionContextImpl) GetCorelationID() uuid.UUID {
+	return context.CorelationID
+}
+
+func (context executionContextImpl) GetToken() *security.JwtToken {
+	return context.Token
+}
+
+func (context executionContextImpl) GetUOW() *repository.UnitOfWork {
+	return context.UOW
 }
 
 // AddLoggerStrFields adds given string fields to the context logger
-func (context *ExecutionContext) AddLoggerStrFields(strFields map[string]string) {
+func (context executionContextImpl) AddLoggerStrFields(strFields map[string]string) {
 	loggerWith := context.logger.With()
 	for k, v := range strFields {
 		loggerWith = loggerWith.Str(k, v)
@@ -49,13 +77,13 @@ func (context *ExecutionContext) AddLoggerStrFields(strFields map[string]string)
 }
 
 // Logger creates a logger with eventType and eventCode
-func (context *ExecutionContext) Logger(eventType, eventCode string) *zerolog.Logger {
+func (context executionContextImpl) Logger(eventType, eventCode string) *zerolog.Logger {
 	logger := context.logger.With().Str("eventType", eventType).Str("eventCode", eventCode).Logger()
 	return &logger
 }
 
 // LogError log error
-func (context *ExecutionContext) LogError(err error, validationMessage, errorMessage string) {
+func (context executionContextImpl) LogError(err error, validationMessage, errorMessage string) {
 	switch err.(type) {
 	case microappError.ValidationError:
 		context.Logger(log.EventTypeValidationErr, log.EventCodeInvalidData).Debug().Err(err).Msg(validationMessage)
@@ -70,12 +98,12 @@ func (context *ExecutionContext) LogError(err error, validationMessage, errorMes
 }
 
 // LogJSONParseError log JSON payload parsing error
-func (context *ExecutionContext) LogJSONParseError(err error) {
+func (context executionContextImpl) LogJSONParseError(err error) {
 	context.LogError(err, microappError.MessageInvalidPayload, microappError.MessageUnexpectedErrWhileRequetPayloadParsing)
 }
 
 // LoggerEventActionCompletion logger event with eventType success and eventCode action complete
-func (context *ExecutionContext) LoggerEventActionCompletion() *zerolog.Event {
+func (context executionContextImpl) LoggerEventActionCompletion() *zerolog.Event {
 	logger := context.logger.Info().Str("eventType", log.EventTypeSuccess).Str("eventCode", log.EventCodeActionComplete)
 	return logger
 }
