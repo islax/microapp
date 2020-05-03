@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	microappError "github.com/islax/microapp/error"
-	microlog "github.com/islax/microapp/log"
 )
 
 // RespondJSON makes the response with payload as json format
@@ -15,7 +14,6 @@ func RespondJSON(w http.ResponseWriter, status int, payload interface{}) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
-		microlog.Logger.Error([]byte(err.Error()))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -29,7 +27,6 @@ func RespondJSONWithXTotalCount(w http.ResponseWriter, status int, count int, pa
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
-		microlog.Logger.Error([]byte(err.Error()))
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

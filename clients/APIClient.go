@@ -5,12 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
-
-	microLog "github.com/islax/microapp/log"
 )
 
 // APIClient represents the actual client calling microservice
@@ -23,9 +20,6 @@ func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken
 	var body io.Reader
 	if payload != nil {
 		bytePayload, err := json.Marshal(payload)
-		stringPayload := string(bytePayload)
-		microLog.Logger.Info(stringPayload)
-
 		if err != nil {
 			return nil, err
 		}
@@ -47,21 +41,16 @@ func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken
 	request.Header.Set("Content-Type", "application/json")
 
 	if err != nil {
-		microLog.Logger.Error(err)
 		return nil, err
 	}
 
 	response, err := apiClient.HTTPClient.Do(request)
 	if err != nil {
-		microLog.Logger.Error(err)
 		return nil, err
 	}
 
 	defer response.Body.Close()
 	if response.StatusCode > 300 { // All 3xx, 4xx, 5xx are considered errors
-		errorBytes, _ := ioutil.ReadAll(response.Body)
-		errorString := string(errorBytes)
-		microLog.Logger.Error(errorString)
 		return nil, errors.New("Received Status Code " + strconv.Itoa(response.StatusCode))
 	}
 
