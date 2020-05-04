@@ -99,7 +99,7 @@ func (context executionContextImpl) LogError(err error, validationMessage, error
 
 // LogJSONParseError log JSON payload parsing error
 func (context executionContextImpl) LogJSONParseError(err error) {
-	context.LogError(err, log.MessageInvalidPayload, log.MessageUnexpectedErrWhileRequetPayloadParsing)
+	context.LogError(err, log.MessageInvalidInputData, log.MessageUnexpectedErrRequetPayloadParsing)
 }
 
 // LoggerEventActionCompletion logger event with eventType success and eventCode action complete
