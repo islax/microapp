@@ -246,9 +246,9 @@ func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 }
 
 // DispatchEvent delegates to eventDispatcher.
-func (app *App) DispatchEvent(token string, topic string, payload interface{}) {
+func (app *App) DispatchEvent(token string, corelationID string, topic string, payload interface{}) {
 	if app.eventDispatcher != nil {
-		app.eventDispatcher.DispatchEvent(token, topic, payload)
+		app.eventDispatcher.DispatchEvent(token, corelationID, topic, payload)
 	}
 }
 

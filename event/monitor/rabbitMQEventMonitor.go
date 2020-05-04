@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/streadway/amqp"
 )
 
 type rabbitMQEventMonitor struct {
-	logger          *logrus.Logger
+	logger          *zerolog.Logger
 	queueName       string
 	eventSignal     chan *EventInfo
 	eventsToMonitor []string
@@ -55,11 +55,11 @@ func (monitor *rabbitMQEventMonitor) connectToRabbitMQ(queueName string, eventsT
 	for {
 		queueConnection, err := amqp.Dial(getQueueConnectionString())
 		if err != nil {
-			monitor.logger.Errorf("Unable to connect to rabbitMQ")
+			monitor.logger.Error().Err(err).Msg("Unable to connect to rabbitMQ.")
 		} else {
 			queueChannel, err := queueConnection.Channel()
 			if err != nil {
-				monitor.logger.Errorf("Failed to open a channel")
+				monitor.logger.Error().Err(err).Msg("Failed to open a channel.")
 			} else {
 				err = queueChannel.ExchangeDeclare(
 					"isla_exchange", // name
@@ -71,7 +71,7 @@ func (monitor *rabbitMQEventMonitor) connectToRabbitMQ(queueName string, eventsT
 					nil,             // arguments
 				)
 				if err != nil {
-					monitor.logger.Errorf("Failed to declare an exchange")
+					monitor.logger.Error().Err(err).Msg("Failed to declare an exchange.")
 				} else {
 					q, err := queueChannel.QueueDeclare(
 						monitor.queueName, // name
@@ -82,7 +82,7 @@ func (monitor *rabbitMQEventMonitor) connectToRabbitMQ(queueName string, eventsT
 						nil,               // arguments
 					)
 					if err != nil {
-						monitor.logger.Errorf("Failed to declare a queue")
+						monitor.logger.Error().Err(err).Msg("Failed to declare a queue.")
 					} else {
 						for _, event := range eventsToMonitor {
 							normalizedEvent := strings.ReplaceAll(event, "_", ".")
@@ -93,7 +93,7 @@ func (monitor *rabbitMQEventMonitor) connectToRabbitMQ(queueName string, eventsT
 								false,
 								nil)
 							if err != nil {
-								monitor.logger.Errorf("Failed to bind a event - %v", event)
+								monitor.logger.Error().Err(err).Msgf("Failed to bind a event - %v", event)
 							}
 						}
 
@@ -107,7 +107,7 @@ func (monitor *rabbitMQEventMonitor) connectToRabbitMQ(queueName string, eventsT
 							nil,    // args
 						)
 						if err != nil {
-							monitor.logger.Errorf("Failed to register a consumer")
+							monitor.logger.Error().Err(err).Msg("Failed to register a consumer.")
 						} else {
 							return queueConnection, queueChannel, messageChanel
 						}
@@ -115,7 +115,7 @@ func (monitor *rabbitMQEventMonitor) connectToRabbitMQ(queueName string, eventsT
 				}
 			}
 		}
-		monitor.logger.Warnf("Cannot connect to RabbitMQ. Trying again ... Error %s", err.Error())
+		monitor.logger.Warn().Msgf("Cannot connect to RabbitMQ. Trying again ... Error %s", err.Error())
 		time.Sleep(5 * time.Second)
 	}
 }
@@ -124,15 +124,22 @@ func (monitor *rabbitMQEventMonitor) monitorQueueAndProcessMessages() {
 	for message := range monitor.messageChanel {
 		payload := string(message.Body)
 		token := ""
+		corelationID := ""
 		authorizationHeader, ok := message.Headers["X-Authorization"]
 		if ok {
 			token = authorizationHeader.(string)
 		}
+		corelationIDHeader, ok := message.Headers["X-Correlation-ID"]
+		if ok {
+			corelationID = corelationIDHeader.(string)
+		}
 
 		command := &EventInfo{
-			Payload:  payload,
-			RawToken: token,
-			Name:     message.RoutingKey,
+			CorelationID: corelationID,
+			Payload:      payload,
+			RawToken:     token,
+
+			Name: message.RoutingKey,
 		}
 
 		monitor.eventSignal <- command

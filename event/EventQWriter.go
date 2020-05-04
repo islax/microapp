@@ -14,6 +14,6 @@ func NewEventQWriter(eventDispatcher Dispatcher) io.Writer {
 }
 
 func (writer *eventQWriter) Write(p []byte) (n int, err error) {
-	writer.eventDispatcher.DispatchEvent("", "service_log", p)
+	writer.eventDispatcher.DispatchEvent("", "", "app_log", p)
 	return len(p), nil
 }

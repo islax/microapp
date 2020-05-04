@@ -13,9 +13,10 @@ import (
 )
 
 type queueCommand struct {
-	token   string
-	topic   string
-	payload interface{}
+	token        string
+	topic        string
+	corelationID string
+	payload      interface{}
 }
 
 type retryCommand struct {
@@ -60,7 +61,7 @@ func NewRabbitMQEventDispatcher(logger *zerolog.Logger) (*RabbitMQEventDispatche
 }
 
 // DispatchEvent dispatches events to the message queue
-func (eventDispatcher *RabbitMQEventDispatcher) DispatchEvent(token string, topic string, payload interface{}) {
+func (eventDispatcher *RabbitMQEventDispatcher) DispatchEvent(token string, corelationID string, topic string, payload interface{}) {
 	eventDispatcher.sendChannel <- &queueCommand{token: token, topic: topic, payload: payload}
 }
 
@@ -98,7 +99,7 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 				amqp.Publishing{
 					ContentType: "application/json",
 					Body:        []byte(body),
-					Headers:     map[string]interface{}{"X-Authorization": command.token},
+					Headers:     map[string]interface{}{"X-Authorization": command.token, "CorelationId": command.corelationID},
 				})
 
 			if err != nil {
