@@ -14,7 +14,7 @@ import (
 // ExecutionContext execution context
 type ExecutionContext interface {
 	GetActionName() string
-	GetCorelationID() string
+	GetCorrelationID() string
 	GetDefaultLogger() *zerolog.Logger
 	GetToken() *security.JwtToken
 	GetUOW() *repository.UnitOfWork
@@ -26,11 +26,11 @@ type ExecutionContext interface {
 }
 
 type executionContextImpl struct {
-	CorelationID string
-	UOW          *repository.UnitOfWork
-	Token        *security.JwtToken
-	Action       string
-	logger       zerolog.Logger
+	CorrelationID string
+	UOW           *repository.UnitOfWork
+	Token         *security.JwtToken
+	Action        string
+	logger        zerolog.Logger
 }
 
 // NewExecutionContext creates new execution context
@@ -46,23 +46,23 @@ func NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, c
 			Str("userId", token.UserID.String()).
 			Str("username", token.UserName).
 			Str("action", action).
-			Str("corelationId", cid).Logger()
+			Str("correlationId", cid).Logger()
 
 	} else {
 		executionCtxLogger = logger.With().
 			Str("action", action).
-			Str("corelationId", cid).Logger()
+			Str("correlationId", cid).Logger()
 	}
 
-	return executionContextImpl{CorelationID: cid, UOW: uow, Token: token, Action: action, logger: executionCtxLogger}
+	return executionContextImpl{CorrelationID: cid, UOW: uow, Token: token, Action: action, logger: executionCtxLogger}
 }
 
 func (context executionContextImpl) GetActionName() string {
 	return context.Action
 }
 
-func (context executionContextImpl) GetCorelationID() string {
-	return context.CorelationID
+func (context executionContextImpl) GetCorrelationID() string {
+	return context.CorrelationID
 }
 
 func (context executionContextImpl) GetDefaultLogger() *zerolog.Logger {

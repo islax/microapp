@@ -40,7 +40,7 @@ const (
 	// MessageUnexpectedErrGenericTemplate error message for - unexpected error occured while generic template
 	MessageUnexpectedErrGenericTemplate = "Unexpected error occured while %v."
 	// MessageUnexpectedErrRequetPayloadParsing error message for - unexpected error while request JSON parsing
-	MessageUnexpectedErrRequetPayloadParsing = "Unexpected error occured while parsing JSON paload."
+	MessageUnexpectedErrRequetPayloadParsing = "Unexpected error occured while parsing JSON payload."
 	// MessageUnexpectedErrUpdatingEntityToDB error message for - unexpected error occured while adding new entity to database
 	MessageUnexpectedErrUpdatingEntityToDB = "Unexpected error occured while updating to database."
 )
