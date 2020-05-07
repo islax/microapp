@@ -15,6 +15,7 @@ import (
 type ExecutionContext interface {
 	GetActionName() string
 	GetCorelationID() string
+	GetDefaultLogger() *zerolog.Logger
 	GetToken() *security.JwtToken
 	GetUOW() *repository.UnitOfWork
 	AddLoggerStrFields(strFields map[string]string)
@@ -62,6 +63,10 @@ func (context executionContextImpl) GetActionName() string {
 
 func (context executionContextImpl) GetCorelationID() string {
 	return context.CorelationID
+}
+
+func (context executionContextImpl) GetDefaultLogger() *zerolog.Logger {
+	return &context.logger
 }
 
 func (context executionContextImpl) GetToken() *security.JwtToken {

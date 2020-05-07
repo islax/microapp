@@ -62,6 +62,8 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 		if appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
 			multiWriters = io.MultiWriter(consoleWriter, event.NewEventQWriter(appEventDispatcher))
 		}
+	} else {
+		consoleOnlyLogger.Warn().Msg("Event dispatcher not enabled. Please set ISLA_ENABLE_EVENT_DISPATCHER or ISLA_LOG_TO_EVENTQ to '1' to enable it.")
 	}
 	//TODO: default module to system
 	appLogger := log.New(appName, appConfig.GetString("LOG_LEVEL"), multiWriters)
