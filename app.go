@@ -269,7 +269,7 @@ func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, c
 	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: uuid.Nil, UserID: uuid.Nil, UserName: "System"}, correlationID, action, app.log)
 }
 
-// GetCorelationIDFromRequest returns correlationId from request header
-func GetCorelationIDFromRequest(r *http.Request) string {
+// GetCorrelationIDFromRequest returns correlationId from request header
+func GetCorrelationIDFromRequest(r *http.Request) string {
 	return r.Header.Get("X-Correlation-ID")
 }
