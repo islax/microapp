@@ -1,6 +1,8 @@
 package context
 
 import (
+	"strings"
+
 	microappError "github.com/islax/microapp/error"
 	"github.com/islax/microapp/log"
 	"github.com/islax/microapp/repository"
@@ -31,8 +33,11 @@ type executionContextImpl struct {
 }
 
 // NewExecutionContext creates new execution context
-func NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, action string, logger zerolog.Logger) ExecutionContext {
-	cid := uuid.NewV4().String()
+func NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, correlationID string, action string, logger zerolog.Logger) ExecutionContext {
+	cid := correlationID
+	if len(strings.TrimSpace(cid)) == 0 {
+		cid = uuid.NewV4().String()
+	}
 	var executionCtxLogger zerolog.Logger
 	if token != nil {
 		executionCtxLogger = logger.With().
