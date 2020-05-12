@@ -21,7 +21,7 @@ type ExecutionContext interface {
 	AddLoggerStrFields(strFields map[string]string)
 	Logger(eventType, eventCode string) *zerolog.Logger
 	LoggerEventActionCompletion() *zerolog.Event
-	LogError(err error, validationMessage, errorMessage string)
+	LogError(err error, errorMessage string)
 	LogJSONParseError(err error)
 }
 
@@ -93,10 +93,10 @@ func (context executionContextImpl) Logger(eventType, eventCode string) *zerolog
 }
 
 // LogError log error
-func (context executionContextImpl) LogError(err error, validationMessage, errorMessage string) {
+func (context executionContextImpl) LogError(err error, errorMessage string) {
 	switch err.(type) {
 	case microappError.ValidationError:
-		context.Logger(log.EventTypeValidationErr, log.EventCodeInvalidData).Debug().Err(err).Msg(validationMessage)
+		context.Logger(log.EventTypeValidationErr, log.EventCodeInvalidData).Debug().Err(err).Msg(log.MessageInvalidInputData)
 	case microappError.HTTPResourceNotFound:
 		resourceNotFoundErr := err.(microappError.HTTPResourceNotFound)
 		context.Logger(log.EventTypeUnexpectedErr, resourceNotFoundErr.ErrorKey).Debug().Err(err).Str("resourceName", resourceNotFoundErr.ResourceName).Str("resourceValue", resourceNotFoundErr.ResourceValue).Msg(errorMessage)
@@ -109,7 +109,7 @@ func (context executionContextImpl) LogError(err error, validationMessage, error
 
 // LogJSONParseError log JSON payload parsing error
 func (context executionContextImpl) LogJSONParseError(err error) {
-	context.LogError(err, log.MessageInvalidInputData, log.MessageUnexpectedErrRequetPayloadParsing)
+	context.LogError(err, log.MessageParseError)
 }
 
 // LoggerEventActionCompletion logger event with eventType success and eventCode action complete

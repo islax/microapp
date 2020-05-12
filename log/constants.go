@@ -29,18 +29,18 @@ const (
 	MessageInvalidInputData = "Invalid input data."
 	// MessageUnableToFindURLResource error message for - unable to find URL resource
 	MessageUnableToFindURLResource = "Unable to find record."
-	// MessageUnexpectedErrAddingNewEntityToDB error message for - unexpected error occured while adding new entity to database
-	MessageUnexpectedErrAddingNewEntityToDB = "Unexpected error occured while adding to database."
-	// MessageUnexpectedErrCreatingNewEntity error message for - unexpected error occured while creating new entity
-	MessageUnexpectedErrCreatingNewEntity = "Unexpected error occured while creating / validating new entity."
-	// MessageUnexpectedErrDeletingEntityFromDB error message for - unexpected error occured while deleting entity from database
-	MessageUnexpectedErrDeletingEntityFromDB = "Unexpected error occured while deleting from database."
-	// MessageUnexpectedErrGetEntitiesFromDB error message for - unexpected error occured while getting entities from database
-	MessageUnexpectedErrGetEntitiesFromDB = "Unexpected error occured while getting data from database."
-	// MessageUnexpectedErrGenericTemplate error message for - unexpected error occured while generic template
-	MessageUnexpectedErrGenericTemplate = "Unexpected error occured while %v."
-	// MessageUnexpectedErrRequetPayloadParsing error message for - unexpected error while request JSON parsing
-	MessageUnexpectedErrRequetPayloadParsing = "Unexpected error occured while parsing JSON payload."
-	// MessageUnexpectedErrUpdatingEntityToDB error message for - unexpected error occured while adding new entity to database
-	MessageUnexpectedErrUpdatingEntityToDB = "Unexpected error occured while updating to database."
+	// MessageAddEntityError error message for - unexpected error occured while adding new entity to database
+	MessageAddEntityError = "Unexpected error occured while adding to database."
+	// MessageNewEntityError error message for - unexpected error occured while creating new entity
+	MessageNewEntityError = "Unexpected error occured while creating / validating new entity."
+	// MessageDeleteEntityError error message for - unexpected error occured while deleting entity from database
+	MessageDeleteEntityError = "Unexpected error occured while deleting from database."
+	// MessageGetEntityError error message for - unexpected error occured while getting entities from database
+	MessageGetEntityError = "Unexpected error occured while getting data from database."
+	// MessageGenericErrorTemplate error message for - unexpected error occured while generic template
+	MessageGenericErrorTemplate = "Unexpected error occured while %v."
+	// MessageParseError error message for - unexpected error while parsing payload
+	MessageParseError = "Unexpected error occured while parsing payload."
+	// MessageUpdateEntityError error message for - unexpected error occured while adding new entity to database
+	MessageUpdateEntityError = "Unexpected error occured while updating to database."
 )
