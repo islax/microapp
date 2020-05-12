@@ -122,6 +122,26 @@ func ValidateString(value string, constraint ConstraintType, constraintData inte
 		if err != nil {
 			return false, microappError.NewUnexpectedError(microappError.ErrorCodeInvalidValue, err)
 		}
+	case In:
+		if constraintData == nil {
+			return false, microappError.NewUnexpectedError(microappError.ErrorCodeRequired, errors.New("If the constraint is 'In', then a string slice containing valid values is needed as constraintData"))
+		}
+
+		validValues, stringSliceType := constraintData.([]string)
+		if !stringSliceType {
+			return false, microappError.NewUnexpectedError(microappError.ErrorCodeRequired, errors.New("If the constraint is 'In', then a string slice containing valid values is needed as constraintData"))
+		}
+		for _, validValue := range validValues {
+			if value == validValue {
+				return true, nil
+			}
+		}
+		return false, nil
+	case UUID:
+		if _, err := uuid.FromString(value); err != nil {
+			return false, nil
+		}
+		return true, nil
 	default:
 		return false, nil
 	}
@@ -133,14 +153,18 @@ func ValidateString(value string, constraint ConstraintType, constraintData inte
 type ConstraintType string
 
 const (
-	//AlphaNumeric represents string containing only alphabets and numbers
+	// AlphaNumeric represents string containing only alphabets and numbers
 	AlphaNumeric ConstraintType = "AlphaNumeric"
-	//AlphaNumericAndHyphen represents string containing alphabets, numbers and hyphen
+	// AlphaNumericAndHyphen represents string containing alphabets, numbers and hyphen
 	AlphaNumericAndHyphen ConstraintType = "AlphaNumericAndHyphen"
-	//Email represents string containing email address
+	// Email represents string containing email address
 	Email ConstraintType = "Email"
-	//URL represents string containing URL
-	URL ConstraintType = "URL"
-	//RegEx represents string containing regular expression
+	// RegEx represents string containing regular expression
 	RegEx ConstraintType = "RegEx"
+	// In represents string value from a pre-defined set
+	In ConstraintType = "In"
+	// URL represents string containing URL
+	URL ConstraintType = "URL"
+	// UUID represents string containing UUID
+	UUID ConstraintType = "UUID"
 )

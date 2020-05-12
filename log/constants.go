@@ -32,7 +32,7 @@ const (
 	// MessageUnexpectedErrAddingNewEntityToDB error message for - unexpected error occured while adding new entity to database
 	MessageUnexpectedErrAddingNewEntityToDB = "Unexpected error occured while adding to database."
 	// MessageUnexpectedErrCreatingNewEntity error message for - unexpected error occured while creating new entity
-	MessageUnexpectedErrCreatingNewEntity = "Unexpected error occured while validating creating new entity."
+	MessageUnexpectedErrCreatingNewEntity = "Unexpected error occured while creating / validating new entity."
 	// MessageUnexpectedErrDeletingEntityFromDB error message for - unexpected error occured while deleting entity from database
 	MessageUnexpectedErrDeletingEntityFromDB = "Unexpected error occured while deleting from database."
 	// MessageUnexpectedErrGetEntitiesFromDB error message for - unexpected error occured while getting entities from database
