@@ -82,11 +82,7 @@ func ValidateFields(fields []*FieldData) error {
 				errors[field.Name] = microappError.ErrorCodeRequired
 			} else if strings.TrimSpace(valAsString) != "" && len(field.Constraints) > 0 {
 				for _, constraint := range field.Constraints {
-					if constraint.Type == RegEx {
-						ok, _ = ValidateString(valAsString, constraint.Type, constraint.ConstraintData)
-					} else {
-						ok, _ = ValidateString(valAsString, constraint.Type, nil)
-					}
+					ok, _ = ValidateString(valAsString, constraint.Type, constraint.ConstraintData)
 					if !ok {
 						errors[field.Name] = microappError.ErrorCodeInvalidValue
 					}
