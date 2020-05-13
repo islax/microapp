@@ -183,11 +183,11 @@ func (testApp *TestApp) AssertErrorResponse(t *testing.T, response *httptest.Res
 		t.Errorf("Unable to parse response: %v", err)
 	}
 	if errData["errorKey"] != expectedErrorKey {
-		t.Errorf("Expected errorKey [%v], Actual [%v]!", expectedErrorKey, errData["errorKey"])
+		t.Errorf("Expected errorKey [%v], Got [%v]!", expectedErrorKey, errData["errorKey"])
 	}
 	errors := errData["errors"].(map[string]interface{})
 	if fmt.Sprintf("%v", errors[expectedErrorField]) != expectedError {
-		t.Errorf("Expected error [%v], Actual [%v]!", expectedError, errors[expectedErrorField])
+		t.Errorf("Expected error [%v], Got [%v]!", expectedError, errors[expectedErrorField])
 	}
 }
 
@@ -228,6 +228,17 @@ func (testApp *TestApp) CheckResponseCode(t *testing.T, expected, actual int) {
 	}
 }
 
+// Check checks whether the expected and actual value matches
+func (testApp *TestApp) Check(t *testing.T, name string, expected, actual interface{}, failNow bool) {
+	if !reflect.DeepEqual(expected, actual) {
+		if failNow {
+			t.Fatalf("Expected %v [%v]. Got [%v]\n", name, expected, actual)
+		} else {
+			t.Errorf("Expected %v [%v]. Got [%v]\n", name, expected, actual)
+		}
+	}
+}
+
 // GetAdminToken returns a test token
 func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []string) string {
 	return testApp.generateToken(tenantID, userID, "", "", uuid.UUID{}.String(), "", scope, true)
@@ -262,14 +273,24 @@ func (testApp *TestApp) GetFullAdminToken(tenantID string, userID string, userna
 	return testApp.generateToken(tenantID, userID, username, name, externalID, externalIDType, scope, true)
 }
 
+// GetStandardAdminToken returns a test admin token with all standard fields.
+func (testApp *TestApp) GetStandardAdminToken(tenantID string, userID string, username string, name string, scope []string) string {
+	return testApp.generateToken(tenantID, userID, username, name, uuid.Nil.String(), "", scope, true)
+}
+
 // GetFullToken returns a test token with all the fields along with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
 func (testApp *TestApp) GetFullToken(tenantID string, userID string, username string, name string, externalID string, externalIDType string, scope []string) string {
 	return testApp.generateToken(tenantID, userID, username, name, externalID, externalIDType, scope, false)
 }
 
+// GetStandardToken returns a test token with all standard fields
+func (testApp *TestApp) GetStandardToken(tenantID string, userID string, username string, name string, scope []string) string {
+	return testApp.generateToken(tenantID, userID, username, name, uuid.Nil.String(), "", scope, false)
+}
+
 // GetToken gets a token to connect to API
 func (testApp *TestApp) GetToken(tenantID string, userID string, scope []string) string {
-	return testApp.generateToken(tenantID, userID, "", "", uuid.UUID{}.String(), "", scope, false)
+	return testApp.generateToken(tenantID, userID, userID, userID, uuid.Nil.String(), "", scope, false)
 }
 
 // SaveToDB saves the entity to database
