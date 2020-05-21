@@ -13,12 +13,13 @@ import (
 
 // ExecutionContext execution context
 type ExecutionContext interface {
+	CreateSubContext(additionalFields map[string]string) ExecutionContext
 	GetActionName() string
 	GetCorrelationID() string
 	GetDefaultLogger() *zerolog.Logger
 	GetToken() *security.JwtToken
 	GetUOW() *repository.UnitOfWork
-	AddLoggerStrFields(strFields map[string]string)
+	AddLoggerStrFields(strFields map[string]string) ExecutionContext
 	Logger(eventType, eventCode string) *zerolog.Logger
 	LoggerEventActionCompletion() *zerolog.Event
 	LogError(err error, errorMessage string)
@@ -54,46 +55,54 @@ func NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, c
 			Str("correlationId", cid).Logger()
 	}
 
-	return executionContextImpl{CorrelationID: cid, UOW: uow, Token: token, Action: action, logger: executionCtxLogger}
+	return &executionContextImpl{CorrelationID: cid, UOW: uow, Token: token, Action: action, logger: executionCtxLogger}
 }
 
-func (context executionContextImpl) GetActionName() string {
+func (context *executionContextImpl) CreateSubContext(additionalFields map[string]string) ExecutionContext {
+	loggerWith := context.logger.With()
+	for k, v := range additionalFields {
+		loggerWith = loggerWith.Str(k, v)
+	}
+	return &executionContextImpl{context.CorrelationID, context.UOW, context.Token, context.Action, loggerWith.Logger()}
+}
+
+func (context *executionContextImpl) GetActionName() string {
 	return context.Action
 }
 
-func (context executionContextImpl) GetCorrelationID() string {
+func (context *executionContextImpl) GetCorrelationID() string {
 	return context.CorrelationID
 }
 
-func (context executionContextImpl) GetDefaultLogger() *zerolog.Logger {
+func (context *executionContextImpl) GetDefaultLogger() *zerolog.Logger {
 	return &context.logger
 }
 
-func (context executionContextImpl) GetToken() *security.JwtToken {
+func (context *executionContextImpl) GetToken() *security.JwtToken {
 	return context.Token
 }
 
-func (context executionContextImpl) GetUOW() *repository.UnitOfWork {
+func (context *executionContextImpl) GetUOW() *repository.UnitOfWork {
 	return context.UOW
 }
 
 // AddLoggerStrFields adds given string fields to the context logger
-func (context executionContextImpl) AddLoggerStrFields(strFields map[string]string) {
+func (context *executionContextImpl) AddLoggerStrFields(strFields map[string]string) ExecutionContext {
 	loggerWith := context.logger.With()
 	for k, v := range strFields {
 		loggerWith = loggerWith.Str(k, v)
 	}
-	context.logger = loggerWith.Logger()
+	return &executionContextImpl{context.CorrelationID, context.UOW, context.Token, context.Action, loggerWith.Logger()}
 }
 
 // Logger creates a logger with eventType and eventCode
-func (context executionContextImpl) Logger(eventType, eventCode string) *zerolog.Logger {
+func (context *executionContextImpl) Logger(eventType, eventCode string) *zerolog.Logger {
 	logger := context.logger.With().Str("eventType", eventType).Str("eventCode", eventCode).Logger()
 	return &logger
 }
 
 // LogError log error
-func (context executionContextImpl) LogError(err error, errorMessage string) {
+func (context *executionContextImpl) LogError(err error, errorMessage string) {
 	switch err.(type) {
 	case microappError.ValidationError:
 		context.Logger(log.EventTypeValidationErr, log.EventCodeInvalidData).Debug().Err(err).Msg(log.MessageInvalidInputData)
@@ -108,12 +117,12 @@ func (context executionContextImpl) LogError(err error, errorMessage string) {
 }
 
 // LogJSONParseError log JSON payload parsing error
-func (context executionContextImpl) LogJSONParseError(err error) {
+func (context *executionContextImpl) LogJSONParseError(err error) {
 	context.LogError(err, log.MessageParseError)
 }
 
 // LoggerEventActionCompletion logger event with eventType success and eventCode action complete
-func (context executionContextImpl) LoggerEventActionCompletion() *zerolog.Event {
+func (context *executionContextImpl) LoggerEventActionCompletion() *zerolog.Event {
 	logger := context.logger.Info().Str("eventType", log.EventTypeSuccess).Str("eventCode", log.EventCodeActionComplete)
 	return logger
 }

@@ -98,6 +98,9 @@ func (app *App) initializeDB() error {
 		return retry.Stop{OriginalError: err}
 	})
 	app.DB = db
+	if strings.ToLower(app.Config.GetString("LOG_LEVEL")) == "trace" {
+		app.DB.LogMode(true)
+	}
 	app.log.Info().Msg("Database connected!")
 	return err
 }
@@ -242,8 +245,9 @@ func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
 		rec := &httpStatusRecorder{ResponseWriter: w}
+		app.Logger("Ingress").Info().Timestamp().Str("method", r.Method).Str("requestURI", r.RequestURI).Msg("Begin")
 		next.ServeHTTP(rec, r)
-		app.Logger("Ingress").Info().Str("requestURI", r.RequestURI).Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Send()
+		app.Logger("Ingress").Info().Timestamp().Str("method", r.Method).Str("requestURI", r.RequestURI).Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
 	})
 }
 
