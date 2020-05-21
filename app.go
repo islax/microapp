@@ -248,9 +248,9 @@ func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 		if r.Header.Get("X-Correlation-ID") == "" {
 			r.Header.Set("X-Correlation-ID", uuid.NewV4().String())
 		}
-		app.Logger("Ingress").Info().Timestamp().Str("method", r.Method).Str("requestURI", r.RequestURI).Msg("Begin")
+		app.Logger("Ingress").Info().Timestamp().Str("correlationId", r.Header.Get("X-Correlation-ID")).Str("method", r.Method).Str("requestURI", r.RequestURI).Msg("Begin")
 		next.ServeHTTP(rec, r)
-		app.Logger("Ingress").Info().Timestamp().Str("method", r.Method).Str("requestURI", r.RequestURI).Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+		app.Logger("Ingress").Info().Timestamp().Str("correlationId", r.Header.Get("X-Correlation-ID")).Str("method", r.Method).Str("requestURI", r.RequestURI).Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
 	})
 }
 
