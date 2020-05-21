@@ -19,7 +19,7 @@ type ExecutionContext interface {
 	GetDefaultLogger() *zerolog.Logger
 	GetToken() *security.JwtToken
 	GetUOW() *repository.UnitOfWork
-	AddLoggerStrFields(strFields map[string]string) ExecutionContext
+	AddLoggerStrFields(strFields map[string]string)
 	Logger(eventType, eventCode string) *zerolog.Logger
 	LoggerEventActionCompletion() *zerolog.Event
 	LogError(err error, errorMessage string)
@@ -87,12 +87,12 @@ func (context *executionContextImpl) GetUOW() *repository.UnitOfWork {
 }
 
 // AddLoggerStrFields adds given string fields to the context logger
-func (context *executionContextImpl) AddLoggerStrFields(strFields map[string]string) ExecutionContext {
+func (context *executionContextImpl) AddLoggerStrFields(strFields map[string]string) {
 	loggerWith := context.logger.With()
 	for k, v := range strFields {
 		loggerWith = loggerWith.Str(k, v)
 	}
-	return &executionContextImpl{context.CorrelationID, context.UOW, context.Token, context.Action, loggerWith.Logger()}
+	context.logger = loggerWith.Logger()
 }
 
 // Logger creates a logger with eventType and eventCode

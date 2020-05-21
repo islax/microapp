@@ -8,15 +8,18 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	microappCtx "github.com/islax/microapp/context"
 )
 
 // APIClient represents the actual client calling microservice
 type APIClient struct {
+	AppName    string
 	BaseURL    string
 	HTTPClient *http.Client
 }
 
-func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken string, payload map[string]interface{}) (interface{}, error) {
+func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url string, requestMethod string, rawToken string, payload map[string]interface{}) (interface{}, error) {
 	var body io.Reader
 	if payload != nil {
 		bytePayload, err := json.Marshal(payload)
@@ -38,6 +41,8 @@ func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken
 			request.Header.Add("Authorization", "Bearer "+rawToken)
 		}
 	}
+	request.Header.Set("X-Client", apiClient.AppName)
+	request.Header.Set("X-Correlation-ID", context.GetCorrelationID())
 	request.Header.Set("Content-Type", "application/json")
 
 	if err != nil {
@@ -64,8 +69,8 @@ func (apiClient *APIClient) doRequest(url string, requestMethod string, rawToken
 }
 
 // DoGet is a generic method to carry out RESTful calls to the other external microservices in ISLA
-func (apiClient *APIClient) DoGet(requestString string, rawToken string) (map[string]interface{}, error) {
-	response, err := apiClient.doRequest(requestString, http.MethodGet, rawToken, nil)
+func (apiClient *APIClient) DoGet(context microappCtx.ExecutionContext, requestString string, rawToken string) (map[string]interface{}, error) {
+	response, err := apiClient.doRequest(context, requestString, http.MethodGet, rawToken, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +83,8 @@ func (apiClient *APIClient) DoGet(requestString string, rawToken string) (map[st
 }
 
 // DoGetList is a generic method to carry out RESTful calls to the other external microservices in ISLA
-func (apiClient *APIClient) DoGetList(requestString string, rawToken string) ([]map[string]interface{}, error) {
-	response, err := apiClient.doRequest(requestString, http.MethodGet, rawToken, nil)
+func (apiClient *APIClient) DoGetList(context microappCtx.ExecutionContext, requestString string, rawToken string) ([]map[string]interface{}, error) {
+	response, err := apiClient.doRequest(context, requestString, http.MethodGet, rawToken, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -100,8 +105,8 @@ func (apiClient *APIClient) DoGetList(requestString string, rawToken string) ([]
 }
 
 // DoPost is a generic method to carry out RESTful calls to the other external microservices in ISLA
-func (apiClient *APIClient) DoPost(requestString string, rawToken string, payload map[string]interface{}) (map[string]interface{}, error) {
-	response, err := apiClient.doRequest(requestString, http.MethodPost, rawToken, payload)
+func (apiClient *APIClient) DoPost(context microappCtx.ExecutionContext, requestString string, rawToken string, payload map[string]interface{}) (map[string]interface{}, error) {
+	response, err := apiClient.doRequest(context, requestString, http.MethodPost, rawToken, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -114,8 +119,8 @@ func (apiClient *APIClient) DoPost(requestString string, rawToken string, payloa
 }
 
 // DoDelete is a generic method to carry out RESTful calls to the other external microservices in ISLA
-func (apiClient *APIClient) DoDelete(requestString string, rawToken string, payload map[string]interface{}) error {
-	_, err := apiClient.doRequest(requestString, http.MethodDelete, rawToken, payload)
+func (apiClient *APIClient) DoDelete(context microappCtx.ExecutionContext, requestString string, rawToken string, payload map[string]interface{}) error {
+	_, err := apiClient.doRequest(context, requestString, http.MethodDelete, rawToken, payload)
 	if err != nil {
 		return err
 	}
