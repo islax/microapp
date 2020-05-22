@@ -244,13 +244,16 @@ func (rec *httpStatusRecorder) WriteHeader(code int) {
 func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
-		rec := &httpStatusRecorder{ResponseWriter: w}
+
 		if r.Header.Get("X-Correlation-ID") == "" {
 			r.Header.Set("X-Correlation-ID", uuid.NewV4().String())
 		}
-		app.Logger("Ingress").Info().Timestamp().Str("correlationId", r.Header.Get("X-Correlation-ID")).Str("method", r.Method).Str("requestURI", r.RequestURI).Msg("Begin")
+		logger := app.Logger("Ingress").With().Timestamp().Str("caller", r.Header.Get("X-Client")).Str("correlationId", r.Header.Get("X-Correlation-ID")).Str("method", r.Method).Str("requestURI", r.RequestURI).Logger()
+
+		rec := &httpStatusRecorder{ResponseWriter: w}
+		logger.Info().Msg("Begin")
 		next.ServeHTTP(rec, r)
-		app.Logger("Ingress").Info().Timestamp().Str("correlationId", r.Header.Get("X-Correlation-ID")).Str("method", r.Method).Str("requestURI", r.RequestURI).Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+		logger.Info().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
 	})
 }
 
