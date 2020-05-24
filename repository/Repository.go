@@ -16,6 +16,7 @@ import (
 // Repository represents generic interface for interacting with DB
 type Repository interface {
 	Get(uow *UnitOfWork, out interface{}, id uuid.UUID, preloadAssociations []string) microappError.DatabaseError
+	GetFirst(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetForTenant(uow *UnitOfWork, out interface{}, id string, tenantID uuid.UUID, preloadAssociations []string) microappError.DatabaseError
 	GetAll(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError
@@ -222,6 +223,25 @@ func FilterWithOR(columnName []string, condition []string, filterValues []interf
 		db = db.Where(str, filterValues...)
 		return db, nil
 	}
+}
+
+// GetFirst gets first record matching the given criteria
+func (repository *GormRepository) GetFirst(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
+	db := uow.DB
+
+	if queryProcessors != nil {
+		var err error
+		for _, queryProcessor := range queryProcessors {
+			db, err = queryProcessor(db, out)
+			if err != nil {
+				return microappError.NewDatabaseError(err)
+			}
+		}
+	}
+	if err := db.First(out).Error; err != nil {
+		return microappError.NewDatabaseError(err)
+	}
+	return nil
 }
 
 // Get a record for specified entity with specific id
