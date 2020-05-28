@@ -106,7 +106,6 @@ func (testApp *TestApp) AssertEqualWithFieldsToIgnore(t *testing.T, expected int
 						if v, ok := mapOfExpectedToActualField[actualFieldName]; ok {
 							actualFieldName = v
 						}
-						// t.Logf("Actual assert field (nested): %v", actualFieldName)
 						actualField := actualElem.FieldByName(actualFieldName)
 						if actualField.Kind() == reflect.Ptr {
 							actualField = actualField.Elem()

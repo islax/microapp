@@ -3,25 +3,27 @@ package log
 const (
 	// EventTypeAuthenticationErr log event type for validation error
 	EventTypeAuthenticationErr = "Key_AuthenticationError"
-	// EventTypeValidationErr log event type for validation error
-	EventTypeValidationErr = "Key_ValidationError"
-	// EventTypeUnexpectedErr log event type for unexpected error
-	EventTypeUnexpectedErr = "Key_UnexpectedError"
+	// EventTypeServiceDataReplication log event type for
+	EventTypeServiceDataReplication = "Key_ServiceDataReplication"
 	// EventTypeSuccess log event type key success
 	EventTypeSuccess = "Key_Success"
+	// EventTypeUnexpectedErr log event type for unexpected error
+	EventTypeUnexpectedErr = "Key_UnexpectedError"
+	// EventTypeValidationErr log event type for validation error
+	EventTypeValidationErr = "Key_ValidationError"
 )
 
 const (
-	// EventCodeInvalidData log event code for invalid data
-	EventCodeInvalidData = "Key_InvalidPayload"
-	// EventCodeUnknown log event code for unknown errors
-	EventCodeUnknown = "Key_Unknown"
-	// EventCodeReadWriteFailure event code for read/write errors
-	EventCodeReadWriteFailure = "Key_ReadWriteFailure"
-	// EventCodeCryptoFaliure event code for crypto failure
-	EventCodeCryptoFaliure = "Key_CryptoFailure"
 	// EventCodeActionComplete log event code for completion of action
 	EventCodeActionComplete = "Key_ActionComplete"
+	// EventCodeCryptoFaliure event code for crypto failure
+	EventCodeCryptoFaliure = "Key_CryptoFailure"
+	// EventCodeInvalidData log event code for invalid data
+	EventCodeInvalidData = "Key_InvalidPayload"
+	// EventCodeReadWriteFailure event code for read/write errors
+	EventCodeReadWriteFailure = "Key_ReadWriteFailure"
+	// EventCodeUnknown log event code for unknown errors
+	EventCodeUnknown = "Key_Unknown"
 )
 
 const (
