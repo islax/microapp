@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/islax/microapp/web"
+	microappError "github.com/islax/microapp/error"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -44,23 +44,12 @@ func NewStringFieldData(name string, value interface{}) *FieldData {
 }
 
 // NewStringFieldDataWithConstraint creates new FieldData with type string and constraint
-func NewStringFieldDataWithConstraint(name string, value interface{}, constraints []*ConstraintDetail) *FieldData {
+func NewStringFieldDataWithConstraint(name string, value interface{}, required bool, constraints []*ConstraintDetail) *FieldData {
 	return &FieldData{
 		Name:        name,
 		Value:       value,
 		Type:        "string",
-		Required:    true,
-		Constraints: constraints,
-	}
-}
-
-// NewOptionalStringFieldDataWithConstraints creates new FieldData with type string, required param value and constraints
-func NewOptionalStringFieldDataWithConstraints(name string, value interface{}, constraints []*ConstraintDetail) *FieldData {
-	return &FieldData{
-		Name:        name,
-		Value:       value,
-		Type:        "string",
-		Required:    false,
+		Required:    required,
 		Constraints: constraints,
 	}
 }
@@ -70,12 +59,12 @@ func ValidateParams(params map[string]interface{}) error {
 	errors := make(map[string]string)
 	for key, value := range params {
 		if (value.(string)) == "" {
-			errors[key] = "Key_Required"
+			errors[key] = microappError.ErrorCodeRequired
 		}
 	}
 
 	if len(errors) > 0 {
-		return web.NewValidationError("Key_InvalidFields", errors)
+		return microappError.NewInvalidFieldsError(errors)
 	}
 
 	return nil
@@ -88,32 +77,28 @@ func ValidateFields(fields []*FieldData) error {
 		if field.Type == "string" {
 			valAsString, ok := field.Value.(string)
 			if !ok {
-				errors[field.Name] = "Key_StringExpected"
+				errors[field.Name] = microappError.ErrorCodeStringExpected
 			} else if field.Required && strings.TrimSpace(valAsString) == "" {
-				errors[field.Name] = "Key_Required"
+				errors[field.Name] = microappError.ErrorCodeRequired
 			} else if strings.TrimSpace(valAsString) != "" && len(field.Constraints) > 0 {
 				for _, constraint := range field.Constraints {
-					if constraint.Type == RegEx {
-						ok, _ = ValidateString(valAsString, constraint.Type, constraint.ConstraintData.(string))
-					} else {
-						ok, _ = ValidateString(valAsString, constraint.Type)
-					}
+					ok, _ = ValidateString(valAsString, constraint.Type, constraint.ConstraintData)
 					if !ok {
-						errors[field.Name] = "Key_InvalidValue"
+						errors[field.Name] = microappError.ErrorCodeInvalidValue
 					}
 				}
 			}
 		}
 	}
 	if len(errors) > 0 {
-		return web.NewValidationError("Key_InvalidFields", errors)
+		return microappError.NewInvalidFieldsError(errors)
 	}
 	return nil
 }
 
 // ValidateString checks whether the given data conforms to the given constraint. Valid constraints are AlphaNumeric, AlphaNumericAndHyphen, Email, URL and RegEx.
-// If the given constraint is RegEx, then the 3rd parameter should contain a valid regular expression.
-func ValidateString(value string, constraint ConstraintType, regex ...string) (bool, error) {
+// If the given constraint is RegEx, then the constraintData should contain a valid regular expression.
+func ValidateString(value string, constraint ConstraintType, constraintData interface{}) (bool, error) {
 	var regularExpression *regexp.Regexp
 	var err error
 	switch constraint {
@@ -126,13 +111,33 @@ func ValidateString(value string, constraint ConstraintType, regex ...string) (b
 	case Email:
 		regularExpression, _ = regexp.Compile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 	case RegEx:
-		if len(regex) < 1 {
-			return false, errors.New("If the constraint is 'RegEx', then a valid regex is needed as 3rd parameter")
+		if constraintData == nil {
+			return false, microappError.NewUnexpectedError(microappError.ErrorCodeRequired, errors.New("If the constraint is 'RegEx', then a valid regex is needed as constraintData"))
 		}
-		regularExpression, err = regexp.Compile(regex[0])
+		regularExpression, err = regexp.Compile(constraintData.(string))
 		if err != nil {
-			return false, err
+			return false, microappError.NewUnexpectedError(microappError.ErrorCodeInvalidValue, err)
 		}
+	case In:
+		if constraintData == nil {
+			return false, microappError.NewUnexpectedError(microappError.ErrorCodeRequired, errors.New("If the constraint is 'In', then a string slice containing valid values is needed as constraintData"))
+		}
+
+		validValues, stringSliceType := constraintData.([]string)
+		if !stringSliceType {
+			return false, microappError.NewUnexpectedError(microappError.ErrorCodeRequired, errors.New("If the constraint is 'In', then a string slice containing valid values is needed as constraintData"))
+		}
+		for _, validValue := range validValues {
+			if value == validValue {
+				return true, nil
+			}
+		}
+		return false, nil
+	case UUID:
+		if _, err := uuid.FromString(value); err != nil {
+			return false, nil
+		}
+		return true, nil
 	default:
 		return false, nil
 	}
@@ -144,14 +149,18 @@ func ValidateString(value string, constraint ConstraintType, regex ...string) (b
 type ConstraintType string
 
 const (
-	//AlphaNumeric represents string containing only alphabets and numbers
+	// AlphaNumeric represents string containing only alphabets and numbers
 	AlphaNumeric ConstraintType = "AlphaNumeric"
-	//AlphaNumericAndHyphen represents string containing alphabets, numbers and hyphen
+	// AlphaNumericAndHyphen represents string containing alphabets, numbers and hyphen
 	AlphaNumericAndHyphen ConstraintType = "AlphaNumericAndHyphen"
-	//Email represents string containing email address
+	// Email represents string containing email address
 	Email ConstraintType = "Email"
-	//URL represents string containing URL
-	URL ConstraintType = "URL"
-	//RegEx represents string containing regular expression
+	// RegEx represents string containing regular expression
 	RegEx ConstraintType = "RegEx"
+	// In represents string value from a pre-defined set
+	In ConstraintType = "In"
+	// URL represents string containing URL
+	URL ConstraintType = "URL"
+	// UUID represents string containing UUID
+	UUID ConstraintType = "UUID"
 )

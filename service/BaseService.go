@@ -8,8 +8,8 @@ import (
 
 	uuid "github.com/satori/go.uuid"
 
+	microappError "github.com/islax/microapp/error"
 	"github.com/islax/microapp/repository"
-	"github.com/islax/microapp/web"
 )
 
 // BaseService base service interface
@@ -62,7 +62,7 @@ func (service *BaseServiceImpl) CreateOrderByString(orderByAttrs []string, valid
 		if strings.TrimSpace(orderByAttr) != "" {
 			attrAndDirection := strings.Split(orderByAttr, ",")
 			if len(attrAndDirection) > 2 {
-				return "", web.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidFormat"})
+				return "", microappError.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidFormat"})
 			}
 			if validOrderByAttrsAsMap[attrAndDirection[0]] { //Chk if its a valid orderby column
 				orderByDirection := ""
@@ -70,7 +70,7 @@ func (service *BaseServiceImpl) CreateOrderByString(orderByAttrs []string, valid
 					if direction, ok := validOrderByDirection[strings.ToUpper(attrAndDirection[1])]; ok {
 						orderByDirection = fmt.Sprintf(" %v", direction)
 					} else {
-						return "", web.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidDirection"})
+						return "", microappError.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidDirection"})
 					}
 				}
 				if dbColumns, ok := orderByAttrAndDBCloum[attrAndDirection[0]]; ok { //Chk if it has any db column mapping
@@ -85,7 +85,7 @@ func (service *BaseServiceImpl) CreateOrderByString(orderByAttrs []string, valid
 				}
 
 			} else {
-				return "", web.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidAttribute"})
+				return "", microappError.NewValidationError("Key_InvalidFields", map[string]string{"orderby": "Key_InvalidAttribute"})
 			}
 		}
 	}
@@ -98,9 +98,9 @@ func (service *BaseServiceImpl) GetByIDForTenant(uow *repository.UnitOfWork, out
 	err := repo.GetForTenant(uow, out, ID, tenantID, preloads)
 	if err != nil {
 		if err.Error() == "record not found" {
-			return web.NewHTTPError("Key_ObjectNotFound", http.StatusNotFound)
+			return microappError.NewHTTPError("Key_ObjectNotFound", http.StatusNotFound)
 		}
-		return web.NewHTTPError("Key_InternalError", http.StatusInternalServerError)
+		return microappError.NewHTTPError("Key_InternalError", http.StatusInternalServerError)
 	}
 
 	return nil

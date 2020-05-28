@@ -2,36 +2,30 @@ package web
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
+
+	microappError "github.com/islax/microapp/error"
 )
 
 // UnmarshalJSON checks for empty body and then parses JSON into the target
 func UnmarshalJSON(r *http.Request, target interface{}) error {
 	if r.Body == nil {
-		return errors.New("Key_EmptyBody")
+		return microappError.NewInvalidRequestPayloadError(microappError.ErrorCodeEmptyRequestBody)
 	}
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		// microLog.Logger.Errorf("%#v", err)
-		return errors.New("Key_InternalError")
+		return microappError.NewDataReadWriteError(err)
 	}
 
 	if len(body) == 0 {
-		return errors.New("Key_EmptyBody")
+		return microappError.NewInvalidRequestPayloadError(microappError.ErrorCodeEmptyRequestBody)
 	}
 
 	err = json.Unmarshal(body, target)
 	if err != nil {
-		// microLog.Logger.Errorf("%#v", err)
-		// microLog.Logger.Printf("error decoding request: %v", err)
-		// if e, ok := err.(*json.SyntaxError); ok {
-		// 	log.Printf("syntax error at byte offset %d", e.Offset)
-		// }
-		// microLog.Logger.Printf("request: %q", body)
-		return errors.New("Key_InternalError")
+		return microappError.NewInvalidRequestPayloadError(microappError.ErrorCodeInvalidJSON)
 	}
 	return nil
 }

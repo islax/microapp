@@ -8,14 +8,15 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/streadway/amqp"
 )
 
 type queueCommand struct {
-	token   string
-	topic   string
-	payload interface{}
+	token        string
+	topic        string
+	corelationID string
+	payload      interface{}
 }
 
 type retryCommand struct {
@@ -25,7 +26,7 @@ type retryCommand struct {
 
 // RabbitMQEventDispatcher is an event dispatcher that sends event to the RabbitMQ Exchange
 type RabbitMQEventDispatcher struct {
-	logger                 *log.Logger
+	logger                 *zerolog.Logger
 	exchangeName           string
 	connection             *amqp.Connection
 	channel                *amqp.Channel
@@ -36,13 +37,15 @@ type RabbitMQEventDispatcher struct {
 }
 
 // NewRabbitMQEventDispatcher create and returns a new RabbitMQEventDispatcher
-func NewRabbitMQEventDispatcher(logger *log.Logger) (*RabbitMQEventDispatcher, error) {
+func NewRabbitMQEventDispatcher(logger *zerolog.Logger) (*RabbitMQEventDispatcher, error) {
 	sendChannel := make(chan *queueCommand, 200)
 	retryChannel := make(chan *retryCommand, 200)
 	connectionCloseChannel := make(chan *amqp.Error)
 
+	ctxLogger := logger.With().Str("module", "RabbitMQEventDispatcher").Logger()
+
 	dispatcher := &RabbitMQEventDispatcher{
-		logger:                 logger,
+		logger:                 &ctxLogger,
 		exchangeName:           "isla_exchange",
 		sendChannel:            sendChannel,
 		retryChannel:           retryChannel,
@@ -58,14 +61,11 @@ func NewRabbitMQEventDispatcher(logger *log.Logger) (*RabbitMQEventDispatcher, e
 }
 
 // DispatchEvent dispatches events to the message queue
-func (eventDispatcher *RabbitMQEventDispatcher) DispatchEvent(token string, topic string, payload interface{}) {
+func (eventDispatcher *RabbitMQEventDispatcher) DispatchEvent(token string, corelationID string, topic string, payload interface{}) {
 	eventDispatcher.sendChannel <- &queueCommand{token: token, topic: topic, payload: payload}
 }
 
 func (eventDispatcher *RabbitMQEventDispatcher) start() {
-	contextLogger := eventDispatcher.logger.WithFields(log.Fields{
-		"module": "RabbitMQEventDispatcher",
-	})
 
 	for {
 		var command *queueCommand
@@ -86,7 +86,7 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 		routingKey := strings.ReplaceAll(command.topic, "_", ".")
 		body, err := json.Marshal(command.payload)
 		if err != nil {
-			contextLogger.Error("Failed to convert payload to JSON" + ": " + err.Error())
+			eventDispatcher.logger.Error().Msg("Failed to convert payload to JSON" + ": " + err.Error())
 			//TODO: Can we log this message
 		}
 
@@ -99,23 +99,23 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 				amqp.Publishing{
 					ContentType: "application/json",
 					Body:        []byte(body),
-					Headers:     map[string]interface{}{"X-Authorization": command.token},
+					Headers:     map[string]interface{}{"X-Authorization": command.token, "X-Correlation-ID": command.corelationID},
 				})
 
 			if err != nil {
 				if retryCount < 3 {
-					contextLogger.Warn("Publish to queue failed. Trying again ... Error: " + err.Error())
+					eventDispatcher.logger.Warn().Msg("Publish to queue failed. Trying again ... Error: " + err.Error())
 
 					go func(command *queueCommand, retryCount int) {
 						time.Sleep(time.Second)
 						eventDispatcher.retryChannel <- &retryCommand{retryCount: retryCount, command: command}
 					}(command, retryCount+1)
 				} else {
-					contextLogger.Error("Failed to publish to an Exchange" + ": " + err.Error())
+					eventDispatcher.logger.Error().Msg("Failed to publish to an Exchange" + ": " + err.Error())
 					//TODO: Can we log this message
 				}
 			} else {
-				contextLogger.Info("Sent message to queue")
+				eventDispatcher.logger.Trace().Msg("Sent message to queue")
 			}
 		}
 	}
@@ -143,21 +143,21 @@ func (eventDispatcher *RabbitMQEventDispatcher) rabbitConnector() {
 	}
 }
 
-func connectToRabbitMQ(logger *log.Logger, connectionString string, exchangeName string) (*amqp.Connection, *amqp.Channel) {
-	logger.Infof("Connecting to queue %s\n", connectionString)
+func connectToRabbitMQ(logger *zerolog.Logger, connectionString string, exchangeName string) (*amqp.Connection, *amqp.Channel) {
+	logger.Debug().Msg("Connecting to queue " + connectionString)
 	for {
 		conn, err := amqp.Dial(connectionString)
 
 		if err == nil {
-			logger.Info("RabittMQ connected")
+			logger.Info().Msg("RabittMQ connected")
 
 			ch, err := conn.Channel()
 			if err != nil {
-				logger.Warn("Failed to open a Channel" + ": " + err.Error())
+				logger.Warn().Msg("Failed to open a Channel" + ": " + err.Error())
 			} else {
 				err = ch.ExchangeDeclare(exchangeName, "topic", true, false, false, false, nil)
 				if err != nil {
-					logger.Warn("Failed to declare an exchange" + ": " + err.Error())
+					logger.Warn().Msg("Failed to declare an exchange" + ": " + err.Error())
 				} else {
 					return conn, ch
 				}
@@ -165,11 +165,12 @@ func connectToRabbitMQ(logger *log.Logger, connectionString string, exchangeName
 			conn.Close()
 		}
 
-		logger.Warnf("Cannot connect to RabbitMQ. Trying again ... Error %s", err.Error())
+		logger.Warn().Msgf("Cannot connect to RabbitMQ, Error [%v]. Trying again...", err)
 		time.Sleep(5 * time.Second)
 	}
 }
 
+//TODO: read from config
 func getQueueConnectionString() string {
 	var queueHost, queuePort, queueUser, queuePassword string
 	queueHost, ok := os.LookupEnv("ISLA_QUEUE_HOST")

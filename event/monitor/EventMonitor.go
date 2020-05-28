@@ -1,7 +1,7 @@
 package monitor
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
 // EventMonitor represents an interface used to monitor Events
@@ -12,8 +12,9 @@ type EventMonitor interface {
 }
 
 // NewEventMonitor creates a new eventMonitor that publishes received events to the specified channel
-func NewEventMonitor(logger *logrus.Logger, eventsToMonitor []string, eventSignal chan *EventInfo) (EventMonitor, error) {
-	monitor := &rabbitMQEventMonitor{logger: logger, eventSignal: eventSignal}
+func NewEventMonitor(logger *zerolog.Logger, eventsToMonitor []string, eventSignal chan *EventInfo) (EventMonitor, error) {
+	ctxLogger := logger.With().Str("module", "RabbitMQEventMonitor").Logger()
+	monitor := &rabbitMQEventMonitor{logger: &ctxLogger, eventSignal: eventSignal}
 
 	err := monitor.initialize(eventsToMonitor)
 	if err != nil {
@@ -23,8 +24,10 @@ func NewEventMonitor(logger *logrus.Logger, eventsToMonitor []string, eventSigna
 	return monitor, nil
 }
 
-func NewEventMonitorForQueue(logger *logrus.Logger, queueName string, eventsToMonitor []string, eventSignal chan *EventInfo) (EventMonitor, error) {
-	monitor := &rabbitMQEventMonitor{logger: logger, queueName: queueName, eventSignal: eventSignal}
+// NewEventMonitorForQueue creates a new eventMonitor that publishes received events from a named queue to the specified channel
+func NewEventMonitorForQueue(logger *zerolog.Logger, queueName string, eventsToMonitor []string, eventSignal chan *EventInfo) (EventMonitor, error) {
+	ctxLogger := logger.With().Str("module", "RabbitMQEventMonitor").Logger()
+	monitor := &rabbitMQEventMonitor{logger: &ctxLogger, queueName: queueName, eventSignal: eventSignal}
 
 	err := monitor.initialize(eventsToMonitor)
 	if err != nil {
