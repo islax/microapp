@@ -7,6 +7,8 @@ const (
 	EventTypeServiceDataReplication = "Key_ServiceDataReplication"
 	// EventTypeSuccess log event type key success
 	EventTypeSuccess = "Key_Success"
+	// EventTypeSysConfigErr log event type system configuration error
+	EventTypeSysConfigErr = "Key_SystemConfigurationError"
 	// EventTypeUnexpectedErr log event type for unexpected error
 	EventTypeUnexpectedErr = "Key_UnexpectedError"
 	// EventTypeValidationErr log event type for validation error

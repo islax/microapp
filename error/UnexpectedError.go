@@ -72,5 +72,5 @@ func createUnexpectedErrorImpl(errCode string, err error) unexpectedErrorImpl {
 		_, line := stackFunc.FileLine(pc)
 		stack = stack + stackFunc.Name() + ":" + strconv.Itoa(line) + "\n"
 	}
-	return unexpectedErrorImpl{cause: err, stackTrace: stack}
+	return unexpectedErrorImpl{errCode: errCode, cause: err, stackTrace: stack}
 }

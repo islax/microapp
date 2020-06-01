@@ -109,6 +109,9 @@ func (context *executionContextImpl) LogError(err error, errorMessage string) {
 	case microappError.HTTPResourceNotFound:
 		resourceNotFoundErr := err.(microappError.HTTPResourceNotFound)
 		context.Logger(log.EventTypeUnexpectedErr, resourceNotFoundErr.ErrorKey).Debug().Err(err).Str("resourceName", resourceNotFoundErr.ResourceName).Str("resourceValue", resourceNotFoundErr.ResourceValue).Msg(errorMessage)
+	case microappError.APICallError:
+		apiCallError := err.(microappError.APICallError)
+		context.Logger(log.EventTypeUnexpectedErr, apiCallError.GetErrorCode()).Error().Err(err).Str("stack", apiCallError.GetStackTrace()).Str("responseBody", apiCallError.GetHTTPResponseBody()).Int("responseStatusCode", apiCallError.GetHTTPStatusCode()).Msg(errorMessage)
 	case microappError.UnexpectedError:
 		context.Logger(log.EventTypeUnexpectedErr, err.(microappError.UnexpectedError).GetErrorCode()).Error().Err(err).Str("stack", err.(microappError.UnexpectedError).GetStackTrace()).Msg(errorMessage)
 	default:

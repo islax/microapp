@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
-	"strconv"
 	"strings"
 
 	microappCtx "github.com/islax/microapp/context"
+	microappError "github.com/islax/microapp/error"
 )
 
 // APIClient represents the actual client calling microservice
@@ -20,18 +22,19 @@ type APIClient struct {
 }
 
 func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url string, requestMethod string, rawToken string, payload map[string]interface{}) (interface{}, error) {
+	apiURL := apiClient.BaseURL + url
 	var body io.Reader
 	if payload != nil {
 		bytePayload, err := json.Marshal(payload)
 		if err != nil {
-			return nil, err
+			return nil, microappError.NewAPICallError(http.StatusInternalServerError, "", fmt.Errorf("[%v] Unable to marshal payload: %w", apiURL, err))
 		}
 		body = bytes.NewBuffer(bytePayload)
 	}
 
-	request, err := http.NewRequest(requestMethod, apiClient.BaseURL+url, body)
+	request, err := http.NewRequest(requestMethod, apiURL, body)
 	if err != nil {
-		return nil, err
+		return nil, microappError.NewAPICallError(http.StatusInternalServerError, "", fmt.Errorf("[%v] Unable to create a HTTP request: %w", apiURL, err))
 	}
 
 	if rawToken != "" {
@@ -45,24 +48,24 @@ func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url 
 	request.Header.Set("X-Correlation-ID", context.GetCorrelationID())
 	request.Header.Set("Content-Type", "application/json")
 
-	if err != nil {
-		return nil, err
-	}
-
 	response, err := apiClient.HTTPClient.Do(request)
 	if err != nil {
-		return nil, err
+		return nil, microappError.NewAPICallError(http.StatusInternalServerError, "", fmt.Errorf("[%v] Unable to invoke API: %w", apiURL, err))
 	}
 
 	defer response.Body.Close()
 	if response.StatusCode > 300 { // All 3xx, 4xx, 5xx are considered errors
-		return nil, errors.New("Received Status Code " + strconv.Itoa(response.StatusCode))
+		responseBodyString := ""
+		if responseBodyBytes, err := ioutil.ReadAll(response.Body); err != nil {
+			responseBodyString = string(responseBodyBytes)
+		}
+		return nil, microappError.NewAPICallError(http.StatusInternalServerError, responseBodyString, fmt.Errorf("[%v] Received non-success code: %v", apiURL, response.StatusCode))
 	}
 
 	var mapResponse interface{}
 	err = json.NewDecoder(response.Body).Decode(&mapResponse)
 	if err != nil {
-		return nil, err
+		return nil, microappError.NewAPICallError(http.StatusInternalServerError, "", fmt.Errorf("[%v] Unable parse success[%v] response payload: %w", apiURL, response.StatusCode, err))
 	}
 
 	return mapResponse, nil

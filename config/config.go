@@ -74,11 +74,6 @@ func (config *Config) GetInt(key string) int {
 	return config.viper.GetInt(key)
 }
 
-// GetIntWithDefault return int value set for the given key, if not set returns the given defaultVal
-func (config *Config) GetIntWithDefault(key string) int {
-	return config.viper.GetInt(key)
-}
-
 // GetMapString returns the value associated with the given key as a map of strings
 func (config *Config) GetMapString(key string) map[string]string {
 	return config.viper.GetStringMapString(key)

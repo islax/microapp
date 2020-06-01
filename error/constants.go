@@ -2,6 +2,8 @@ package error
 
 //NOTE: Please maintain in ascending order
 const (
+	// ErrorCodeAPICallFailure error code for API call failure
+	ErrorCodeAPICallFailure = "Key_APICallFailure"
 	// ErrorCodeCryptoFailure error code for encrypt / decrypt / hashing failure
 	ErrorCodeCryptoFailure = "Key_CryptoFailure"
 	// ErrorCodeDatabaseFailure error code for database falure
@@ -10,6 +12,8 @@ const (
 	ErrorCodeDuplicateValue = "Key_AlreadyExists"
 	// ErrorCodeEmptyRequestBody error code for empty request body
 	ErrorCodeEmptyRequestBody = "Key_EmptyRequestBody"
+	// ErrorCodeInvalidFormData error code for form parsing error
+	ErrorCodeInvalidFormData = "Key_InvalidFormData"
 	// ErrorCodeInternalError error code for internal error
 	ErrorCodeInternalError = "Key_InternalError"
 	// ErrorCodeInvalidFields error code for invalid fields
