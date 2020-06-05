@@ -95,7 +95,6 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 				//TODO: Can we log this message
 			}
 		}
-		eventDispatcher.logger.Trace().Msg("body --> " + (string(body)))
 
 		if err == nil {
 			err = eventDispatcher.channel.Publish(
