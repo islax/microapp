@@ -21,6 +21,10 @@ func (writer *eventQWriter) Write(p []byte) (n int, err error) {
 	d.UseNumber()
 	err = d.Decode(&evt)
 
-	writer.eventDispatcher.DispatchEvent("", "", "app_log", evt)
-	return len(p), nil
+	if err == nil {
+		writer.eventDispatcher.DispatchEvent("", "", "app_log", evt)
+		return len(p), nil
+	}
+
+	return 0, err
 }
