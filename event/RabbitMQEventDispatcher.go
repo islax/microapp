@@ -95,6 +95,7 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 				//TODO: Can we log this message
 			}
 		}
+		eventDispatcher.logger.Trace().Msg("body --> " + (string(body)))
 
 		if err == nil {
 			err = eventDispatcher.channel.Publish(
@@ -104,7 +105,7 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 				false,
 				amqp.Publishing{
 					ContentType: "application/json",
-					Body:        []byte(body),
+					Body:        body,
 					Headers:     map[string]interface{}{"X-Authorization": command.token, "X-Correlation-ID": command.corelationID},
 				})
 
