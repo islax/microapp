@@ -84,10 +84,16 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 		}
 
 		routingKey := strings.ReplaceAll(command.topic, "_", ".")
-		body, err := json.Marshal(command.payload)
-		if err != nil {
-			eventDispatcher.logger.Error().Msg("Failed to convert payload to JSON" + ": " + err.Error())
-			//TODO: Can we log this message
+		var body []byte
+		var err error
+
+		body, isByteMessage := command.payload.([]byte)
+		if !isByteMessage {
+			body, err = json.Marshal(command.payload)
+			if err != nil {
+				eventDispatcher.logger.Error().Msg("Failed to convert payload to JSON" + ": " + err.Error())
+				//TODO: Can we log this message
+			}
 		}
 
 		if err == nil {
