@@ -104,7 +104,7 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 				false,
 				amqp.Publishing{
 					ContentType: "application/json",
-					Body:        []byte(body),
+					Body:        body,
 					Headers:     map[string]interface{}{"X-Authorization": command.token, "X-Correlation-ID": command.corelationID},
 				})
 
