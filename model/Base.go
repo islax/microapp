@@ -114,7 +114,11 @@ func ValidateString(value string, constraint ConstraintType, constraintData inte
 		if constraintData == nil {
 			return false, microappError.NewUnexpectedError(microappError.ErrorCodeRequired, errors.New("If the constraint is 'RegEx', then a valid regex is needed as constraintData"))
 		}
-		regularExpression, err = regexp.Compile(constraintData.(string))
+		regExString, isString := constraintData.(string)
+		if !isString || regExString == "" {
+			return false, microappError.NewUnexpectedError(microappError.ErrorCodeInvalidValue, errors.New(""))
+		}
+		regularExpression, err = regexp.Compile(regExString)
 		if err != nil {
 			return false, microappError.NewUnexpectedError(microappError.ErrorCodeInvalidValue, err)
 		}

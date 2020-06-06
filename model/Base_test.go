@@ -6,7 +6,7 @@ func TestValidateString(t *testing.T) {
 	type args struct {
 		value      string
 		constraint ConstraintType
-		regex      []string
+		regex      string
 	}
 	tests := []struct {
 		name    string
@@ -20,14 +20,14 @@ func TestValidateString(t *testing.T) {
 		{"Invalid Alphanumeric (ANC)", args{value: "abc343-4def", constraint: AlphaNumeric}, false, false},
 		{"Valid Alphanumeric with hyphen (ANH)", args{value: "abc343-4def", constraint: AlphaNumericAndHyphen}, true, false},
 		{"Invalid Alphanumeric with hyphen (ANH)", args{value: "abc343-4def", constraint: AlphaNumericAndHyphen}, true, false},
-		{"RegEx constraint with valid regex and valid value", args{value: "abcZ", constraint: RegEx, regex: []string{"^[A-Za-z]+$"}}, true, false},
-		{"RegEx constraint with valid regex and invalid value", args{value: "abc343", constraint: RegEx, regex: []string{"^[A-Za-z]+$"}}, false, false},
-		{"RegEx constraint with invalid regex", args{value: "abc343-4def", constraint: RegEx, regex: []string{"())"}}, false, true},
+		{"RegEx constraint with valid regex and valid value", args{value: "abcZ", constraint: RegEx, regex: "^[A-Za-z]+$"}, true, false},
+		{"RegEx constraint with valid regex and invalid value", args{value: "abc343", constraint: RegEx, regex: "^[A-Za-z]+$"}, false, false},
+		{"RegEx constraint with invalid regex", args{value: "abc343-4def", constraint: RegEx, regex: "())"}, false, true},
 		{"RegEx constraint with no regex", args{value: "abc343-4def", constraint: RegEx}, false, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ValidateString(tt.args.value, tt.args.constraint, tt.args.regex...)
+			got, err := ValidateString(tt.args.value, tt.args.constraint, tt.args.regex)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateString() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -65,7 +65,7 @@ func TestValidateFields(t *testing.T) {
 		{
 			"Single required field with email constraint and invalid email",
 			args{[]*FieldData{
-				NewStringFieldDataWithConstraint("username", "anyvalue", []*ConstraintDetail{
+				NewStringFieldDataWithConstraint("username", "anyvalue", true, []*ConstraintDetail{
 					&ConstraintDetail{Email, nil},
 				}),
 			}},
@@ -74,7 +74,7 @@ func TestValidateFields(t *testing.T) {
 		{
 			"Single required field with email constraint and valid email",
 			args{[]*FieldData{
-				NewStringFieldDataWithConstraint("username", "anyvalue@test.org", []*ConstraintDetail{
+				NewStringFieldDataWithConstraint("username", "anyvalue@test.org", true, []*ConstraintDetail{
 					&ConstraintDetail{Email, nil},
 				}),
 			}},
@@ -83,7 +83,7 @@ func TestValidateFields(t *testing.T) {
 		{
 			"Single required field with AlphaNumericAndHyphen constraint and valid value",
 			args{[]*FieldData{
-				NewStringFieldDataWithConstraint("host", "123wqwe-", []*ConstraintDetail{
+				NewStringFieldDataWithConstraint("host", "123wqwe-", true, []*ConstraintDetail{
 					&ConstraintDetail{AlphaNumericAndHyphen, nil},
 				}),
 			}},
@@ -92,7 +92,7 @@ func TestValidateFields(t *testing.T) {
 		{
 			"Single required field with AlphaNumericAndHyphen constraint and invalid value",
 			args{[]*FieldData{
-				NewStringFieldDataWithConstraint("host", "123wqwe-!@", []*ConstraintDetail{
+				NewStringFieldDataWithConstraint("host", "123wqwe-!@", true, []*ConstraintDetail{
 					&ConstraintDetail{AlphaNumericAndHyphen, nil},
 				}),
 			}},
@@ -101,7 +101,7 @@ func TestValidateFields(t *testing.T) {
 		{
 			"Single required field with AlphaNumeric constraint and invalid value",
 			args{[]*FieldData{
-				NewStringFieldDataWithConstraint("AlphaNumericValue", "123wqwe-", []*ConstraintDetail{
+				NewStringFieldDataWithConstraint("AlphaNumericValue", "123wqwe-", true, []*ConstraintDetail{
 					&ConstraintDetail{AlphaNumeric, nil},
 				}),
 			}},
@@ -111,7 +111,7 @@ func TestValidateFields(t *testing.T) {
 		{
 			"Single required field with AlphaNumeric constraint and valid value",
 			args{[]*FieldData{
-				NewStringFieldDataWithConstraint("AlphaNumericValue", "123wqwe", []*ConstraintDetail{
+				NewStringFieldDataWithConstraint("AlphaNumericValue", "123wqwe", true, []*ConstraintDetail{
 					&ConstraintDetail{AlphaNumeric, nil},
 				}),
 			}},
@@ -121,7 +121,7 @@ func TestValidateFields(t *testing.T) {
 		{
 			"Single optional field with AlphaNumeric constraint and valid value",
 			args{[]*FieldData{
-				NewOptionalStringFieldDataWithConstraints("AlphaNumericValue", "123wqwe", []*ConstraintDetail{
+				NewStringFieldDataWithConstraint("AlphaNumericValue", "123wqwe", false, []*ConstraintDetail{
 					&ConstraintDetail{AlphaNumeric, nil},
 				}),
 			}},
@@ -131,7 +131,7 @@ func TestValidateFields(t *testing.T) {
 		{
 			"Single optional field with AlphaNumeric constraint and empty",
 			args{[]*FieldData{
-				NewOptionalStringFieldDataWithConstraints("AlphaNumericValue", "", []*ConstraintDetail{
+				NewStringFieldDataWithConstraint("AlphaNumericValue", "", false, []*ConstraintDetail{
 					&ConstraintDetail{AlphaNumeric, nil},
 				}),
 			}},
