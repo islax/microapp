@@ -253,7 +253,11 @@ func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 		rec := &httpStatusRecorder{ResponseWriter: w}
 		logger.Info().Msg("Begin")
 		next.ServeHTTP(rec, r)
-		logger.Info().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+		if rec.status >= http.StatusInternalServerError {
+			logger.Error().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+		} else {
+			logger.Info().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+		}
 	})
 }
 

@@ -20,11 +20,13 @@ type Repository interface {
 	GetForTenant(uow *UnitOfWork, out interface{}, id string, tenantID uuid.UUID, preloadAssociations []string) microappError.DatabaseError
 	GetAll(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError
+	GetAllUnscoped(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
+	GetAllUnscopedForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetCountForTenant(uow *UnitOfWork, out *int, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 
 	Add(uow *UnitOfWork, out interface{}) microappError.DatabaseError
 	Update(uow *UnitOfWork, out interface{}) microappError.DatabaseError
-	Delete(uow *UnitOfWork, out interface{}) microappError.DatabaseError
+	Delete(uow *UnitOfWork, out interface{}, where ...interface{}) microappError.DatabaseError
 	DeleteForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID) microappError.DatabaseError
 
 	AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError
@@ -89,7 +91,7 @@ func PreloadAssociations(preloadAssociations []string) QueryProcessor {
 // Paginate will restrict the output of query
 func Paginate(limit int, offset int, count *int) QueryProcessor {
 	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
-		if out != nil {
+		if out != nil && count != nil {
 			if err := db.Model(out).Count(count).Error; err != nil {
 				return db, microappError.NewDatabaseError(err)
 			}
@@ -293,6 +295,31 @@ func (repository *GormRepository) GetAllForTenant(uow *UnitOfWork, out interface
 	return repository.GetAll(uow, out, queryProcessors)
 }
 
+// GetAllUnscoped retrieves all the records (including deleted) for a specified entity and returns it
+func (repository *GormRepository) GetAllUnscoped(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
+	db := uow.DB
+
+	if queryProcessors != nil {
+		var err error
+		for _, queryProcessor := range queryProcessors {
+			db, err = queryProcessor(db, out)
+			if err != nil {
+				return microappError.NewDatabaseError(err)
+			}
+		}
+	}
+	if err := db.Unscoped().Find(out).Error; err != nil {
+		return microappError.NewDatabaseError(err)
+	}
+	return nil
+}
+
+// GetAllUnscopedForTenant returns all objects (including deleted) of specifeid tenantID
+func (repository *GormRepository) GetAllUnscopedForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError {
+	queryProcessors = append([]QueryProcessor{Filter("tenantID = ?", tenantID)}, queryProcessors...)
+	return repository.GetAllUnscoped(uow, out, queryProcessors)
+}
+
 // GetCountForTenant gets count of the given entity type for specified tenant
 func (repository *GormRepository) GetCountForTenant(uow *UnitOfWork, count *int, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
 
@@ -330,8 +357,8 @@ func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) mi
 }
 
 // Delete specified Entity
-func (repository *GormRepository) Delete(uow *UnitOfWork, entity interface{}) microappError.DatabaseError {
-	if err := uow.DB.Delete(entity).Error; err != nil {
+func (repository *GormRepository) Delete(uow *UnitOfWork, entity interface{}, where ...interface{}) microappError.DatabaseError {
+	if err := uow.DB.Delete(entity, where...).Error; err != nil {
 		return microappError.NewDatabaseError(err)
 	}
 	return nil
