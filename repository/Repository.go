@@ -135,7 +135,7 @@ func PaginateForWeb(w http.ResponseWriter, r *http.Request) QueryProcessor {
 			if err := db.Model(out).Count(&totalRecords).Error; err != nil {
 				return db, microappError.NewDatabaseError(err)
 			}
-
+			w.Header().Add("Access-Control-Expose-Headers", "X-Total-Count")
 			w.Header().Set("X-Total-Count", strconv.Itoa(totalRecords))
 		}
 
