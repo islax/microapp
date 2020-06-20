@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -40,7 +41,9 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	db.LogMode(verbose)
 
 	logger := zerolog.New(os.Stdout)
-	application := New(appName, map[string]interface{}{}, logger, db, nil)
+	rand.Seed(time.Now().UnixNano())
+	randomAPIPort := fmt.Sprintf("10%v%v%v", rand.Intn(9), rand.Intn(9), rand.Intn(9)) // Generating random API port so that if multiple tests can run parallel
+	application := New(appName, map[string]interface{}{"API_PORT": randomAPIPort}, logger, db, nil)
 
 	return &TestApp{application: application, controllerRouteProvider: controllerRouteProvider, dbInitializer: dbInitializer}
 }

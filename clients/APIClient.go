@@ -27,14 +27,14 @@ func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url 
 	if payload != nil {
 		bytePayload, err := json.Marshal(payload)
 		if err != nil {
-			return nil, microappError.NewAPICallError(http.StatusInternalServerError, "", fmt.Errorf("[%v] Unable to marshal payload: %w", apiURL, err))
+			return nil, microappError.NewAPICallError(apiURL, nil, nil, fmt.Errorf("Unable to marshal payload: %w", err))
 		}
 		body = bytes.NewBuffer(bytePayload)
 	}
 
 	request, err := http.NewRequest(requestMethod, apiURL, body)
 	if err != nil {
-		return nil, microappError.NewAPICallError(http.StatusInternalServerError, "", fmt.Errorf("[%v] Unable to create a HTTP request: %w", apiURL, err))
+		return nil, microappError.NewAPICallError(apiURL, nil, nil, fmt.Errorf("Unable to create HTTP request: %w", err))
 	}
 
 	if rawToken != "" {
@@ -50,7 +50,7 @@ func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url 
 
 	response, err := apiClient.HTTPClient.Do(request)
 	if err != nil {
-		return nil, microappError.NewAPICallError(http.StatusInternalServerError, "", fmt.Errorf("[%v] Unable to invoke API: %w", apiURL, err))
+		return nil, microappError.NewAPICallError(apiURL, nil, nil, fmt.Errorf("Unable to invoke API: %w", err))
 	}
 
 	defer response.Body.Close()
@@ -59,13 +59,13 @@ func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url 
 		if responseBodyBytes, err := ioutil.ReadAll(response.Body); err != nil {
 			responseBodyString = string(responseBodyBytes)
 		}
-		return nil, microappError.NewAPICallError(http.StatusInternalServerError, responseBodyString, fmt.Errorf("[%v] Received non-success code: %v", apiURL, response.StatusCode))
+		return nil, microappError.NewAPICallError(apiURL, &response.StatusCode, &responseBodyString, fmt.Errorf("Received non-success code: %v", response.StatusCode))
 	}
 
 	var mapResponse interface{}
 	err = json.NewDecoder(response.Body).Decode(&mapResponse)
 	if err != nil {
-		return nil, microappError.NewAPICallError(http.StatusInternalServerError, "", fmt.Errorf("[%v] Unable parse success[%v] response payload: %w", apiURL, response.StatusCode, err))
+		return nil, microappError.NewAPICallError(apiURL, &response.StatusCode, nil, fmt.Errorf("Unable parse response payload: %w", err))
 	}
 
 	return mapResponse, nil

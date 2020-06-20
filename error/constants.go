@@ -12,6 +12,8 @@ const (
 	ErrorCodeDuplicateValue = "Key_AlreadyExists"
 	// ErrorCodeEmptyRequestBody error code for empty request body
 	ErrorCodeEmptyRequestBody = "Key_EmptyRequestBody"
+	// ErrorCodeHTTPCreateRequestFailure error code for http request creation failure
+	ErrorCodeHTTPCreateRequestFailure = "Key_HTTPCreateRequestFailure"
 	// ErrorCodeInvalidFormData error code for form parsing error
 	ErrorCodeInvalidFormData = "Key_InvalidFormData"
 	// ErrorCodeInternalError error code for internal error
@@ -26,6 +28,8 @@ const (
 	ErrorCodeInvalidRequestPayload = "Key_InvalidRequestPayload"
 	// ErrorCodeInvalidValue error code for invalid value
 	ErrorCodeInvalidValue = "Key_InvalidValue"
+	// ErrorCodeJSONMarshalFailure error code for json marshal failures
+	ErrorCodeJSONMarshalFailure = "Key_JSONMarshalFailure"
 	// ErrorCodeNotExists error code for not exists
 	ErrorCodeNotExists = "Key_NotExists"
 	// ErrorCodeReadWriteFailure error code for io error
