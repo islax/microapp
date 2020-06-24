@@ -22,6 +22,7 @@ type Repository interface {
 	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetAllUnscoped(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetAllUnscopedForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError
+	GetCount(uow *UnitOfWork, out *int, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetCountForTenant(uow *UnitOfWork, out *int, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 
 	Add(uow *UnitOfWork, out interface{}) microappError.DatabaseError
@@ -318,6 +319,25 @@ func (repository *GormRepository) GetAllUnscoped(uow *UnitOfWork, out interface{
 func (repository *GormRepository) GetAllUnscopedForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError {
 	queryProcessors = append([]QueryProcessor{Filter("tenantID = ?", tenantID)}, queryProcessors...)
 	return repository.GetAllUnscoped(uow, out, queryProcessors)
+}
+
+// GetCount gets count of the given entity type
+func (repository *GormRepository) GetCount(uow *UnitOfWork, count *int, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
+	db := uow.DB
+
+	if queryProcessors != nil {
+		var err error
+		for _, queryProcessor := range queryProcessors {
+			db, err = queryProcessor(db, entity)
+			if err != nil {
+				return microappError.NewDatabaseError(err)
+			}
+		}
+	}
+	if err := db.Debug().Model(entity).Count(count).Error; err != nil {
+		return microappError.NewDatabaseError(err)
+	}
+	return nil
 }
 
 // GetCountForTenant gets count of the given entity type for specified tenant
