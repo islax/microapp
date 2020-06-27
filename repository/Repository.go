@@ -29,6 +29,7 @@ type Repository interface {
 	Update(uow *UnitOfWork, out interface{}) microappError.DatabaseError
 	Delete(uow *UnitOfWork, out interface{}, where ...interface{}) microappError.DatabaseError
 	DeleteForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID) microappError.DatabaseError
+	DeletePermanent(uow *UnitOfWork, out interface{}, where ...interface{}) microappError.DatabaseError
 
 	AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError
 	RemoveAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError
@@ -387,6 +388,14 @@ func (repository *GormRepository) Delete(uow *UnitOfWork, entity interface{}, wh
 // DeleteForTenant all recrod(s) of specified entity / entity type for given tenant
 func (repository *GormRepository) DeleteForTenant(uow *UnitOfWork, entity interface{}, tenantID uuid.UUID) microappError.DatabaseError {
 	if err := uow.DB.Delete(entity, "tenantid = ?", tenantID).Error; err != nil {
+		return microappError.NewDatabaseError(err)
+	}
+	return nil
+}
+
+// DeletePermanent deletes record permanently specified Entity
+func (repository *GormRepository) DeletePermanent(uow *UnitOfWork, entity interface{}, where ...interface{}) microappError.DatabaseError {
+	if err := uow.DB.Unscoped().Delete(entity, where...).Error; err != nil {
 		return microappError.NewDatabaseError(err)
 	}
 	return nil
