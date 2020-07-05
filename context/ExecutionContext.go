@@ -105,7 +105,7 @@ func (context *executionContextImpl) Logger(eventType, eventCode string) *zerolo
 func (context *executionContextImpl) LogError(err error, errorMessage string) {
 	switch err.(type) {
 	case microappError.ValidationError:
-		context.Logger(log.EventTypeValidationErr, log.EventCodeInvalidData).Debug().Err(err).Msg(log.MessageInvalidInputData)
+		context.Logger(log.EventTypeValidationErr, log.EventCodeInvalidData).Info().Err(err).Msg(log.MessageInvalidInputData)
 	case microappError.HTTPResourceNotFound:
 		resourceNotFoundErr := err.(microappError.HTTPResourceNotFound)
 		context.Logger(log.EventTypeUnexpectedErr, resourceNotFoundErr.ErrorKey).Debug().Err(err).Str("resourceName", resourceNotFoundErr.ResourceName).Str("resourceValue", resourceNotFoundErr.ResourceValue).Msg(errorMessage)
