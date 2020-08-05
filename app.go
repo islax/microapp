@@ -146,9 +146,9 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 	logger.Debug().Str("appname", app.Name).Msg("Api server will start on port: " + apiPort)
 	app.server = &http.Server{
 		Addr:         "0.0.0.0:" + apiPort,
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
+		WriteTimeout: time.Second * time.Duration(app.Config.GetInt("HTTP_WRITE_TIMEOUT")),
+		ReadTimeout:  time.Second * time.Duration(app.Config.GetInt("HTTP_READ_TIMEOUT")),
+		IdleTimeout:  time.Second * time.Duration(app.Config.GetInt("HTTP_IDLE_TIMEOUT")),
 		Handler:      app.Router,
 	}
 }

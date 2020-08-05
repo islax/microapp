@@ -14,11 +14,17 @@ func NewConfig(defaults map[string]interface{}) *Config {
 	config := &Config{viper: viper.New()}
 
 	config.viper.SetDefault("JWT_SECRET", "Secret key for test")
+
 	config.viper.SetDefault("DB_HOST", "localhost")
 	config.viper.SetDefault("DB_PORT", "3306")
 	config.viper.SetDefault("DB_USER", "root")
 	config.viper.SetDefault("DB_PWD", "Cyber!nc#")
+
 	config.viper.SetDefault("LOG_LEVEL", "error")
+
+	config.viper.SetDefault("HTTP_WRITE_TIMEOUT", 15)
+	config.viper.SetDefault("HTTP_READ_TIMEOUT", 15)
+	config.viper.SetDefault("HTTP_IDLE_TIMEOUT", 60)
 
 	for key, value := range defaults {
 		config.viper.SetDefault(key, value)
