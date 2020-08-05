@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
 	"os"
 	"strconv"
 	"strings"
@@ -146,9 +147,9 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 	logger.Debug().Str("appname", app.Name).Msg("Api server will start on port: " + apiPort)
 	app.server = &http.Server{
 		Addr:         "0.0.0.0:" + apiPort,
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
+		WriteTimeout: time.Second * 90,
+		ReadTimeout:  time.Second * 90,
+		IdleTimeout:  time.Second * 90,
 		Handler:      app.Router,
 	}
 }
