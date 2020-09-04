@@ -280,7 +280,7 @@ func (app *App) NewExecutionContextWithCustomToken(uow *repository.UnitOfWork, t
 
 // NewExecutionContextWithSystemToken creates new exectuion context with sys default token
 func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: uuid.Nil, UserID: uuid.Nil, UserName: "System"}, correlationID, action, app.log)
+	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, correlationID, action, app.log)
 }
 
 // GetCorrelationIDFromRequest returns correlationId from request header

@@ -46,6 +46,8 @@ func NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, c
 			Str("tenantId", token.TenantID.String()).
 			Str("userId", token.UserID.String()).
 			Str("username", token.UserName).
+			Str("tenantName", token.TenantName).
+			Str("userDisplayName", token.DisplayName).
 			Str("action", action).
 			Str("correlationId", cid).Logger()
 
