@@ -86,23 +86,26 @@ func New(appName string, appConfigDefaults map[string]interface{}, appLog zerolo
 }
 
 func (app *App) initializeDB() error {
-	var db *gorm.DB
-	err := retry.Do(3, time.Second*15, func() error {
-		var err error
-		db, err = gorm.Open("mysql", app.GetConnectionString())
-		if err != nil && strings.Contains(err.Error(), "connection refused") {
-			app.log.Warn().Msgf("Error connecting to Database [%v]. Trying again...", err)
-			return err
-		}
+	if app.Config.GetBool("DB_REQUIRED") {
+		var db *gorm.DB
+		err := retry.Do(3, time.Second*15, func() error {
+			var err error
+			db, err = gorm.Open("mysql", app.GetConnectionString())
+			if err != nil && strings.Contains(err.Error(), "connection refused") {
+				app.log.Warn().Msgf("Error connecting to Database [%v]. Trying again...", err)
+				return err
+			}
 
-		return retry.Stop{OriginalError: err}
-	})
-	app.DB = db
-	if strings.ToLower(app.Config.GetString("LOG_LEVEL")) == "trace" {
-		app.DB = app.DB.LogMode(true)
+			return retry.Stop{OriginalError: err}
+		})
+		app.DB = db
+		if strings.ToLower(app.Config.GetString("LOG_LEVEL")) == "trace" {
+			app.DB = app.DB.LogMode(true)
+		}
+		app.log.Info().Msg("Database connected!")
+		return err
 	}
-	app.log.Info().Msg("Database connected!")
-	return err
+	return nil
 }
 
 // GetConnectionString gets database connection string
