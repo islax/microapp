@@ -231,7 +231,10 @@ func (app *App) Stop() {
 	defer cancel()
 
 	app.server.Shutdown(ctx)
-	app.DB.Close()
+
+	if app.Config.GetBool("DB_REQUIRED") {
+		app.DB.Close()
+	}
 }
 
 type httpStatusRecorder struct {

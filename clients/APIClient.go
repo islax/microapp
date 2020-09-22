@@ -21,6 +21,57 @@ type APIClient struct {
 	HTTPClient *http.Client
 }
 
+// DoRequestWithResponseParam do request with response param
+func (apiClient *APIClient) DoRequestWithResponseParam(context microappCtx.ExecutionContext, url string, requestMethod string, rawToken string, payload map[string]interface{}, out interface{}) error {
+	apiURL := apiClient.BaseURL + url
+	var body io.Reader
+	if payload != nil {
+		bytePayload, err := json.Marshal(payload)
+		if err != nil {
+			return microappError.NewAPICallError(apiURL, nil, nil, fmt.Errorf("Unable to marshal payload: %w", err))
+		}
+		body = bytes.NewBuffer(bytePayload)
+	}
+
+	request, err := http.NewRequest(requestMethod, apiURL, body)
+	if err != nil {
+		return microappError.NewAPICallError(apiURL, nil, nil, fmt.Errorf("Unable to create HTTP request: %w", err))
+	}
+
+	if rawToken != "" {
+		if strings.HasPrefix(rawToken, "Bearer") {
+			request.Header.Add("Authorization", rawToken)
+		} else {
+			request.Header.Add("Authorization", "Bearer "+rawToken)
+		}
+	}
+	request.Header.Set("X-Client", apiClient.AppName)
+	request.Header.Set("X-Correlation-ID", context.GetCorrelationID())
+	request.Header.Set("Content-Type", "application/json")
+
+	response, err := apiClient.HTTPClient.Do(request)
+	if err != nil {
+		return microappError.NewAPICallError(apiURL, nil, nil, fmt.Errorf("Unable to invoke API: %w", err))
+	}
+
+	defer response.Body.Close()
+	if response.StatusCode > 300 { // All 3xx, 4xx, 5xx are considered errors
+		responseBodyString := ""
+		if responseBodyBytes, err := ioutil.ReadAll(response.Body); err != nil {
+			responseBodyString = string(responseBodyBytes)
+		}
+		return microappError.NewAPICallError(apiURL, &response.StatusCode, &responseBodyString, fmt.Errorf("Received non-success code: %v", response.StatusCode))
+	}
+
+	if out != nil {
+		err = json.NewDecoder(response.Body).Decode(out)
+		if err != nil {
+			return microappError.NewAPICallError(apiURL, &response.StatusCode, nil, fmt.Errorf("Unable parse response payload: %w", err))
+		}
+	}
+	return nil
+}
+
 func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url string, requestMethod string, rawToken string, payload map[string]interface{}) (interface{}, error) {
 	apiURL := apiClient.BaseURL + url
 	var body io.Reader
