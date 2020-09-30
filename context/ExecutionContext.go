@@ -13,7 +13,8 @@ import (
 
 // ExecutionContext execution context
 type ExecutionContext interface {
-	CreateSubContext(additionalFields map[string]string) ExecutionContext
+	SubContextWithAddlFields(additionalFields map[string]string) ExecutionContext
+	SubContextWithAddlFieldsAndUoW(uow *repository.UnitOfWork, additionalFields map[string]string) ExecutionContext
 	GetActionName() string
 	GetCorrelationID() string
 	GetDefaultLogger() *zerolog.Logger
@@ -60,12 +61,20 @@ func NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, c
 	return &executionContextImpl{CorrelationID: cid, UOW: uow, Token: token, Action: action, logger: executionCtxLogger}
 }
 
-func (context *executionContextImpl) CreateSubContext(additionalFields map[string]string) ExecutionContext {
+func (context *executionContextImpl) SubContextWithAddlFields(additionalFields map[string]string) ExecutionContext {
 	loggerWith := context.logger.With()
 	for k, v := range additionalFields {
 		loggerWith = loggerWith.Str(k, v)
 	}
 	return &executionContextImpl{context.CorrelationID, context.UOW, context.Token, context.Action, loggerWith.Logger()}
+}
+
+func (context *executionContextImpl) SubContextWithAddlFieldsAndUoW(uow *repository.UnitOfWork, additionalFields map[string]string) ExecutionContext {
+	loggerWith := context.logger.With()
+	for k, v := range additionalFields {
+		loggerWith = loggerWith.Str(k, v)
+	}
+	return &executionContextImpl{context.CorrelationID, uow, context.Token, context.Action, loggerWith.Logger()}
 }
 
 func (context *executionContextImpl) GetActionName() string {
