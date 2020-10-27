@@ -1,9 +1,12 @@
 package event
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -135,8 +138,8 @@ func (eventDispatcher *RabbitMQEventDispatcher) rabbitConnector() {
 		if rabbitErr != nil {
 			eventDispatcher.connectionMutex.Lock()
 
-			connectionString := getQueueConnectionString()
-			connection, channel := connectToRabbitMQ(eventDispatcher.logger, connectionString, eventDispatcher.exchangeName)
+			connectionString, isTLS := getQueueConnectionString()
+			connection, channel := connectToRabbitMQ(eventDispatcher.logger, connectionString, isTLS, eventDispatcher.exchangeName)
 
 			eventDispatcher.connection = connection
 			eventDispatcher.channel = channel
@@ -149,10 +152,12 @@ func (eventDispatcher *RabbitMQEventDispatcher) rabbitConnector() {
 	}
 }
 
-func connectToRabbitMQ(logger *zerolog.Logger, connectionString string, exchangeName string) (*amqp.Connection, *amqp.Channel) {
+func connectToRabbitMQ(logger *zerolog.Logger, connectionString string, isTLS bool, exchangeName string) (*amqp.Connection, *amqp.Channel) {
 	logger.Debug().Msg("Connecting to queue " + connectionString)
 	for {
-		conn, err := amqp.Dial(connectionString)
+
+		conn, err := dialAMQP(connectionString, isTLS)
+		logger.Info().Msg(fmt.Sprintf("Connection String and TLS valus is %v     %v", connectionString, isTLS))
 
 		if err == nil {
 			logger.Info().Msg("RabittMQ connected")
@@ -176,9 +181,36 @@ func connectToRabbitMQ(logger *zerolog.Logger, connectionString string, exchange
 	}
 }
 
+func dialAMQP(connectionString string, isTLS bool) (*amqp.Connection, error) {
+	var cfg *tls.Config = nil
+	if isTLS {
+		caCert, _ := os.LookupEnv("ISLA_QUEUE_RMQ_CA_CERT")
+		clientCert, _ := os.LookupEnv("ISLA_QUEUE_RMQ_CERT")
+		clientCertKey, _ := os.LookupEnv("ISLA_QUEUE_RMQ_CERT_KEY")
+
+		if strings.TrimSpace(caCert) == "" || strings.TrimSpace(clientCert) == "" || strings.TrimSpace(clientCertKey) == "" {
+			return nil, fmt.Errorf("One or more client certificates not found")
+		}
+
+		cfg = &tls.Config{}
+		cfg.RootCAs = x509.NewCertPool()
+		cfg.RootCAs.AppendCertsFromPEM([]byte(caCert))
+
+		cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientCertKey))
+		if err != nil {
+			return nil, err
+		}
+		cfg.Certificates = append(cfg.Certificates, cert)
+	}
+
+	return amqp.DialTLS(connectionString, cfg)
+}
+
 //TODO: read from config
-func getQueueConnectionString() string {
+func getQueueConnectionString() (string, bool) {
 	var queueHost, queuePort, queueUser, queuePassword string
+	isTLS := false
+	queueProtocol := "amqp"
 	queueHost, ok := os.LookupEnv("ISLA_QUEUE_HOST")
 	if !ok {
 		queueHost = "localhost"
@@ -195,6 +227,13 @@ func getQueueConnectionString() string {
 	if !ok {
 		queuePort = "5672"
 	}
+	tls, ok := os.LookupEnv("ISLA_QUEUE_TLS_ENABLED")
+	if ok {
+		isTLS, _ = strconv.ParseBool(tls)
+		if isTLS {
+			queueProtocol = "amqps"
+		}
+	}
 
-	return fmt.Sprintf("amqp://%v:%v@%v:%v/", queueUser, queuePassword, queueHost, queuePort)
+	return fmt.Sprintf("%v://%v:%v@%v:%v/", queueProtocol, queueUser, queuePassword, queueHost, queuePort), isTLS
 }
