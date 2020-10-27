@@ -57,7 +57,7 @@ func (monitor *rabbitMQEventMonitor) rabbitConnector() {
 
 func (monitor *rabbitMQEventMonitor) connectToRabbitMQ(queueName string, connectionString string, isTLS bool, eventsToMonitor []string) (*amqp.Connection, *amqp.Channel, <-chan amqp.Delivery) {
 	for {
-		queueConnection, err := dialAMQP(connectionString, isTLS, monitor.logger)
+		queueConnection, err := dialAMQP(connectionString, isTLS)
 
 		if err != nil {
 			monitor.logger.Error().Err(err).Msg("Unable to connect to rabbitMQ.")
@@ -160,7 +160,7 @@ func (monitor *rabbitMQEventMonitor) Stop() {
 	monitor.queueConnection.Close()
 }
 
-func dialAMQP(connectionString string, isTLS bool, logger *zerolog.Logger) (*amqp.Connection, error) {
+func dialAMQP(connectionString string, isTLS bool) (*amqp.Connection, error) {
 	var cfg *tls.Config = nil
 	if isTLS {
 		caCert, _ := os.LookupEnv("ISLA_QUEUE_RMQ_CA_CERT")

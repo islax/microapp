@@ -156,7 +156,7 @@ func connectToRabbitMQ(logger *zerolog.Logger, connectionString string, isTLS bo
 	logger.Debug().Msg("Connecting to queue " + connectionString)
 	for {
 
-		conn, err := dialAMQP(connectionString, isTLS, logger)
+		conn, err := dialAMQP(connectionString, isTLS)
 		logger.Info().Msg(fmt.Sprintf("Connection String and TLS valus is %v     %v", connectionString, isTLS))
 
 		if err == nil {
@@ -181,7 +181,7 @@ func connectToRabbitMQ(logger *zerolog.Logger, connectionString string, isTLS bo
 	}
 }
 
-func dialAMQP(connectionString string, isTLS bool, logger *zerolog.Logger) (*amqp.Connection, error) {
+func dialAMQP(connectionString string, isTLS bool) (*amqp.Connection, error) {
 	var cfg *tls.Config = nil
 	if isTLS {
 		caCert, _ := os.LookupEnv("ISLA_QUEUE_RMQ_CA_CERT")
