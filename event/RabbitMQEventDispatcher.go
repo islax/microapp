@@ -152,7 +152,7 @@ func connectToRabbitMQ(logger *log.Logger, connectionString string, isTLS bool, 
 		conn, err := dialAMQP(connectionString, isTLS)
 
 		if err == nil {
-
+			logger.Info("RabittMQ connected")
 			ch, err := conn.Channel()
 			if err != nil {
 				logger.Warn("Failed to open a Channel" + ": " + err.Error())
@@ -161,7 +161,6 @@ func connectToRabbitMQ(logger *log.Logger, connectionString string, isTLS bool, 
 				if err != nil {
 					logger.Warn("Failed to declare an exchange" + ": " + err.Error())
 				} else {
-					logger.Info("RabittMQ connected")
 					return conn, ch
 				}
 			}
