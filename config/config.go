@@ -89,3 +89,8 @@ func (config *Config) GetMapString(key string) map[string]string {
 func (config *Config) GetMap(key string) map[string]interface{} {
 	return config.viper.GetStringMap(key)
 }
+
+// Set sets the value for the given key
+func (config *Config) Set(key string, value interface{}) {
+	config.viper.Set(key, value)
+}
