@@ -120,8 +120,8 @@ func (context *executionContextImpl) LogError(err error, errorMessage string) {
 	case microappError.HTTPResourceNotFound:
 		resourceNotFoundErr := err.(microappError.HTTPResourceNotFound)
 		context.Logger(log.EventTypeUnexpectedErr, resourceNotFoundErr.ErrorKey).Debug().Err(err).Str("resourceName", resourceNotFoundErr.ResourceName).Str("resourceValue", resourceNotFoundErr.ResourceValue).Msg(errorMessage)
-	case microappError.APICallError:
-		apiCallError := err.(microappError.APICallError)
+	case microappError.APIClientError:
+		apiCallError := err.(microappError.APIClientError)
 		tmpLoggerEvent := context.Logger(log.EventTypeUnexpectedErr, apiCallError.GetErrorCode()).Error().Err(err).Str("stack", apiCallError.GetStackTrace()).Str("apiURL", apiCallError.GetAPIURL())
 		if responseBody := apiCallError.GetHTTPResponseBody(); responseBody != nil {
 			tmpLoggerEvent.Str("responseBody", *responseBody)

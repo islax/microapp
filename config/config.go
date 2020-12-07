@@ -13,24 +13,27 @@ type Config struct {
 func NewConfig(defaults map[string]interface{}) *Config {
 	config := &Config{viper: viper.New()}
 
-	config.viper.SetDefault("JWT_SECRET", "Secret key for test")
+	config.viper.SetDefault(EvSuffixForJwtSecret, "Secret key for test")
 
-	config.viper.SetDefault("DB_HOST", "localhost")
-	config.viper.SetDefault("DB_PORT", "3306")
-	config.viper.SetDefault("DB_USER", "root")
-	config.viper.SetDefault("DB_PWD", "Cyber!nc#")
+	config.viper.SetDefault(EvSuffixForDBRequired, true)
+	config.viper.SetDefault(EvSuffixForDBHost, "localhost")
+	config.viper.SetDefault(EvSuffixForDBPort, "3306")
+	config.viper.SetDefault(EvSuffixForDBUser, "root")
+	config.viper.SetDefault(EvSuffixForDBPassword, "Cyber!nc#")
 
-	config.viper.SetDefault("LOG_LEVEL", "error")
+	config.viper.SetDefault(EvSuffixForLogLevel, "error")
 
-	config.viper.SetDefault("HTTP_WRITE_TIMEOUT", 15)
-	config.viper.SetDefault("HTTP_READ_TIMEOUT", 15)
-	config.viper.SetDefault("HTTP_IDLE_TIMEOUT", 60)
+	config.viper.SetDefault(EvSuffixForHTTPWriteTimeout, 15)
+	config.viper.SetDefault(EvSuffixForHTTPReadTimeout, 15)
+	config.viper.SetDefault(EvSuffixForHTTPIdleTimeout, 60)
+
+	config.viper.SetDefault(EvSuffixForHTTPIdleTimeout, 15)
 
 	for key, value := range defaults {
 		config.viper.SetDefault(key, value)
 	}
 
-	config.viper.SetEnvPrefix("ISLA")
+	config.viper.SetEnvPrefix(EvPrefix)
 	config.viper.AutomaticEnv()
 
 	// config.viper.SetConfigName("settings")
