@@ -113,7 +113,7 @@ func (apiClient *APIClient) DoRequestWithResponseParam(context microappCtx.Execu
 	defer response.Body.Close()
 	if response.StatusCode > 300 { // All 3xx, 4xx, 5xx are considered errors
 		responseBodyString := ""
-		if responseBodyBytes, err := ioutil.ReadAll(response.Body); err != nil {
+		if responseBodyBytes, err := ioutil.ReadAll(response.Body); err == nil {
 			responseBodyString = string(responseBodyBytes)
 		}
 		return microappError.NewAPIClientError(apiURL, &response.StatusCode, &responseBodyString, fmt.Errorf("Received non-success code: %v", response.StatusCode))
@@ -138,7 +138,7 @@ func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url 
 	defer response.Body.Close()
 	if response.StatusCode > 300 { // All 3xx, 4xx, 5xx are considered errors
 		responseBodyString := ""
-		if responseBodyBytes, err := ioutil.ReadAll(response.Body); err != nil {
+		if responseBodyBytes, err := ioutil.ReadAll(response.Body); err == nil {
 			responseBodyString = string(responseBodyBytes)
 		}
 		return nil, microappError.NewAPIClientError(apiURL, &response.StatusCode, &responseBodyString, fmt.Errorf("Received non-success code: %v", response.StatusCode))

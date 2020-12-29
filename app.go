@@ -280,13 +280,13 @@ func (app *App) NewExecutionContext(uow *repository.UnitOfWork, token *security.
 }
 
 // NewExecutionContextWithCustomToken creates new exectuion context with custom made token
-func (app *App) NewExecutionContextWithCustomToken(uow *repository.UnitOfWork, tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: tenantID, UserID: userID, UserName: username}, correlationID, action, app.log)
+func (app *App) NewExecutionContextWithCustomToken(uow *repository.UnitOfWork, tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
+	return microappCtx.NewExecutionContext(uow, &security.JwtToken{Admin: admin, TenantID: tenantID, UserID: userID, UserName: username}, correlationID, action, app.log)
 }
 
 // NewExecutionContextWithSystemToken creates new exectuion context with sys default token
-func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, correlationID, action, app.log)
+func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
+	return microappCtx.NewExecutionContext(uow, &security.JwtToken{Admin: admin, TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, correlationID, action, app.log)
 }
 
 // GetCorrelationIDFromRequest returns correlationId from request header
