@@ -157,7 +157,7 @@ func connectToRabbitMQ(logger *zerolog.Logger, connectionString string, isTLS bo
 	for {
 
 		conn, err := dialAMQP(connectionString, isTLS)
-		logger.Info().Msg(fmt.Sprintf("TLS valus is %v     %v", isTLS))
+		logger.Info().Msg(fmt.Sprintf("TLS valus is %v", isTLS))
 
 		if err == nil {
 			logger.Info().Msg("RabittMQ connected")
