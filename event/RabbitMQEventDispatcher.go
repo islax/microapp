@@ -153,11 +153,11 @@ func (eventDispatcher *RabbitMQEventDispatcher) rabbitConnector() {
 }
 
 func connectToRabbitMQ(logger *zerolog.Logger, connectionString string, isTLS bool, exchangeName string) (*amqp.Connection, *amqp.Channel) {
-	logger.Debug().Msg("Connecting to queue " + connectionString)
+	logger.Debug().Msg("Connecting to queue ")
 	for {
 
 		conn, err := dialAMQP(connectionString, isTLS)
-		logger.Info().Msg(fmt.Sprintf("Connection String and TLS valus is %v     %v", connectionString, isTLS))
+		logger.Info().Msg(fmt.Sprintf("TLS valus is %v     %v", isTLS))
 
 		if err == nil {
 			logger.Info().Msg("RabittMQ connected")
