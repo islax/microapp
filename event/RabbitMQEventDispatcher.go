@@ -138,8 +138,8 @@ func (eventDispatcher *RabbitMQEventDispatcher) rabbitConnector() {
 		if rabbitErr != nil {
 			eventDispatcher.connectionMutex.Lock()
 
-			connectionString, isTLS := getQueueConnectionString()
-			connection, channel := connectToRabbitMQ(eventDispatcher.logger, connectionString, isTLS, eventDispatcher.exchangeName)
+			connectionString, isTLS, connectionStringForLog := getQueueConnectionString()
+			connection, channel := connectToRabbitMQ(eventDispatcher.logger, connectionString, isTLS, eventDispatcher.exchangeName, connectionStringForLog)
 
 			eventDispatcher.connection = connection
 			eventDispatcher.channel = channel
@@ -152,12 +152,12 @@ func (eventDispatcher *RabbitMQEventDispatcher) rabbitConnector() {
 	}
 }
 
-func connectToRabbitMQ(logger *zerolog.Logger, connectionString string, isTLS bool, exchangeName string) (*amqp.Connection, *amqp.Channel) {
-	logger.Debug().Msg("Connecting to queue ")
+func connectToRabbitMQ(logger *zerolog.Logger, connectionString string, isTLS bool, exchangeName string, connectionStringForLog string) (*amqp.Connection, *amqp.Channel) {
+	logger.Debug().Msg("Connecting to queue " + connectionStringForLog)
 	for {
 
 		conn, err := dialAMQP(connectionString, isTLS)
-		logger.Info().Msg(fmt.Sprintf("TLS valus is %v", isTLS))
+		logger.Info().Msg(fmt.Sprintf("Connection String and TLS valus is %v     %v", connectionStringForLog, isTLS))
 
 		if err == nil {
 			logger.Info().Msg("RabittMQ connected")
@@ -207,7 +207,7 @@ func dialAMQP(connectionString string, isTLS bool) (*amqp.Connection, error) {
 }
 
 //TODO: read from config
-func getQueueConnectionString() (string, bool) {
+func getQueueConnectionString() (string, bool, string) {
 	var queueHost, queuePort, queueUser, queuePassword string
 	isTLS := false
 	queueProtocol := "amqp"
@@ -235,5 +235,5 @@ func getQueueConnectionString() (string, bool) {
 		}
 	}
 
-	return fmt.Sprintf("%v://%v:%v@%v:%v/", queueProtocol, queueUser, queuePassword, queueHost, queuePort), isTLS
+	return fmt.Sprintf("%v://%v:%v@%v:%v/", queueProtocol, queueUser, queuePassword, queueHost, queuePort), isTLS, fmt.Sprintf("%v://%v:%v@%v:%v/", queueProtocol, "######", "######", queueHost, queuePort)
 }
