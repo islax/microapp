@@ -18,9 +18,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite" // Used
+	// "github.com/jinzhu/gorm/dialects/sqlite" // Used
 	"github.com/rs/zerolog"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // TestApp Provides convinience methods for test
@@ -33,12 +35,22 @@ type TestApp struct {
 // NewTestApp returns new instance of TestApp
 func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose bool) *TestApp {
 	dbFile := "./test_islax.db"
-	db, err := gorm.Open("sqlite3", dbFile)
+	var dbconf *gorm.Config
+	if verbose {
+		newLogger := logger.Default.LogMode(logger.Info)
+		dbconf = &gorm.Config{
+			Logger: newLogger,
+		}
+	} else {
+		dbconf = &gorm.Config{}
+	}
+	//db, err := gorm.Open("sqlite3", dbFile)
+	db, err := gorm.Open(sqlite.Open(dbFile), dbconf)
 	if err != nil {
 		panic(err)
 	}
 
-	db.LogMode(verbose)
+	//db.LogMode(verbose)
 
 	logger := zerolog.New(os.Stdout)
 	rand.Seed(time.Now().UnixNano())
@@ -58,8 +70,10 @@ func (testApp *TestApp) Initialize() {
 // Stop the app
 func (testApp *TestApp) Stop() {
 	testApp.application.Stop()
-	testApp.application.DB.Close()
-
+	sqlDB, err := testApp.application.DB.DB()
+	if err != nil {
+		sqlDB.Close()
+	}
 	os.Remove("./test_islax.db")
 }
 
@@ -78,7 +92,7 @@ func (testApp *TestApp) ExecuteRequest(req *http.Request) *httptest.ResponseReco
 
 // AddAssociations adds associations to the given entity
 func (testApp *TestApp) AddAssociations(entity interface{}, associationName string, associations ...interface{}) error {
-	return testApp.application.DB.Model(entity).Association(associationName).Append(associations...).Error
+	return testApp.application.DB.Model(entity).Association(associationName).Append(associations...)
 }
 
 // AssertEqualWithFieldsToIgnore asserts whether two objects are equal
@@ -256,7 +270,7 @@ func (testApp *TestApp) GetAll(out interface{}, preloads []string, whereClause s
 		db = db.Where(whereClause, whereParams...)
 	}
 	if strings.TrimSpace(orderBy) != "" {
-		db = db.Order(orderBy, true)
+		db = db.Order(orderBy)
 	}
 	return db.Find(out).Error
 }

@@ -9,8 +9,8 @@ import (
 
 	microappError "github.com/islax/microapp/error"
 
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
+	"gorm.io/gorm"
 )
 
 // Repository represents generic interface for interacting with DB
@@ -22,8 +22,8 @@ type Repository interface {
 	GetAllForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetAllUnscoped(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetAllUnscopedForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError
-	GetCount(uow *UnitOfWork, out *int, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
-	GetCountForTenant(uow *UnitOfWork, out *int, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
+	GetCount(uow *UnitOfWork, out *int64, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
+	GetCountForTenant(uow *UnitOfWork, out *int64, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 
 	Add(uow *UnitOfWork, out interface{}) microappError.DatabaseError
 	Update(uow *UnitOfWork, out interface{}) microappError.DatabaseError
@@ -46,9 +46,9 @@ type UnitOfWork struct {
 // NewUnitOfWork creates new UnitOfWork
 func NewUnitOfWork(db *gorm.DB, readOnly bool) *UnitOfWork {
 	if readOnly {
-		return &UnitOfWork{DB: db.New(), committed: false, readOnly: true}
+		return &UnitOfWork{DB: db, committed: false, readOnly: true}
 	}
-	return &UnitOfWork{DB: db.New().Begin(), committed: false, readOnly: false}
+	return &UnitOfWork{DB: db.Begin(), committed: false, readOnly: false}
 }
 
 // Complete marks end of unit of work
@@ -91,7 +91,7 @@ func PreloadAssociations(preloadAssociations []string) QueryProcessor {
 }
 
 // Paginate will restrict the output of query
-func Paginate(limit int, offset int, count *int) QueryProcessor {
+func Paginate(limit int, offset int, count *int64) QueryProcessor {
 	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
 		if out != nil && count != nil {
 			if err := db.Model(out).Count(count).Error; err != nil {
@@ -133,12 +133,12 @@ func PaginateForWeb(w http.ResponseWriter, r *http.Request) QueryProcessor {
 	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
 
 		if out != nil {
-			var totalRecords int
+			var totalRecords int64
 			if err := db.Model(out).Count(&totalRecords).Error; err != nil {
 				return db, microappError.NewDatabaseError(err)
 			}
 			w.Header().Add("Access-Control-Expose-Headers", "X-Total-Count")
-			w.Header().Set("X-Total-Count", strconv.Itoa(totalRecords))
+			w.Header().Set("X-Total-Count", strconv.Itoa(int(totalRecords)))
 		}
 
 		if limit != -1 {
@@ -193,7 +193,7 @@ func TimeRangeForWeb(r *http.Request, fieldName string) QueryProcessor {
 // Order will order the results
 func Order(value interface{}, reorder bool) QueryProcessor {
 	return func(db *gorm.DB, out interface{}) (*gorm.DB, microappError.DatabaseError) {
-		db = db.Order(value, reorder)
+		db = db.Order(value)
 		return db, nil
 	}
 }
@@ -323,7 +323,7 @@ func (repository *GormRepository) GetAllUnscopedForTenant(uow *UnitOfWork, out i
 }
 
 // GetCount gets count of the given entity type
-func (repository *GormRepository) GetCount(uow *UnitOfWork, count *int, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
+func (repository *GormRepository) GetCount(uow *UnitOfWork, count *int64, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
 	db := uow.DB
 
 	if queryProcessors != nil {
@@ -342,7 +342,7 @@ func (repository *GormRepository) GetCount(uow *UnitOfWork, count *int, entity i
 }
 
 // GetCountForTenant gets count of the given entity type for specified tenant
-func (repository *GormRepository) GetCountForTenant(uow *UnitOfWork, count *int, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
+func (repository *GormRepository) GetCountForTenant(uow *UnitOfWork, count *int64, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
 
 	db := uow.DB.Where("tenantID = ?", tenantID)
 
@@ -371,7 +371,7 @@ func (repository *GormRepository) Add(uow *UnitOfWork, entity interface{}) micro
 
 // Update specified Entity
 func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) microappError.DatabaseError {
-	if err := uow.DB.Model(entity).Update(entity).Error; err != nil {
+	if err := uow.DB.Model(entity).Updates(entity).Error; err != nil {
 		return microappError.NewDatabaseError(err)
 	}
 	return nil
@@ -403,7 +403,7 @@ func (repository *GormRepository) DeletePermanent(uow *UnitOfWork, entity interf
 
 // AddAssociations adds associations to the given out entity
 func (repository *GormRepository) AddAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError {
-	if err := uow.DB.Model(out).Association(associationName).Append(associations...).Error; err != nil {
+	if err := uow.DB.Model(out).Association(associationName).Append(associations...); err != nil {
 		return microappError.NewDatabaseError(err)
 	}
 	return nil
@@ -411,7 +411,7 @@ func (repository *GormRepository) AddAssociations(uow *UnitOfWork, out interface
 
 // RemoveAssociations removes associations from the given out entity
 func (repository *GormRepository) RemoveAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError {
-	if err := uow.DB.Model(out).Association(associationName).Delete(associations...).Error; err != nil {
+	if err := uow.DB.Model(out).Association(associationName).Delete(associations...); err != nil {
 		return microappError.NewDatabaseError(err)
 	}
 	return nil
@@ -419,7 +419,7 @@ func (repository *GormRepository) RemoveAssociations(uow *UnitOfWork, out interf
 
 // ReplaceAssociations removes associations from the given out entity
 func (repository *GormRepository) ReplaceAssociations(uow *UnitOfWork, out interface{}, associationName string, associations ...interface{}) microappError.DatabaseError {
-	if err := uow.DB.Model(out).Association(associationName).Replace(associations...).Error; err != nil {
+	if err := uow.DB.Model(out).Association(associationName).Replace(associations...); err != nil {
 		return microappError.NewDatabaseError(err)
 	}
 	return nil
@@ -560,5 +560,5 @@ func ContainsKey(keyValuePair map[string][]string, keyToCheck string) bool {
 // DoesColumnExistInTable returns bool if the column exist in table
 func DoesColumnExistInTable(uow *UnitOfWork, tableName string, ColumnName string) bool {
 	//tableName := uow.DB.NewScope(rules).TableName() // rules --> model, need to send from client controller
-	return uow.DB.Dialect().HasColumn(tableName, ColumnName)
+	return uow.DB.Migrator().HasColumn(tableName, ColumnName)
 }
