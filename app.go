@@ -92,7 +92,7 @@ func (app *App) initializeDB() error {
 	var db *gorm.DB
 	err := retry.Do(3, time.Second*15, func() error {
 		var err error
-		dbconf := &gorm.Config{}
+		dbconf := &gorm.Config{PrepareStmt: true}
 		if strings.ToLower(app.Config.GetString("LOG_LEVEL")) == "trace" {
 			dbconf.Logger = glogger.Default.LogMode(glogger.Info)
 		}
