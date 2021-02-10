@@ -1,4 +1,4 @@
-module github.com/islax/microapp
+module github.com/sd-cyberinc/microapp
 
 go 1.12
 
