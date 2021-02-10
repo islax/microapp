@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	microappError "github.com/islax/microapp/error"
+	"github.com/islax/microapp/model"
 
 	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
@@ -25,7 +27,7 @@ type Repository interface {
 	GetAllUnscopedForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetCount(uow *UnitOfWork, out *int64, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 	GetCountForTenant(uow *UnitOfWork, out *int64, tenantID uuid.UUID, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
-	CheckVersionandUpdate(uow *UnitOfWork, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
+	CheckVersionAndUpdate(uow *UnitOfWork, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 
 	Add(uow *UnitOfWork, out interface{}) microappError.DatabaseError
 	Update(uow *UnitOfWork, out interface{}) microappError.DatabaseError
@@ -379,17 +381,24 @@ func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) mi
 	return nil
 }
 
-// CheckVersionandUpdate specified Entity after checking for version change
-func (repository *GormRepository) CheckVersionandUpdate(uow *UnitOfWork, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
-	var count int64
-	if err := repository.GetCount(uow, &count, entity, queryProcessors); err != nil {
-		return microappError.NewDatabaseError(err)
+// CheckVersionAndUpdate specified Entity after checking for version change
+func (repository *GormRepository) CheckVersionAndUpdate(uow *UnitOfWork, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
+	db := uow.DB
+	queryProcessors = append(queryProcessors, Filter("modifiedOn = ?", reflect.ValueOf(entity).Elem().FieldByName("Base").Interface().(model.Base).UpdatedAt))
+	var err error
+	for _, queryProcessor := range queryProcessors {
+		db, err = queryProcessor(db, entity)
+		if err != nil {
+			return microappError.NewDatabaseError(err)
+		}
 	}
-	if count == 0 {
+
+	updateResponse := db.Model(entity).Updates(entity)
+	if updateResponse.Error != nil {
+		return microappError.NewDatabaseError(updateResponse.Error)
+	}
+	if updateResponse.RowsAffected == 0 {
 		return microappError.NewDatabaseError(errors.New("row data modified"))
-	}
-	if err := uow.DB.Model(entity).Updates(entity).Error; err != nil {
-		return microappError.NewDatabaseError(err)
 	}
 	return nil
 }
