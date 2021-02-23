@@ -1,4 +1,4 @@
-module github.com/sd-cyberinc/microapp
+module github.com/islax/microapp
 
 go 1.12
 
@@ -18,6 +18,7 @@ require (
 	github.com/spf13/viper v1.3.2
 	github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94
 	github.com/stretchr/testify v1.3.0 // indirect
+	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	google.golang.org/genproto v0.0.0-20190425155659-357c62f0e4bb // indirect
