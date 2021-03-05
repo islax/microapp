@@ -14,6 +14,7 @@ import (
 // ExecutionContext execution context
 type ExecutionContext interface {
 	CreateSubContext(additionalFields map[string]string) ExecutionContext
+	CreateSubContextWithNewToken(additionalFields map[string]string, token *security.JwtToken) ExecutionContext
 	GetActionName() string
 	GetCorrelationID() string
 	GetDefaultLogger() *zerolog.Logger
@@ -66,6 +67,14 @@ func (context *executionContextImpl) CreateSubContext(additionalFields map[strin
 		loggerWith = loggerWith.Str(k, v)
 	}
 	return &executionContextImpl{context.CorrelationID, context.UOW, context.Token, context.Action, loggerWith.Logger()}
+}
+
+func (context *executionContextImpl) CreateSubContextWithNewToken(additionalFields map[string]string, token *security.JwtToken) ExecutionContext {
+	loggerWith := context.logger.With()
+	for k, v := range additionalFields {
+		loggerWith = loggerWith.Str(k, v)
+	}
+	return &executionContextImpl{context.CorrelationID, context.UOW, token, context.Action, loggerWith.Logger()}
 }
 
 func (context *executionContextImpl) GetActionName() string {
