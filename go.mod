@@ -1,5 +1,4 @@
-module github.com/islax/microapp
-
+module github.com/islax/sd-cyberinc
 go 1.12
 
 require (
