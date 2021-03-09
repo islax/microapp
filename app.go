@@ -155,9 +155,13 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 
 //Start http server and start listening to the requests
 func (app *App) Start() {
-	if err := app.server.ListenAndServe(); err != nil {
-		if err != http.ErrServerClosed {
-			app.log.Fatal().Err(err).Msg("Unable to start server, exiting the application!")
+	if app.Config.GetString("ENABLE_TLS") == "true" {
+		app.StartSecure("SERVER_CERT", "SERVER_KEY")
+	} else {
+		if err := app.server.ListenAndServe(); err != nil {
+			if err != http.ErrServerClosed {
+				app.log.Fatal().Err(err).Msg("Unable to start server, exiting the application!")
+			}
 		}
 	}
 }

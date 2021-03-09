@@ -1,5 +1,4 @@
 module github.com/islax/microapp
-
 go 1.12
 
 require (
