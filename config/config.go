@@ -26,7 +26,7 @@ func NewConfig(defaults map[string]interface{}) *Config {
 	config.viper.SetDefault("HTTP_READ_TIMEOUT", 15)
 	config.viper.SetDefault("HTTP_IDLE_TIMEOUT", 60)
 
-	config.viper.SetDefault("TLS_CERT", "/opt/isla/tls.cert")
+	config.viper.SetDefault("TLS_CRT", "/opt/isla/tls.crt")
 	config.viper.SetDefault("TLS_KEY", "/opt/isla/tls.key")
 
 	for key, value := range defaults {

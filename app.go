@@ -156,7 +156,7 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 //Start http server and start listening to the requests
 func (app *App) Start() {
 	if app.Config.GetString("ENABLE_TLS") == "true" {
-		app.StartSecure(app.Config.GetString("TLS_CERT"), app.Config.GetString("TLS_KEY"))
+		app.StartSecure(app.Config.GetString("TLS_CRT"), app.Config.GetString("TLS_KEY"))
 	} else {
 		if err := app.server.ListenAndServe(); err != nil {
 			if err != http.ErrServerClosed {
@@ -170,7 +170,7 @@ func (app *App) Start() {
 func (app *App) StartSecure(tlsCert string, tlsKey string) {
 
 	if tlsCert == "" {
-		app.log.Fatal().Msg("TLS_CERT is not defined or empty, exiting the application!")
+		app.log.Fatal().Msg("TLS_CRT is not defined or empty, exiting the application!")
 	}
 
 	if tlsKey == "" {
