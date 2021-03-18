@@ -284,7 +284,7 @@ func (app *App) NewExecutionContext(uow *repository.UnitOfWork, token *security.
 
 // NewExecutionContextWithCustomToken creates new exectuion context with custom made token
 func (app *App) NewExecutionContextWithCustomToken(uow *repository.UnitOfWork, tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: tenantID, UserID: userID, uow, UserName: username}, correlationID, action, app.log)
+	return microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: tenantID, UserID: userID, uow, UserName: username}, uow, correlationID, action, app.log)
 }
 
 // NewExecutionContextWithSystemToken creates new exectuion context with sys default token
