@@ -2,7 +2,6 @@ package event
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"time"
 
@@ -35,6 +34,8 @@ func NewActiveMQEventDispatcher(logger *zerolog.Logger) (*ActiveMQEventDispatche
 		connection: stompConn,
 	}
 
+	//go dispatcher.start()
+
 	return dispatcher, nil
 }
 
@@ -54,9 +55,8 @@ func (eventDispatcher *ActiveMQEventDispatcher) DispatchEvent(token string, core
 	h := stomp.NewHeader(
 		"X-Authorization", token,
 		"X-Correlation-ID", corelationID)
-	fmt.Println(fmt.Sprintf("%+v", eventDispatcher.connection))
+
 	if err := eventDispatcher.connection.Send(topic, "application/json", body, h); err != nil {
-		fmt.Println(err)
 		eventDispatcher.logger.Error().Msg("Failed to publish to queue" + ": " + err.Error())
 		return
 	}
