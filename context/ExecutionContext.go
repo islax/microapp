@@ -13,17 +13,20 @@ import (
 
 // ExecutionContext execution context
 type ExecutionContext interface {
-	CreateSubContext(additionalFields map[string]string) ExecutionContext
+	AddLoggerStrFields(strFields map[string]string)
 	GetActionName() string
 	GetCorrelationID() string
 	GetDefaultLogger() *zerolog.Logger
 	GetToken() *security.JwtToken
 	GetUOW() *repository.UnitOfWork
-	AddLoggerStrFields(strFields map[string]string)
 	Logger(eventType, eventCode string) *zerolog.Logger
 	LoggerEventActionCompletion() *zerolog.Event
 	LogError(err error, errorMessage string)
 	LogJSONParseError(err error)
+	SubContext(additionalFields map[string]string) ExecutionContext
+	SubContextWithToken(token *security.JwtToken, additionalFields map[string]string) ExecutionContext
+	SubContextWithTokenAndUoW(token *security.JwtToken, uow *repository.UnitOfWork, additionalFields map[string]string) ExecutionContext
+	SubContextWithUoW(uow *repository.UnitOfWork, additionalFields map[string]string) ExecutionContext
 }
 
 type executionContextImpl struct {
@@ -35,7 +38,7 @@ type executionContextImpl struct {
 }
 
 // NewExecutionContext creates new execution context
-func NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, correlationID string, action string, logger zerolog.Logger) ExecutionContext {
+func NewExecutionContext(token *security.JwtToken, uow *repository.UnitOfWork, correlationID string, action string, logger zerolog.Logger) ExecutionContext {
 	cid := correlationID
 	if len(strings.TrimSpace(cid)) == 0 {
 		cid = uuid.NewV4().String()
@@ -60,12 +63,21 @@ func NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, c
 	return &executionContextImpl{CorrelationID: cid, UOW: uow, Token: token, Action: action, logger: executionCtxLogger}
 }
 
-func (context *executionContextImpl) CreateSubContext(additionalFields map[string]string) ExecutionContext {
+// AddLoggerStrFields adds given string fields to the context logger
+func (context *executionContextImpl) AddLoggerStrFields(strFields map[string]string) {
+	loggerWith := context.logger.With()
+	for k, v := range strFields {
+		loggerWith = loggerWith.Str(k, v)
+	}
+	context.logger = loggerWith.Logger()
+}
+
+func (context *executionContextImpl) SubContextWithAddlFieldsAndUoW(uow *repository.UnitOfWork, additionalFields map[string]string) ExecutionContext {
 	loggerWith := context.logger.With()
 	for k, v := range additionalFields {
 		loggerWith = loggerWith.Str(k, v)
 	}
-	return &executionContextImpl{context.CorrelationID, context.UOW, context.Token, context.Action, loggerWith.Logger()}
+	return &executionContextImpl{context.CorrelationID, uow, context.Token, context.Action, loggerWith.Logger()}
 }
 
 func (context *executionContextImpl) GetActionName() string {
@@ -88,15 +100,6 @@ func (context *executionContextImpl) GetUOW() *repository.UnitOfWork {
 	return context.UOW
 }
 
-// AddLoggerStrFields adds given string fields to the context logger
-func (context *executionContextImpl) AddLoggerStrFields(strFields map[string]string) {
-	loggerWith := context.logger.With()
-	for k, v := range strFields {
-		loggerWith = loggerWith.Str(k, v)
-	}
-	context.logger = loggerWith.Logger()
-}
-
 // Logger creates a logger with eventType and eventCode
 func (context *executionContextImpl) Logger(eventType, eventCode string) *zerolog.Logger {
 	logger := context.logger.With().Str("eventType", eventType).Str("eventCode", eventCode).Logger()
@@ -111,8 +114,8 @@ func (context *executionContextImpl) LogError(err error, errorMessage string) {
 	case microappError.HTTPResourceNotFound:
 		resourceNotFoundErr := err.(microappError.HTTPResourceNotFound)
 		context.Logger(log.EventTypeUnexpectedErr, resourceNotFoundErr.ErrorKey).Debug().Err(err).Str("resourceName", resourceNotFoundErr.ResourceName).Str("resourceValue", resourceNotFoundErr.ResourceValue).Msg(errorMessage)
-	case microappError.APICallError:
-		apiCallError := err.(microappError.APICallError)
+	case microappError.APIClientError:
+		apiCallError := err.(microappError.APIClientError)
 		tmpLoggerEvent := context.Logger(log.EventTypeUnexpectedErr, apiCallError.GetErrorCode()).Error().Err(err).Str("stack", apiCallError.GetStackTrace()).Str("apiURL", apiCallError.GetAPIURL())
 		if responseBody := apiCallError.GetHTTPResponseBody(); responseBody != nil {
 			tmpLoggerEvent.Str("responseBody", *responseBody)
@@ -137,4 +140,39 @@ func (context *executionContextImpl) LogJSONParseError(err error) {
 func (context *executionContextImpl) LoggerEventActionCompletion() *zerolog.Event {
 	logger := context.logger.Info().Str("eventType", log.EventTypeSuccess).Str("eventCode", log.EventCodeActionComplete)
 	return logger
+}
+
+func (context *executionContextImpl) SubContext(additionalFields map[string]string) ExecutionContext {
+	loggerWith := context.logger.With()
+	for k, v := range additionalFields {
+		loggerWith = loggerWith.Str(k, v)
+	}
+	return &executionContextImpl{context.CorrelationID, context.UOW, context.Token, context.Action, loggerWith.Logger()}
+}
+
+func (context *executionContextImpl) SubContextWithToken(token *security.JwtToken, additionalFields map[string]string) ExecutionContext {
+	loggerWith := context.logger.With()
+	for k, v := range additionalFields {
+		loggerWith = loggerWith.Str(k, v)
+	}
+
+	return &executionContextImpl{context.CorrelationID, context.UOW, token, context.Action, loggerWith.Logger()}
+}
+
+func (context *executionContextImpl) SubContextWithTokenAndUoW(token *security.JwtToken, uow *repository.UnitOfWork, additionalFields map[string]string) ExecutionContext {
+	loggerWith := context.logger.With()
+	for k, v := range additionalFields {
+		loggerWith = loggerWith.Str(k, v)
+	}
+
+	return &executionContextImpl{context.CorrelationID, uow, token, context.Action, loggerWith.Logger()}
+}
+
+func (context *executionContextImpl) SubContextWithUoW(uow *repository.UnitOfWork, additionalFields map[string]string) ExecutionContext {
+	loggerWith := context.logger.With()
+	for k, v := range additionalFields {
+		loggerWith = loggerWith.Str(k, v)
+	}
+
+	return &executionContextImpl{context.CorrelationID, uow, context.Token, context.Action, loggerWith.Logger()}
 }

@@ -107,7 +107,9 @@ func (app *App) initializeDB() error {
 			return retry.Stop{OriginalError: err}
 		})
 		app.DB = db
-
+		if strings.ToLower(app.Config.GetString("LOG_LEVEL")) == "trace" {
+			app.DB = app.DB.LogMode(true)
+		}
 		app.log.Info().Msg("Database connected!")
 		return err
 	}
@@ -164,26 +166,29 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 
 //Start http server and start listening to the requests
 func (app *App) Start() {
-	if err := app.server.ListenAndServe(); err != nil {
-		if err != http.ErrServerClosed {
-			app.log.Fatal().Err(err).Msg("Unable to start server, exiting the application!")
+	if app.Config.GetString("ENABLE_TLS") == "true" {
+		app.StartSecure(app.Config.GetString("TLS_CRT"), app.Config.GetString("TLS_KEY"))
+	} else {
+		if err := app.server.ListenAndServe(); err != nil {
+			if err != http.ErrServerClosed {
+				app.log.Fatal().Err(err).Msg("Unable to start server, exiting the application!")
+			}
 		}
 	}
 }
 
 //StartSecure starts https server and listens to the requests
-func (app *App) StartSecure(securityCert string, securityKey string) {
-	certFile := app.Config.GetString(securityCert)
-	if certFile == "" {
-		app.log.Fatal().Msg("Cert file could not be found, exiting the application!")
+func (app *App) StartSecure(tlsCert string, tlsKey string) {
+
+	if tlsCert == "" {
+		app.log.Fatal().Msg("TLS_CRT is not defined or empty, exiting the application!")
 	}
 
-	keyFile := app.Config.GetString(securityKey)
-	if certFile == "" {
-		app.log.Fatal().Msg("Key file could not be found, exiting the application!")
+	if tlsKey == "" {
+		app.log.Fatal().Msg("TLS_KEY is not defined or empty, exiting the application!")
 	}
 
-	if err := app.server.ListenAndServeTLS(certFile, keyFile); err != nil {
+	if err := app.server.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
 		app.log.Fatal().Err(err).Msg("Unable to start server or server stopped, exiting the application!")
 	}
 }
@@ -237,6 +242,7 @@ func (app *App) Stop() {
 	defer cancel()
 
 	app.server.Shutdown(ctx)
+
 	if app.Config.GetBool("DB_REQUIRED") {
 		sqlDB, err := app.DB.DB()
 		if err != nil {
@@ -284,17 +290,17 @@ func (app *App) DispatchEvent(token string, corelationID string, topic string, p
 
 // NewExecutionContext creates new exectuion context
 func (app *App) NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(uow, token, correlationID, action, app.log)
+	return microappCtx.NewExecutionContext(token, uow, correlationID, action, app.log)
 }
 
 // NewExecutionContextWithCustomToken creates new exectuion context with custom made token
-func (app *App) NewExecutionContextWithCustomToken(uow *repository.UnitOfWork, tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: tenantID, UserID: userID, UserName: username}, correlationID, action, app.log)
+func (app *App) NewExecutionContextWithCustomToken(uow *repository.UnitOfWork, tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
+	return microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: tenantID, UserID: userID, UserName: username}, uow, correlationID, action, app.log)
 }
 
 // NewExecutionContextWithSystemToken creates new exectuion context with sys default token
-func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, correlationID, action, app.log)
+func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
+	return microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, uow, correlationID, action, app.log)
 }
 
 // GetCorrelationIDFromRequest returns correlationId from request header

@@ -49,6 +49,7 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	if err != nil {
 		panic(err)
 	}
+  
 	sqlDB, err := db.DB()
 	if err != nil {
 		panic(err)

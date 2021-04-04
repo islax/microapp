@@ -27,4 +27,7 @@ require (
 	gorm.io/driver/sqlite v1.1.4
 	gorm.io/gorm v1.20.12
 	gotest.tools v2.2.0+incompatible // indirect
+	github.com/spf13/viper v1.3.2
+	github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94
+	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734
 )

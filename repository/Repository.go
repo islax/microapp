@@ -339,7 +339,7 @@ func (repository *GormRepository) GetCount(uow *UnitOfWork, count *int64, entity
 			}
 		}
 	}
-	if err := db.Debug().Model(entity).Count(count).Error; err != nil {
+	if err := db.Model(entity).Count(count).Error; err != nil {
 		return microappError.NewDatabaseError(err)
 	}
 	return nil
@@ -359,7 +359,7 @@ func (repository *GormRepository) GetCountForTenant(uow *UnitOfWork, count *int6
 			}
 		}
 	}
-	if err := db.Debug().Model(entity).Count(count).Error; err != nil {
+	if err := db.Model(entity).Count(count).Error; err != nil {
 		return microappError.NewDatabaseError(err)
 	}
 	return nil
