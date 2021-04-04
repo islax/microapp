@@ -49,7 +49,12 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	if err != nil {
 		panic(err)
 	}
-
+	sqlDB, err := db.DB()
+	if err != nil {
+		panic(err)
+	}
+	sqlDB.SetMaxOpenConns(1)
+	db.Exec("PRAGMA journal_mode=WAL;")
 	//db.LogMode(verbose)
 
 	logger := zerolog.New(os.Stdout)
