@@ -107,9 +107,6 @@ func (app *App) initializeDB() error {
 			return retry.Stop{OriginalError: err}
 		})
 		app.DB = db
-		if strings.ToLower(app.Config.GetString("LOG_LEVEL")) == "trace" {
-			app.DB = app.DB.LogMode(true)
-		}
 		app.log.Info().Msg("Database connected!")
 		return err
 	}
