@@ -124,7 +124,11 @@ func (app *App) GetConnectionString() string {
 // NewUnitOfWork creates new UnitOfWork
 func (app *App) NewUnitOfWork(readOnly bool) *repository.UnitOfWork {
 	//return repository.NewUnitOfWork(app.DB, readOnly)
-	return repository.NewUnitOfWorkByDSN(app.DB.Dialect().GetName(), app.connectionString, readOnly)
+	uow, err := repository.NewUnitOfWorkByDSN(app.DB.Dialect().GetName(), app.connectionString, readOnly)
+	if err != nil {
+		app.log.Err(err).Msg("Unable to open new connection")
+	}
+	return uow
 }
 
 //Initialize initializes properties of the app

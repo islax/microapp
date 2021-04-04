@@ -52,12 +52,16 @@ func NewUnitOfWork(db *gorm.DB, readOnly bool) *UnitOfWork {
 	return &UnitOfWork{DB: db.New().Begin(), committed: false, readOnly: false, closeDBOnComplete: false}
 }
 
-func NewUnitOfWorkByDSN(dialect string, connectionString string, readOnly bool) *UnitOfWork {
-	db, _ := gorm.Open(dialect, connectionString)
-	if readOnly {
-		return &UnitOfWork{DB: db, committed: false, readOnly: true, closeDBOnComplete: true}
+func NewUnitOfWorkByDSN(dialect string, connectionString string, readOnly bool) (*UnitOfWork, error) {
+	db, err := gorm.Open(dialect, connectionString)
+	if err != nil {
+		return nil, err
 	}
-	return &UnitOfWork{DB: db.Begin(), committed: false, readOnly: false, closeDBOnComplete: true}
+
+	if readOnly {
+		return &UnitOfWork{DB: db, committed: false, readOnly: true, closeDBOnComplete: true}, nil
+	}
+	return &UnitOfWork{DB: db.Begin(), committed: false, readOnly: false, closeDBOnComplete: true}, nil
 }
 
 // Complete marks end of unit of work
