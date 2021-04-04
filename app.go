@@ -121,7 +121,8 @@ func (app *App) GetConnectionString() string {
 
 // NewUnitOfWork creates new UnitOfWork
 func (app *App) NewUnitOfWork(readOnly bool) *repository.UnitOfWork {
-	return repository.NewUnitOfWork(app.DB, readOnly)
+	//return repository.NewUnitOfWork(app.DB, readOnly)
+	return repository.NewUnitOfWorkByDSN(app.DB.Dialect().GetName(), app.GetConnectionString(), readOnly)
 }
 
 //Initialize initializes properties of the app
@@ -225,6 +226,7 @@ func (app *App) MigrateDB() {
 		logger.Debug().Msg("Successfully upgraded DB")
 	}
 	logger.Info().Msg("DB Migration End!")
+	migrateDB.Close()
 }
 
 // Stop http server

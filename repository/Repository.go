@@ -38,23 +38,35 @@ type Repository interface {
 
 // UnitOfWork represents a connection
 type UnitOfWork struct {
-	DB        *gorm.DB
-	committed bool
-	readOnly  bool
+	DB                *gorm.DB
+	committed         bool
+	readOnly          bool
+	closeDBOnComplete bool
 }
 
 // NewUnitOfWork creates new UnitOfWork
 func NewUnitOfWork(db *gorm.DB, readOnly bool) *UnitOfWork {
 	if readOnly {
-		return &UnitOfWork{DB: db.New(), committed: false, readOnly: true}
+		return &UnitOfWork{DB: db.New(), committed: false, readOnly: true, closeDBOnComplete: false}
 	}
-	return &UnitOfWork{DB: db.New().Begin(), committed: false, readOnly: false}
+	return &UnitOfWork{DB: db.New().Begin(), committed: false, readOnly: false, closeDBOnComplete: false}
+}
+
+func NewUnitOfWorkByDSN(dialect string, connectionString string, readOnly bool) *UnitOfWork {
+	db, _ := gorm.Open("mysql", connectionString)
+	if readOnly {
+		return &UnitOfWork{DB: db, committed: false, readOnly: true, closeDBOnComplete: true}
+	}
+	return &UnitOfWork{DB: db.Begin(), committed: false, readOnly: false, closeDBOnComplete: true}
 }
 
 // Complete marks end of unit of work
 func (uow *UnitOfWork) Complete() {
 	if !uow.committed && !uow.readOnly {
 		uow.DB.Rollback()
+	}
+	if uow.closeDBOnComplete {
+		uow.DB.Close()
 	}
 }
 
