@@ -23,7 +23,10 @@ import (
 	"github.com/islax/microapp/repository"
 	"github.com/islax/microapp/retry"
 	"github.com/islax/microapp/security"
-	"github.com/jinzhu/gorm"
+	gmysql "gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	glogger "gorm.io/gorm/logger"
+
 	"github.com/rs/zerolog"
 	uuid "github.com/satori/go.uuid"
 )
@@ -90,7 +93,12 @@ func (app *App) initializeDB() error {
 		var db *gorm.DB
 		err := retry.Do(3, time.Second*15, func() error {
 			var err error
-			db, err = gorm.Open("mysql", app.GetConnectionString())
+			dbconf := &gorm.Config{PrepareStmt: true}
+			if strings.ToLower(app.Config.GetString("LOG_LEVEL")) == "trace" {
+				dbconf.Logger = glogger.Default.LogMode(glogger.Info)
+			}
+
+			db, err = gorm.Open(gmysql.Open(app.GetConnectionString()), dbconf)
 			if err != nil && strings.Contains(err.Error(), "connection refused") {
 				app.log.Warn().Msgf("Error connecting to Database [%v]. Trying again...", err)
 				return err
@@ -236,7 +244,10 @@ func (app *App) Stop() {
 	app.server.Shutdown(ctx)
 
 	if app.Config.GetBool("DB_REQUIRED") {
-		app.DB.Close()
+		sqlDB, err := app.DB.DB()
+		if err != nil {
+			sqlDB.Close()
+		}
 	}
 }
 

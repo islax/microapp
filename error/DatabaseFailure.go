@@ -1,6 +1,10 @@
 package error
 
-import "github.com/jinzhu/gorm"
+import (
+	"errors"
+
+	"gorm.io/gorm"
+)
 
 // NewDatabaseError creates a new database error
 func NewDatabaseError(err error) DatabaseError {
@@ -18,5 +22,5 @@ type databaseErrorImpl struct {
 }
 
 func (e *databaseErrorImpl) IsRecordNotFoundError() bool {
-	return gorm.IsRecordNotFoundError(e.cause)
+	return errors.Is(e.cause, gorm.ErrRecordNotFound)
 }
