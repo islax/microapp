@@ -53,7 +53,7 @@ func NewUnitOfWork(db *gorm.DB, readOnly bool) *UnitOfWork {
 }
 
 func NewUnitOfWorkByDSN(dialect string, connectionString string, readOnly bool) *UnitOfWork {
-	db, _ := gorm.Open("mysql", connectionString)
+	db, _ := gorm.Open(dialect, connectionString)
 	if readOnly {
 		return &UnitOfWork{DB: db, committed: false, readOnly: true, closeDBOnComplete: true}
 	}
