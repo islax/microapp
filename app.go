@@ -35,13 +35,14 @@ type RouteSpecifier interface {
 
 // App structure for tenant microservice
 type App struct {
-	Name            string
-	Config          *config.Config
-	DB              *gorm.DB
-	Router          *mux.Router
-	server          *http.Server
-	log             zerolog.Logger
-	eventDispatcher event.Dispatcher
+	Name             string
+	Config           *config.Config
+	DB               *gorm.DB
+	Router           *mux.Router
+	server           *http.Server
+	log              zerolog.Logger
+	eventDispatcher  event.Dispatcher
+	connectionString string
 }
 
 // NewWithEnvValues creates a new application with environment variable values for initializing database, event dispatcher and logger.
@@ -87,10 +88,11 @@ func New(appName string, appConfigDefaults map[string]interface{}, appLog zerolo
 
 func (app *App) initializeDB() error {
 	if app.Config.GetBool("DB_REQUIRED") {
+		app.connectionString = app.GetConnectionString()
 		var db *gorm.DB
 		err := retry.Do(3, time.Second*15, func() error {
 			var err error
-			db, err = gorm.Open("mysql", app.GetConnectionString())
+			db, err = gorm.Open("mysql", app.connectionString)
 			if err != nil && strings.Contains(err.Error(), "connection refused") {
 				app.log.Warn().Msgf("Error connecting to Database [%v]. Trying again...", err)
 				return err
@@ -122,7 +124,7 @@ func (app *App) GetConnectionString() string {
 // NewUnitOfWork creates new UnitOfWork
 func (app *App) NewUnitOfWork(readOnly bool) *repository.UnitOfWork {
 	//return repository.NewUnitOfWork(app.DB, readOnly)
-	return repository.NewUnitOfWorkByDSN(app.DB.Dialect().GetName(), app.GetConnectionString(), readOnly)
+	return repository.NewUnitOfWorkByDSN(app.DB.Dialect().GetName(), app.connectionString, readOnly)
 }
 
 //Initialize initializes properties of the app

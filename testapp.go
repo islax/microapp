@@ -47,6 +47,7 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	rand.Seed(time.Now().UnixNano())
 	randomAPIPort := fmt.Sprintf("10%v%v%v", rand.Intn(9), rand.Intn(9), rand.Intn(9)) // Generating random API port so that if multiple tests can run parallel
 	application := New(appName, map[string]interface{}{"API_PORT": randomAPIPort}, logger, db, nil)
+	application.connectionString = dbFile
 
 	return &TestApp{application: application, controllerRouteProvider: controllerRouteProvider, dbInitializer: dbInitializer}
 }
