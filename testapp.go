@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	microappError "github.com/islax/microapp/error"
 	"io"
 	"math/rand"
 	"net/http"
@@ -44,19 +45,11 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	} else {
 		dbconf = &gorm.Config{}
 	}
-	//db, err := gorm.Open("sqlite3", dbFile)
+
 	db, err := gorm.Open(sqlite.Open(dbFile), dbconf)
 	if err != nil {
 		panic(err)
 	}
-  
-	sqlDB, err := db.DB()
-	if err != nil {
-		panic(err)
-	}
-	sqlDB.SetMaxOpenConns(1)
-	db.Exec("PRAGMA journal_mode=WAL;")
-	//db.LogMode(verbose)
 
 	logger := zerolog.New(os.Stdout)
 	rand.Seed(time.Now().UnixNano())
@@ -287,7 +280,17 @@ func (testApp *TestApp) GetByID(out interface{}, preloads []string, id string) e
 	for _, preload := range preloads {
 		db = db.Preload(preload)
 	}
-	return db.Where("id = ?", id).Find(out).Error
+
+	res := db.Where("id = ?", id).Find(out)
+	if res.Error != nil{
+		return microappError.NewDatabaseError(res.Error)
+	}
+
+	if res.RowsAffected == 0 {
+		return microappError.NewDatabaseError(gorm.ErrRecordNotFound)
+	}
+
+	return nil
 }
 
 // GetFullAdminToken returns a test token with all the fields along with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
