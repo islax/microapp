@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	microappError "github.com/islax/microapp/error"
+	"gorm.io/gorm/schema"
 	"io"
 	"math/rand"
 	"net/http"
@@ -19,7 +20,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	// "github.com/jinzhu/gorm/dialects/sqlite" // Used
 	"github.com/rs/zerolog"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -34,7 +34,7 @@ type TestApp struct {
 }
 
 // NewTestApp returns new instance of TestApp
-func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose bool) *TestApp {
+func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose bool, isSingularTable bool) *TestApp {
 	dbFile := "./test_islax.db"
 	var dbconf *gorm.Config
 	if verbose {
@@ -45,6 +45,8 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	} else {
 		dbconf = &gorm.Config{}
 	}
+
+	dbconf.NamingStrategy = schema.NamingStrategy{SingularTable : isSingularTable,}
 
 	db, err := gorm.Open(sqlite.Open(dbFile), dbconf)
 	if err != nil {
