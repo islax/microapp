@@ -52,8 +52,11 @@ func NewUnitOfWork(db *gorm.DB, readOnly bool) *UnitOfWork {
 	return &UnitOfWork{DB: db.New().Begin(), committed: false, readOnly: false, closeDBOnComplete: false}
 }
 
-func NewUnitOfWorkByDSN(dialect string, connectionString string, readOnly bool) (*UnitOfWork, error) {
+func NewUnitOfWorkByDSN(dialect string, connectionString string, readOnly bool, logLevel string) (*UnitOfWork, error) {
 	db, err := gorm.Open(dialect, connectionString)
+	if logLevel == "trace" {
+		db = db.LogMode(true)
+	}
 	if err != nil {
 		return nil, err
 	}

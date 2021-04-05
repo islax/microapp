@@ -124,7 +124,7 @@ func (app *App) GetConnectionString() string {
 // NewUnitOfWork creates new UnitOfWork
 func (app *App) NewUnitOfWork(readOnly bool) *repository.UnitOfWork {
 	//return repository.NewUnitOfWork(app.DB, readOnly)
-	uow, err := repository.NewUnitOfWorkByDSN(app.DB.Dialect().GetName(), app.connectionString, readOnly)
+	uow, err := repository.NewUnitOfWorkByDSN(app.DB.Dialect().GetName(), app.connectionString, readOnly, strings.ToLower(app.Config.GetString("LOG_LEVEL")))
 	if err != nil {
 		app.log.Err(err).Msg("Unable to open new connection")
 	}
@@ -213,6 +213,8 @@ func (app *App) MigrateDB() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Unable to open DB connection for migration, exiting the application!")
 	}
+	defer migrateDB.Close()
+
 	migrateDBDriver, err := mysql.WithInstance(migrateDB, &mysql.Config{})
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Unable to prepare DB instance for migration, exiting the application!")
@@ -232,7 +234,6 @@ func (app *App) MigrateDB() {
 		logger.Debug().Msg("Successfully upgraded DB")
 	}
 	logger.Info().Msg("DB Migration End!")
-	migrateDB.Close()
 }
 
 // Stop http server
