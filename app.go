@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"gorm.io/gorm/schema"
 	"io"
 	"net/http"
 	"os"
@@ -96,6 +97,10 @@ func (app *App) initializeDB() error {
 			dbconf := &gorm.Config{PrepareStmt: true}
 			if strings.ToLower(app.Config.GetString("LOG_LEVEL")) == "trace" {
 				dbconf.Logger = glogger.Default.LogMode(glogger.Info)
+			}
+
+			if app.Config.GetBool("DB_NAMING_STRATEGY_IS_SINGULAR") {
+				dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: true}
 			}
 
 			db, err = gorm.Open(gmysql.Open(app.GetConnectionString()), dbconf)
