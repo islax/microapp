@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	microappError "github.com/islax/microapp/error"
 	"gorm.io/gorm/schema"
 
 	microappError "github.com/islax/microapp/error"
