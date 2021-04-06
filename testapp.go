@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	microappError "github.com/islax/microapp/error"
 	"io"
 	"math/rand"
 	"net/http"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	microappError "github.com/islax/microapp/error"
 
 	uuid "github.com/satori/go.uuid"
 
@@ -35,13 +36,12 @@ type TestApp struct {
 
 // NewTestApp returns new instance of TestApp
 func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose bool) *TestApp {
-	dbFile := "./test_islax.db"
-	var dbconf *gorm.Config
+	//dbFile := "./test_islax.db"
+	dbFile := "./test_islax.db?cache=shared&_busy_timeout=60000"
+	dbconf := &gorm.Config{PrepareStmt: true}
 	if verbose {
 		newLogger := logger.Default.LogMode(logger.Info)
-		dbconf = &gorm.Config{
-			Logger: newLogger,
-		}
+		dbconf.Logger = newLogger
 	} else {
 		dbconf = &gorm.Config{}
 	}
@@ -50,7 +50,12 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	if err != nil {
 		panic(err)
 	}
-
+	sqlDB, err := db.DB()
+	if err != nil {
+		panic(err)
+	}
+	sqlDB.Exec("PRAGMA journal_mode=WAL;")
+	sqlDB.SetMaxOpenConns(1)
 	logger := zerolog.New(os.Stdout)
 	rand.Seed(time.Now().UnixNano())
 	randomAPIPort := fmt.Sprintf("10%v%v%v", rand.Intn(9), rand.Intn(9), rand.Intn(9)) // Generating random API port so that if multiple tests can run parallel
@@ -282,7 +287,7 @@ func (testApp *TestApp) GetByID(out interface{}, preloads []string, id string) e
 	}
 
 	res := db.Where("id = ?", id).Find(out)
-	if res.Error != nil{
+	if res.Error != nil {
 		return microappError.NewDatabaseError(res.Error)
 	}
 
