@@ -36,7 +36,7 @@ type TestApp struct {
 }
 
 // NewTestApp returns new instance of TestApp
-func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose bool) *TestApp {
+func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose, isSingularTable bool) *TestApp {
 	//dbFile := "./test_islax.db"
 	dbFile := "./test_islax.db?cache=shared&_busy_timeout=60000"
 	dbconf := &gorm.Config{PrepareStmt: true}
