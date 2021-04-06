@@ -16,11 +16,13 @@ import (
 	"time"
 
 	microappError "github.com/islax/microapp/error"
+	"gorm.io/gorm/schema"
+
+	microappError "github.com/islax/microapp/error"
 
 	uuid "github.com/satori/go.uuid"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	// "github.com/jinzhu/gorm/dialects/sqlite" // Used
 	"github.com/rs/zerolog"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -45,6 +47,8 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	} else {
 		dbconf = &gorm.Config{}
 	}
+
+	dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: isSingularTable}
 
 	db, err := gorm.Open(sqlite.Open(dbFile), dbconf)
 	if err != nil {
