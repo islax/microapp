@@ -20,6 +20,8 @@ func NewConfig(defaults map[string]interface{}) *Config {
 	config.viper.SetDefault(EvSuffixForDBPort, "3306")
 	config.viper.SetDefault(EvSuffixForDBUser, "root")
 	config.viper.SetDefault(EvSuffixForDBPassword, "Cyber!nc#")
+	config.viper.SetDefault(EvSuffixForDBConnectionLifetime, 60)
+	config.viper.SetDefault(EvSuffixForDBMaxIdleConnections, 30)
 
 	config.viper.SetDefault(EvSuffixForLogLevel, "error")
 
