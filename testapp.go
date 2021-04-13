@@ -37,19 +37,19 @@ type TestApp struct {
 
 // NewTestApp returns new instance of TestApp
 func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose, isSingularTable bool) *TestApp {
-	//dbFile := "./test_islax.db"
 	dbFile := "./test_islax.db?cache=shared&_busy_timeout=60000"
-	dbconf := &gorm.Config{PrepareStmt: true}
+
+	dbConf := &gorm.Config{PrepareStmt: true}
 	if verbose {
 		newLogger := logger.Default.LogMode(logger.Info)
-		dbconf.Logger = newLogger
+		dbConf.Logger = newLogger
 	} else {
-		dbconf = &gorm.Config{}
+		dbConf = &gorm.Config{}
 	}
 
-	dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: isSingularTable}
+	dbConf.NamingStrategy = schema.NamingStrategy{SingularTable: isSingularTable}
 
-	db, err := gorm.Open(sqlite.Open(dbFile), dbconf)
+	db, err := gorm.Open(sqlite.Open(dbFile), dbConf)
 	if err != nil {
 		panic(err)
 	}
@@ -57,12 +57,15 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	if err != nil {
 		panic(err)
 	}
+
 	sqlDB.Exec("PRAGMA journal_mode=WAL;")
-	sqlDB.SetMaxOpenConns(1)
-	logger := zerolog.New(os.Stdout)
+	sqlDB.SetMaxOpenConns(15)
+	sqlDB.SetMaxIdleConns(0)
+	sqlDB.SetConnMaxLifetime(time.Minute * 5)
+
 	rand.Seed(time.Now().UnixNano())
 	randomAPIPort := fmt.Sprintf("10%v%v%v", rand.Intn(9), rand.Intn(9), rand.Intn(9)) // Generating random API port so that if multiple tests can run parallel
-	application := New(appName, map[string]interface{}{"API_PORT": randomAPIPort}, logger, db, nil)
+	application := New(appName, map[string]interface{}{"API_PORT": randomAPIPort}, zerolog.New(os.Stdout), db, nil)
 
 	return &TestApp{application: application, controllerRouteProvider: controllerRouteProvider, dbInitializer: dbInitializer}
 }
