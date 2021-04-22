@@ -350,7 +350,7 @@ func (app *App) initializeMemcache() error {
 	memcachedPort := app.Config.GetString(config.EvSuffixForMemCachePort)
 	memCacheClient := memcache.New(net.JoinHostPort(memcachedHost, memcachedPort))
 	if memCacheClient != nil {
-		return errors.New("can not able to connect memcache client")
+		return errors.New("can not able to connect MemCache client")
 	}
 	app.MemcacheClient = memCacheClient
 	app.log.Info().Msg("MemCache connected!")
