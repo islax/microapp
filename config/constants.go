@@ -32,4 +32,8 @@ const (
 	EvSuffixForJwtSecret = "JWT_SECRET"
 	// EvSuffixForLogLevel environment variable name for log level
 	EvSuffixForLogLevel = "LOG_LEVEL"
+	// EvSuffixForMemCacheHost environment variable name for Memcache host
+	EvSuffixForMemCacheHost = "MEMCACHED_HOST"
+	// EvSuffixForMemCachePort environment variable name for Memcache Port
+	EvSuffixForMemCachePort = "MEMCACHED_PORT"
 )

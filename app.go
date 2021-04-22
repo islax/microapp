@@ -3,8 +3,10 @@ package microapp
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,8 +16,8 @@ import (
 
 	"time"
 
-	memcache "github.com/bradfitz/gomemcache/memcache"
-	migrate "github.com/golang-migrate/migrate/v4"
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	"github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/gorilla/mux"
@@ -83,7 +85,12 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 	if err != nil {
 		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize database, exiting the application!!")
 	}
-	app.initializeMemcache()
+
+	err = app.initializeMemcache()
+	if err != nil {
+		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize memcache, exiting the application!!")
+	}
+
 	return &app
 }
 
@@ -337,10 +344,15 @@ func GetCorrelationIDFromRequest(r *http.Request) string {
 	return r.Header.Get("X-Correlation-ID")
 }
 
-// initializeMemcache returns connection client for Memcached
-func (app *App) initializeMemcache() {
-	memcachedHost := app.Config.GetString("MEMCACHED_HOST")
-	memcachedPort := app.Config.GetString("MEMCACHED_PORT")
-	memcahched := memcache.New(memcachedHost + ":" + memcachedPort)
-	app.MemcacheClient = memcahched
+// initializeMemcache initializes the memCache client
+func (app *App) initializeMemcache() error {
+	memcachedHost := app.Config.GetString(config.EvSuffixForMemCacheHost)
+	memcachedPort := app.Config.GetString(config.EvSuffixForMemCachePort)
+	memCacheClient := memcache.New(net.JoinHostPort(memcachedHost, memcachedPort))
+	if memCacheClient != nil {
+		return errors.New("can not able to connect memcache client")
+	}
+	app.MemcacheClient = memCacheClient
+	app.log.Info().Msg("MemCache connected!")
+	return nil
 }
