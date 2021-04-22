@@ -28,5 +28,4 @@ require (
 	gorm.io/driver/sqlite v1.1.4
 	gorm.io/gorm v1.20.12
 	gotest.tools v2.2.0+incompatible // indirect
-	github.com/bradfitz/gomemcache/memcache v0.0.0-20190913173617-a41fca850d0b
 )
