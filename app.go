@@ -14,6 +14,7 @@ import (
 
 	"time"
 
+	memcache "github.com/bradfitz/gomemcache/memcache"
 	migrate "github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	"github.com/golang-migrate/migrate/v4/source/file"
@@ -43,6 +44,7 @@ type App struct {
 	Name            string
 	Config          *config.Config
 	DB              *gorm.DB
+	MemcacheClient  *memcache.Client
 	Router          *mux.Router
 	server          *http.Server
 	log             zerolog.Logger
@@ -81,14 +83,14 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 	if err != nil {
 		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize database, exiting the application!!")
 	}
-
+	app.initializeMemcache()
 	return &app
 }
 
 // New creates a new microApp
-func New(appName string, appConfigDefaults map[string]interface{}, appLog zerolog.Logger, appDB *gorm.DB, appEventDispatcher event.Dispatcher) *App {
+func New(appName string, appConfigDefaults map[string]interface{}, appLog zerolog.Logger, appDB *gorm.DB, appMemcache *memcache.Client, appEventDispatcher event.Dispatcher) *App {
 	appConfig := config.NewConfig(appConfigDefaults)
-	return &App{Name: appName, Config: appConfig, log: appLog, DB: appDB, eventDispatcher: appEventDispatcher}
+	return &App{Name: appName, Config: appConfig, log: appLog, DB: appDB, MemcacheClient: appMemcache, eventDispatcher: appEventDispatcher}
 }
 
 func (app *App) initializeDB() error {
@@ -333,4 +335,12 @@ func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, c
 // GetCorrelationIDFromRequest returns correlationId from request header
 func GetCorrelationIDFromRequest(r *http.Request) string {
 	return r.Header.Get("X-Correlation-ID")
+}
+
+// initializeMemcache returns connection client for Memcached
+func (app *App) initializeMemcache() {
+	memcachedHost := app.Config.GetString("MEMCACHED_HOST")
+	memcachedPort := app.Config.GetString("MEMCACHED_PORT")
+	memcahched := memcache.New(memcachedHost + ":" + memcachedPort)
+	app.MemcacheClient = memcahched
 }
