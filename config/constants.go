@@ -14,6 +14,8 @@ const (
 	EvSuffixForDBLogLevel = "DB_LOG_LEVEL"
 	// EvSuffixForDBMaxIdleConnections environment variable name for max idle connections in database connection pool
 	EvSuffixForDBMaxIdleConnections = "DB_MAX_IDLE_CONNECTIONS"
+	// EvSuffixForDBMaxOpenConnections environment variable name for max open connections in database connection pool
+	EvSuffixForDBMaxOpenConnections = "DB_MAX_OPEN_CONNECTIONS"
 	// EvSuffixForDBPassword environment variable name for database bind user password
 	EvSuffixForDBPassword = "DB_PWD"
 	// EvSuffixForDBPort environment variable name for database port

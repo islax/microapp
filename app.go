@@ -125,7 +125,7 @@ func (app *App) initializeDB() error {
 			}
 			sqlDB.SetConnMaxLifetime(time.Duration(app.Config.GetInt(config.EvSuffixForDBConnectionLifetime)) * time.Minute)
 			sqlDB.SetMaxIdleConns(app.Config.GetInt(config.EvSuffixForDBMaxIdleConnections))
-
+			sqlDB.SetMaxOpenConns(app.Config.GetInt(config.EvSuffixForDBMaxOpenConnections))
 			db, err = gorm.Open(gormmysqldriver.New(gormmysqldriver.Config{
 				Conn: sqlDB,
 			}), dbconf)
