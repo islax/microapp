@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"gorm.io/gorm/schema"
+
 	"time"
 
 	migrate "github.com/golang-migrate/migrate/v4"
@@ -23,7 +25,10 @@ import (
 	"github.com/islax/microapp/repository"
 	"github.com/islax/microapp/retry"
 	"github.com/islax/microapp/security"
-	"github.com/jinzhu/gorm"
+	gormmysqldriver "gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	glogger "gorm.io/gorm/logger"
+
 	"github.com/rs/zerolog"
 	uuid "github.com/satori/go.uuid"
 )
@@ -50,6 +55,7 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 	log.InitializeGlobalSettings()
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
 	consoleOnlyLogger := log.New(appName, appConfig.GetString("LOG_LEVEL"), consoleWriter)
+	consoleOnlyLogger.Info().Msgf("Staring: %v", appName)
 	// consoleOnlyLogger := zerolog.New(consoleWriter).With().Timestamp().Str("service", appName).Logger().Level()
 
 	multiWriters := io.MultiWriter(consoleWriter)
@@ -86,11 +92,43 @@ func New(appName string, appConfigDefaults map[string]interface{}, appLog zerolo
 }
 
 func (app *App) initializeDB() error {
-	if app.Config.GetBool("DB_REQUIRED") {
+	if app.Config.GetBool(config.EvSuffixForDBRequired) {
 		var db *gorm.DB
 		err := retry.Do(3, time.Second*15, func() error {
 			var err error
-			db, err = gorm.Open("mysql", app.GetConnectionString())
+			dbconf := &gorm.Config{PrepareStmt: true}
+
+			switch strings.ToLower(app.Config.GetString(config.EvSuffixForDBLogLevel)) {
+			case "info":
+				dbconf.Logger = glogger.Default.LogMode(glogger.Info)
+			case "warn":
+				dbconf.Logger = glogger.Default.LogMode(glogger.Warn)
+			case "error":
+				dbconf.Logger = glogger.Default.LogMode(glogger.Error)
+			case "silent":
+				dbconf.Logger = glogger.Default.LogMode(glogger.Silent)
+			default:
+				if strings.ToLower(app.Config.GetString(config.EvSuffixForLogLevel)) == "trace" {
+					dbconf.Logger = glogger.Default.LogMode(glogger.Info)
+				} else {
+					dbconf.Logger = glogger.Default.LogMode(glogger.Error)
+				}
+			}
+
+			if app.Config.GetBool("DB_NAMING_STRATEGY_IS_SINGULAR") {
+				dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: true}
+			}
+
+			sqlDB, err := sql.Open("mysql", app.GetConnectionString())
+			if err != nil {
+				app.log.Error().Err(err).Msgf("Error creating connection pool [%v]. Trying again...", err)
+			}
+			sqlDB.SetConnMaxLifetime(time.Duration(app.Config.GetInt(config.EvSuffixForDBConnectionLifetime)) * time.Minute)
+			sqlDB.SetMaxIdleConns(app.Config.GetInt(config.EvSuffixForDBMaxIdleConnections))
+			sqlDB.SetMaxOpenConns(app.Config.GetInt(config.EvSuffixForDBMaxOpenConnections))
+			db, err = gorm.Open(gormmysqldriver.New(gormmysqldriver.Config{
+				Conn: sqlDB,
+			}), dbconf)
 			if err != nil && strings.Contains(err.Error(), "connection refused") {
 				app.log.Warn().Msgf("Error connecting to Database [%v]. Trying again...", err)
 				return err
@@ -99,9 +137,6 @@ func (app *App) initializeDB() error {
 			return retry.Stop{OriginalError: err}
 		})
 		app.DB = db
-		if strings.ToLower(app.Config.GetString("LOG_LEVEL")) == "trace" {
-			app.DB = app.DB.LogMode(true)
-		}
 		app.log.Info().Msg("Database connected!")
 		return err
 	}
@@ -236,7 +271,10 @@ func (app *App) Stop() {
 	app.server.Shutdown(ctx)
 
 	if app.Config.GetBool("DB_REQUIRED") {
-		app.DB.Close()
+		sqlDB, err := app.DB.DB()
+		if err != nil {
+			sqlDB.Close()
+		}
 	}
 }
 

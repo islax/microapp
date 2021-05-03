@@ -15,12 +15,17 @@ import (
 	"testing"
 	"time"
 
+	"gorm.io/gorm/schema"
+
+	microappError "github.com/islax/microapp/error"
+
 	uuid "github.com/satori/go.uuid"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite" // Used
 	"github.com/rs/zerolog"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // TestApp Provides convinience methods for test
@@ -31,22 +36,36 @@ type TestApp struct {
 }
 
 // NewTestApp returns new instance of TestApp
-func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose bool) *TestApp {
-	dbFile := "./test_islax.db"
-	db, err := gorm.Open("sqlite3", dbFile)
+func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose, isSingularTable bool) *TestApp {
+	dbFile := "./test_islax.db?cache=shared&_busy_timeout=60000"
+
+	dbConf := &gorm.Config{PrepareStmt: true}
+	if verbose {
+		newLogger := logger.Default.LogMode(logger.Info)
+		dbConf.Logger = newLogger
+	} else {
+		dbConf = &gorm.Config{}
+	}
+
+	dbConf.NamingStrategy = schema.NamingStrategy{SingularTable: isSingularTable}
+
+	db, err := gorm.Open(sqlite.Open(dbFile), dbConf)
+	if err != nil {
+		panic(err)
+	}
+	sqlDB, err := db.DB()
 	if err != nil {
 		panic(err)
 	}
 
-	db.DB().SetMaxOpenConns(1)
-	db.Exec("PRAGMA journal_mode=WAL;")
+	sqlDB.Exec("PRAGMA journal_mode=WAL;")
+	sqlDB.SetMaxOpenConns(15)
+	sqlDB.SetMaxIdleConns(0)
+	sqlDB.SetConnMaxLifetime(time.Minute * 5)
 
-	db.LogMode(verbose)
-
-	logger := zerolog.New(os.Stdout)
 	rand.Seed(time.Now().UnixNano())
 	randomAPIPort := fmt.Sprintf("10%v%v%v", rand.Intn(9), rand.Intn(9), rand.Intn(9)) // Generating random API port so that if multiple tests can run parallel
-	application := New(appName, map[string]interface{}{"API_PORT": randomAPIPort}, logger, db, nil)
+	application := New(appName, map[string]interface{}{"API_PORT": randomAPIPort}, zerolog.New(os.Stdout), db, nil)
 
 	return &TestApp{application: application, controllerRouteProvider: controllerRouteProvider, dbInitializer: dbInitializer}
 }
@@ -61,8 +80,10 @@ func (testApp *TestApp) Initialize() {
 // Stop the app
 func (testApp *TestApp) Stop() {
 	testApp.application.Stop()
-	testApp.application.DB.Close()
-
+	sqlDB, err := testApp.application.DB.DB()
+	if err != nil {
+		sqlDB.Close()
+	}
 	os.Remove("./test_islax.db")
 }
 
@@ -81,7 +102,7 @@ func (testApp *TestApp) ExecuteRequest(req *http.Request) *httptest.ResponseReco
 
 // AddAssociations adds associations to the given entity
 func (testApp *TestApp) AddAssociations(entity interface{}, associationName string, associations ...interface{}) error {
-	return testApp.application.DB.Model(entity).Association(associationName).Append(associations...).Error
+	return testApp.application.DB.Model(entity).Association(associationName).Append(associations...)
 }
 
 // AssertEqualWithFieldsToIgnore asserts whether two objects are equal
@@ -259,7 +280,7 @@ func (testApp *TestApp) GetAll(out interface{}, preloads []string, whereClause s
 		db = db.Where(whereClause, whereParams...)
 	}
 	if strings.TrimSpace(orderBy) != "" {
-		db = db.Order(orderBy, true)
+		db = db.Order(orderBy)
 	}
 	return db.Find(out).Error
 }
@@ -270,7 +291,17 @@ func (testApp *TestApp) GetByID(out interface{}, preloads []string, id string) e
 	for _, preload := range preloads {
 		db = db.Preload(preload)
 	}
-	return db.Where("id = ?", id).Find(out).Error
+
+	res := db.Where("id = ?", id).Find(out)
+	if res.Error != nil {
+		return microappError.NewDatabaseError(res.Error)
+	}
+
+	if res.RowsAffected == 0 {
+		return microappError.NewDatabaseError(gorm.ErrRecordNotFound)
+	}
+
+	return nil
 }
 
 // GetFullAdminToken returns a test token with all the fields along with different external IDs for types such as Appliance, Session, User. These external IDs are used with REST api is invoked from another REST API service as opposed to the getting hit from UI by the user.
