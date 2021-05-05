@@ -54,11 +54,16 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 	appConfig := config.NewConfig(appConfigDefaults)
 	log.InitializeGlobalSettings()
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	consoleOnlyLogger := log.New(appName, appConfig.GetString("LOG_LEVEL"), consoleWriter)
+	consoleOnlyLogger := log.New(appName, appConfig.GetString("LOG_LEVEL"), os.Stdout)
+	multiWriters := io.MultiWriter(os.Stdout)
+	//To log a human-friendly, colorized output
+	if appConfig.GetString("FORMAT_CONSOLE_LOG") == "true" {
+		consoleOnlyLogger = log.New(appName, appConfig.GetString("LOG_LEVEL"), consoleWriter)
+		multiWriters = io.MultiWriter(consoleWriter)
+	}
 	consoleOnlyLogger.Info().Msgf("Staring: %v", appName)
 	// consoleOnlyLogger := zerolog.New(consoleWriter).With().Timestamp().Str("service", appName).Logger().Level()
 
-	multiWriters := io.MultiWriter(consoleWriter)
 	var err error
 	var appEventDispatcher event.Dispatcher
 	if appConfig.GetStringWithDefault("ENABLE_EVENT_DISPATCHER", "0") == "1" || appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
@@ -66,7 +71,10 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 			consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize event dispatcher to queue, exiting the application!")
 		}
 		if appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
-			multiWriters = io.MultiWriter(consoleWriter, event.NewEventQWriter(appEventDispatcher))
+			multiWriters = io.MultiWriter(os.Stdout, event.NewEventQWriter(appEventDispatcher))
+			if appConfig.GetString("FORMAT_CONSOLE_LOG") == "true" {
+				multiWriters = io.MultiWriter(consoleWriter, event.NewEventQWriter(appEventDispatcher))
+			}
 		}
 	} else {
 		consoleOnlyLogger.Warn().Msg("Event dispatcher not enabled. Please set ISLA_ENABLE_EVENT_DISPATCHER or ISLA_LOG_TO_EVENTQ to '1' to enable it.")
