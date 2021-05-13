@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 
 	"time"
@@ -27,7 +28,6 @@ import (
 	"github.com/islax/microapp/security"
 	gormmysqldriver "gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	glogger "gorm.io/gorm/logger"
 
 	"github.com/rs/zerolog"
 	uuid "github.com/satori/go.uuid"
@@ -84,8 +84,12 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 	//TODO: Need to wait till eventDispatcher is ready
 	time.Sleep(5 * time.Second)
 
+	//gorm custom logger
+	loggerConfig := log.Config{SlowThreshold: time.Duration(appConfig.GetInt("SLOW_THRESHOLD")) * time.Millisecond}
+	dbLogger := log.NewGormLogger(appName, appConfig.GetString("LOG_LEVEL"), multiWriters, loggerConfig)
+
 	app := App{Name: appName, Config: appConfig, log: *appLogger, eventDispatcher: appEventDispatcher}
-	err = app.initializeDB()
+	err = app.initializeDB(dbLogger)
 	if err != nil {
 		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize database, exiting the application!!")
 	}
@@ -99,29 +103,12 @@ func New(appName string, appConfigDefaults map[string]interface{}, appLog zerolo
 	return &App{Name: appName, Config: appConfig, log: appLog, DB: appDB, eventDispatcher: appEventDispatcher}
 }
 
-func (app *App) initializeDB() error {
+func (app *App) initializeDB(dbLogger logger.Interface) error {
 	if app.Config.GetBool(config.EvSuffixForDBRequired) {
 		var db *gorm.DB
 		err := retry.Do(3, time.Second*15, func() error {
 			var err error
-			dbconf := &gorm.Config{PrepareStmt: true}
-
-			switch strings.ToLower(app.Config.GetString(config.EvSuffixForDBLogLevel)) {
-			case "info":
-				dbconf.Logger = glogger.Default.LogMode(glogger.Info)
-			case "warn":
-				dbconf.Logger = glogger.Default.LogMode(glogger.Warn)
-			case "error":
-				dbconf.Logger = glogger.Default.LogMode(glogger.Error)
-			case "silent":
-				dbconf.Logger = glogger.Default.LogMode(glogger.Silent)
-			default:
-				if strings.ToLower(app.Config.GetString(config.EvSuffixForLogLevel)) == "trace" {
-					dbconf.Logger = glogger.Default.LogMode(glogger.Info)
-				} else {
-					dbconf.Logger = glogger.Default.LogMode(glogger.Error)
-				}
-			}
+			dbconf := &gorm.Config{PrepareStmt: true, Logger: dbLogger}
 
 			if app.Config.GetBool("DB_NAMING_STRATEGY_IS_SINGULAR") {
 				dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: true}
