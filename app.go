@@ -308,25 +308,25 @@ func (app *App) DispatchEvent(token string, corelationID string, topic string, p
 }
 
 // NewExecutionContext creates new exectuion context
-func (app *App) NewExecutionContext(token *security.JwtToken, correlationID string, action string) microappCtx.ExecutionContext {
+func (app *App) NewExecutionContext(token *security.JwtToken, correlationID string, action string, isUOWReadonly bool) microappCtx.ExecutionContext {
 	executionContext := microappCtx.NewExecutionContext(token, correlationID, action, app.log)
-	uow := app.NewUnitOfWork(false, *executionContext.GetDefaultLogger())
+	uow := app.NewUnitOfWork(isUOWReadonly, *executionContext.GetDefaultLogger())
 	executionContext.SetUOW(uow)
 	return executionContext
 }
 
 // NewExecutionContextWithCustomToken creates new exectuion context with custom made token
-func (app *App) NewExecutionContextWithCustomToken(tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
+func (app *App) NewExecutionContextWithCustomToken(tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string, admin, isUOWReadonly bool) microappCtx.ExecutionContext {
 	executionContext := microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: tenantID, UserID: userID, UserName: username}, correlationID, action, app.log)
-	uow := app.NewUnitOfWork(false, *executionContext.GetDefaultLogger())
+	uow := app.NewUnitOfWork(isUOWReadonly, *executionContext.GetDefaultLogger())
 	executionContext.SetUOW(uow)
 	return executionContext
 }
 
 // NewExecutionContextWithSystemToken creates new exectuion context with sys default token
-func (app *App) NewExecutionContextWithSystemToken(correlationID string, action string, admin bool) microappCtx.ExecutionContext {
+func (app *App) NewExecutionContextWithSystemToken(correlationID string, action string, admin, isUOWReadonly bool) microappCtx.ExecutionContext {
 	executionContext := microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, correlationID, action, app.log)
-	uow := app.NewUnitOfWork(false, *executionContext.GetDefaultLogger())
+	uow := app.NewUnitOfWork(isUOWReadonly, *executionContext.GetDefaultLogger())
 	executionContext.SetUOW(uow)
 	return executionContext
 }
