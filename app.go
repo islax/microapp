@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 
 	"time"
@@ -84,12 +83,8 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 	//TODO: Need to wait till eventDispatcher is ready
 	time.Sleep(5 * time.Second)
 
-	//gorm custom logger
-	loggerConfig := log.Config{SlowThreshold: time.Duration(appConfig.GetInt("SLOW_THRESHOLD")) * time.Millisecond}
-	dbLogger := log.NewGormLogger(appName, appConfig.GetString("LOG_LEVEL"), multiWriters, loggerConfig)
-
 	app := App{Name: appName, Config: appConfig, log: *appLogger, eventDispatcher: appEventDispatcher}
-	err = app.initializeDB(dbLogger)
+	err = app.initializeDB()
 	if err != nil {
 		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize database, exiting the application!!")
 	}
@@ -103,10 +98,12 @@ func New(appName string, appConfigDefaults map[string]interface{}, appLog zerolo
 	return &App{Name: appName, Config: appConfig, log: appLog, DB: appDB, eventDispatcher: appEventDispatcher}
 }
 
-func (app *App) initializeDB(dbLogger logger.Interface) error {
+func (app *App) initializeDB() error {
 	if app.Config.GetBool(config.EvSuffixForDBRequired) {
 		var db *gorm.DB
 		err := retry.Do(3, time.Second*15, func() error {
+			//gorm custom logger
+			dbLogger := log.NewGormLogger(app.log, log.Config{SlowThreshold: time.Duration(app.Config.GetInt("SLOW_THRESHOLD")) * time.Millisecond})
 			var err error
 			dbconf := &gorm.Config{PrepareStmt: true, Logger: dbLogger}
 
@@ -150,8 +147,8 @@ func (app *App) GetConnectionString() string {
 }
 
 // NewUnitOfWork creates new UnitOfWork
-func (app *App) NewUnitOfWork(readOnly bool) *repository.UnitOfWork {
-	return repository.NewUnitOfWork(app.DB, readOnly)
+func (app *App) NewUnitOfWork(readOnly bool, logger zerolog.Logger) *repository.UnitOfWork {
+	return repository.NewUnitOfWork(app.DB, readOnly, logger, log.Config{SlowThreshold: time.Duration(app.Config.GetInt("SLOW_THRESHOLD")) * time.Millisecond})
 }
 
 //Initialize initializes properties of the app
@@ -311,18 +308,27 @@ func (app *App) DispatchEvent(token string, corelationID string, topic string, p
 }
 
 // NewExecutionContext creates new exectuion context
-func (app *App) NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(token, uow, correlationID, action, app.log)
+func (app *App) NewExecutionContext(token *security.JwtToken, correlationID string, action string) microappCtx.ExecutionContext {
+	executionContext := microappCtx.NewExecutionContext(token, correlationID, action, app.log)
+	uow := app.NewUnitOfWork(false, *executionContext.GetDefaultLogger())
+	executionContext.SetUOW(uow)
+	return executionContext
 }
 
 // NewExecutionContextWithCustomToken creates new exectuion context with custom made token
-func (app *App) NewExecutionContextWithCustomToken(uow *repository.UnitOfWork, tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: tenantID, UserID: userID, UserName: username}, uow, correlationID, action, app.log)
+func (app *App) NewExecutionContextWithCustomToken(tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
+	executionContext := microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: tenantID, UserID: userID, UserName: username}, correlationID, action, app.log)
+	uow := app.NewUnitOfWork(false, *executionContext.GetDefaultLogger())
+	executionContext.SetUOW(uow)
+	return executionContext
 }
 
 // NewExecutionContextWithSystemToken creates new exectuion context with sys default token
-func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, uow, correlationID, action, app.log)
+func (app *App) NewExecutionContextWithSystemToken(correlationID string, action string, admin bool) microappCtx.ExecutionContext {
+	executionContext := microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, correlationID, action, app.log)
+	uow := app.NewUnitOfWork(false, *executionContext.GetDefaultLogger())
+	executionContext.SetUOW(uow)
+	return executionContext
 }
 
 // GetCorrelationIDFromRequest returns correlationId from request header

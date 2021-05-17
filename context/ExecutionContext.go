@@ -19,6 +19,7 @@ type ExecutionContext interface {
 	GetDefaultLogger() *zerolog.Logger
 	GetToken() *security.JwtToken
 	GetUOW() *repository.UnitOfWork
+	SetUOW(*repository.UnitOfWork)
 	Logger(eventType, eventCode string) *zerolog.Logger
 	LoggerEventActionCompletion() *zerolog.Event
 	LogError(err error, errorMessage string)
@@ -38,7 +39,7 @@ type executionContextImpl struct {
 }
 
 // NewExecutionContext creates new execution context
-func NewExecutionContext(token *security.JwtToken, uow *repository.UnitOfWork, correlationID string, action string, logger zerolog.Logger) ExecutionContext {
+func NewExecutionContext(token *security.JwtToken, correlationID string, action string, logger zerolog.Logger) ExecutionContext {
 	cid := correlationID
 	if len(strings.TrimSpace(cid)) == 0 {
 		cid = uuid.NewV4().String()
@@ -60,7 +61,7 @@ func NewExecutionContext(token *security.JwtToken, uow *repository.UnitOfWork, c
 			Str("correlationId", cid).Logger()
 	}
 
-	return &executionContextImpl{CorrelationID: cid, UOW: uow, Token: token, Action: action, logger: executionCtxLogger}
+	return &executionContextImpl{CorrelationID: cid, Token: token, Action: action, logger: executionCtxLogger}
 }
 
 // AddLoggerStrFields adds given string fields to the context logger
@@ -98,6 +99,10 @@ func (context *executionContextImpl) GetToken() *security.JwtToken {
 
 func (context *executionContextImpl) GetUOW() *repository.UnitOfWork {
 	return context.UOW
+}
+
+func (context *executionContextImpl) SetUOW(uow *repository.UnitOfWork) {
+	context.UOW = uow
 }
 
 // Logger creates a logger with eventType and eventCode

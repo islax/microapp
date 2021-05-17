@@ -3,7 +3,6 @@ package log
 import (
 	"context"
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -20,10 +19,10 @@ type gormlogger struct {
 	logger zerolog.Logger
 }
 
-func NewGormLogger(appName, logLevel string, writer io.Writer, config Config) glogger.Interface {
+func NewGormLogger(logger zerolog.Logger, config Config) glogger.Interface {
 	return &gormlogger{
 		Config: config,
-		logger: *New(appName, logLevel, writer),
+		logger: logger,
 	}
 }
 
