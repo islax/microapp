@@ -34,4 +34,8 @@ const (
 	EvSuffixForJwtSecret = "JWT_SECRET"
 	// EvSuffixForLogLevel environment variable name for log level
 	EvSuffixForLogLevel = "LOG_LEVEL"
+	// EvSuffixForGormSlowThreshold environment variable name for log level
+	EvSuffixForGormSlowThreshold = "GORM_SLOW_THRESHOLD"
+	// EvSuffixForEnableHealthLog environment variable name for log level
+	EvSuffixForEnableHealthLog = "ENABLE_HEALTH_LOG"
 )

@@ -103,7 +103,7 @@ func (app *App) initializeDB() error {
 		var db *gorm.DB
 		err := retry.Do(3, time.Second*15, func() error {
 			//gorm custom logger
-			dbLogger := log.NewGormLogger(app.log, log.Config{SlowThreshold: time.Duration(app.Config.GetInt("SLOW_THRESHOLD")) * time.Millisecond})
+			dbLogger := log.NewGormLogger(app.log, log.Config{SlowThreshold: time.Duration(app.Config.GetInt(config.EvSuffixForGormSlowThreshold)) * time.Millisecond})
 			var err error
 			dbconf := &gorm.Config{PrepareStmt: true, Logger: dbLogger}
 
@@ -148,7 +148,7 @@ func (app *App) GetConnectionString() string {
 
 // NewUnitOfWork creates new UnitOfWork
 func (app *App) NewUnitOfWork(readOnly bool, logger zerolog.Logger) *repository.UnitOfWork {
-	return repository.NewUnitOfWork(app.DB, readOnly, logger, log.Config{SlowThreshold: time.Duration(app.Config.GetInt("SLOW_THRESHOLD")) * time.Millisecond})
+	return repository.NewUnitOfWork(app.DB, readOnly, logger, log.Config{SlowThreshold: time.Duration(app.Config.GetInt(config.EvSuffixForGormSlowThreshold)) * time.Millisecond})
 }
 
 //Initialize initializes properties of the app
@@ -290,12 +290,16 @@ func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 		logger := app.Logger("Ingress").With().Timestamp().Str("caller", r.Header.Get("X-Client")).Str("correlationId", r.Header.Get("X-Correlation-ID")).Str("method", r.Method).Str("requestURI", r.RequestURI).Logger()
 
 		rec := &httpStatusRecorder{ResponseWriter: w}
-		logger.Info().Msg("Begin")
+		if !strings.HasSuffix(r.RequestURI, "/health") || app.Config.GetBool(config.EvSuffixForEnableHealthLog) {
+			logger.Info().Msg("Begin")
+		}
 		next.ServeHTTP(rec, r)
-		if rec.status >= http.StatusInternalServerError {
-			logger.Error().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
-		} else {
-			logger.Info().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+		if !strings.HasSuffix(r.RequestURI, "/health") || app.Config.GetBool(config.EvSuffixForEnableHealthLog) {
+			if rec.status >= http.StatusInternalServerError {
+				logger.Error().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+			} else {
+				logger.Info().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+			}
 		}
 	})
 }
