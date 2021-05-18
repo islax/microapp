@@ -10,7 +10,9 @@ import (
 	"time"
 
 	microappError "github.com/islax/microapp/error"
+	"github.com/islax/microapp/log"
 	"github.com/islax/microapp/model"
+	"github.com/rs/zerolog"
 
 	uuid "github.com/satori/go.uuid"
 	"gorm.io/gorm"
@@ -48,11 +50,11 @@ type UnitOfWork struct {
 }
 
 // NewUnitOfWork creates new UnitOfWork
-func NewUnitOfWork(db *gorm.DB, readOnly bool) *UnitOfWork {
+func NewUnitOfWork(db *gorm.DB, readOnly bool, logger zerolog.Logger, logConfig log.Config) *UnitOfWork {
 	if readOnly {
-		return &UnitOfWork{DB: db.Session(&gorm.Session{NewDB: true, FullSaveAssociations: true}), committed: false, readOnly: true}
+		return &UnitOfWork{DB: db.Session(&gorm.Session{NewDB: true, FullSaveAssociations: true, Logger: log.NewGormLogger(logger, logConfig)}), committed: false, readOnly: true}
 	}
-	return &UnitOfWork{DB: db.Session(&gorm.Session{NewDB: true, FullSaveAssociations: true}).Begin(), committed: false, readOnly: false}
+	return &UnitOfWork{DB: db.Session(&gorm.Session{NewDB: true, FullSaveAssociations: true, Logger: log.NewGormLogger(logger, logConfig)}).Begin(), committed: false, readOnly: false}
 }
 
 // Complete marks end of unit of work

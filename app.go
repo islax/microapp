@@ -27,7 +27,6 @@ import (
 	"github.com/islax/microapp/security"
 	gormmysqldriver "gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	glogger "gorm.io/gorm/logger"
 
 	"github.com/rs/zerolog"
 	uuid "github.com/satori/go.uuid"
@@ -103,25 +102,10 @@ func (app *App) initializeDB() error {
 	if app.Config.GetBool(config.EvSuffixForDBRequired) {
 		var db *gorm.DB
 		err := retry.Do(3, time.Second*15, func() error {
+			//gorm custom logger
+			dbLogger := log.NewGormLogger(app.log, log.Config{SlowThreshold: time.Duration(app.Config.GetInt(config.EvSuffixForGormSlowThreshold)) * time.Millisecond})
 			var err error
-			dbconf := &gorm.Config{PrepareStmt: true}
-
-			switch strings.ToLower(app.Config.GetString(config.EvSuffixForDBLogLevel)) {
-			case "info":
-				dbconf.Logger = glogger.Default.LogMode(glogger.Info)
-			case "warn":
-				dbconf.Logger = glogger.Default.LogMode(glogger.Warn)
-			case "error":
-				dbconf.Logger = glogger.Default.LogMode(glogger.Error)
-			case "silent":
-				dbconf.Logger = glogger.Default.LogMode(glogger.Silent)
-			default:
-				if strings.ToLower(app.Config.GetString(config.EvSuffixForLogLevel)) == "trace" {
-					dbconf.Logger = glogger.Default.LogMode(glogger.Info)
-				} else {
-					dbconf.Logger = glogger.Default.LogMode(glogger.Error)
-				}
-			}
+			dbconf := &gorm.Config{PrepareStmt: true, Logger: dbLogger}
 
 			if app.Config.GetBool("DB_NAMING_STRATEGY_IS_SINGULAR") {
 				dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: true}
@@ -163,8 +147,8 @@ func (app *App) GetConnectionString() string {
 }
 
 // NewUnitOfWork creates new UnitOfWork
-func (app *App) NewUnitOfWork(readOnly bool) *repository.UnitOfWork {
-	return repository.NewUnitOfWork(app.DB, readOnly)
+func (app *App) NewUnitOfWork(readOnly bool, logger zerolog.Logger) *repository.UnitOfWork {
+	return repository.NewUnitOfWork(app.DB, readOnly, logger, log.Config{SlowThreshold: time.Duration(app.Config.GetInt(config.EvSuffixForGormSlowThreshold)) * time.Millisecond})
 }
 
 //Initialize initializes properties of the app
@@ -306,12 +290,16 @@ func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 		logger := app.Logger("Ingress").With().Timestamp().Str("caller", r.Header.Get("X-Client")).Str("correlationId", r.Header.Get("X-Correlation-ID")).Str("method", r.Method).Str("requestURI", r.RequestURI).Logger()
 
 		rec := &httpStatusRecorder{ResponseWriter: w}
-		logger.Info().Msg("Begin")
+		if !strings.HasSuffix(r.RequestURI, "/health") || app.Config.GetBool(config.EvSuffixForEnableHealthLog) {
+			logger.Info().Msg("Begin")
+		}
 		next.ServeHTTP(rec, r)
-		if rec.status >= http.StatusInternalServerError {
-			logger.Error().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
-		} else {
-			logger.Info().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+		if !strings.HasSuffix(r.RequestURI, "/health") || app.Config.GetBool(config.EvSuffixForEnableHealthLog) {
+			if rec.status >= http.StatusInternalServerError {
+				logger.Error().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+			} else {
+				logger.Info().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+			}
 		}
 	})
 }
@@ -324,18 +312,33 @@ func (app *App) DispatchEvent(token string, corelationID string, topic string, p
 }
 
 // NewExecutionContext creates new exectuion context
-func (app *App) NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(token, uow, correlationID, action, app.log)
+func (app *App) NewExecutionContext(token *security.JwtToken, correlationID string, action string, isUOWReqd, isUOWReadonly bool) microappCtx.ExecutionContext {
+	executionContext := microappCtx.NewExecutionContext(token, correlationID, action, app.log)
+	if isUOWReqd {
+		uow := app.NewUnitOfWork(isUOWReadonly, *executionContext.GetDefaultLogger())
+		executionContext.SetUOW(uow)
+	}
+	return executionContext
 }
 
 // NewExecutionContextWithCustomToken creates new exectuion context with custom made token
-func (app *App) NewExecutionContextWithCustomToken(uow *repository.UnitOfWork, tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: tenantID, UserID: userID, UserName: username}, uow, correlationID, action, app.log)
+func (app *App) NewExecutionContextWithCustomToken(tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string, admin, isUOWReqd, isUOWReadonly bool) microappCtx.ExecutionContext {
+	executionContext := microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: tenantID, UserID: userID, UserName: username}, correlationID, action, app.log)
+	if isUOWReqd {
+		uow := app.NewUnitOfWork(isUOWReadonly, *executionContext.GetDefaultLogger())
+		executionContext.SetUOW(uow)
+	}
+	return executionContext
 }
 
 // NewExecutionContextWithSystemToken creates new exectuion context with sys default token
-func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, correlationID string, action string, admin bool) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, uow, correlationID, action, app.log)
+func (app *App) NewExecutionContextWithSystemToken(correlationID string, action string, admin, isUOWReqd, isUOWReadonly bool) microappCtx.ExecutionContext {
+	executionContext := microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, correlationID, action, app.log)
+	if isUOWReqd {
+		uow := app.NewUnitOfWork(isUOWReadonly, *executionContext.GetDefaultLogger())
+		executionContext.SetUOW(uow)
+	}
+	return executionContext
 }
 
 // GetCorrelationIDFromRequest returns correlationId from request header
