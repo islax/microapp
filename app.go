@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"gorm.io/gorm/schema"
+
 	"time"
 
 	migrate "github.com/golang-migrate/migrate/v4"
@@ -23,7 +25,9 @@ import (
 	"github.com/islax/microapp/repository"
 	"github.com/islax/microapp/retry"
 	"github.com/islax/microapp/security"
-	"github.com/jinzhu/gorm"
+	gormmysqldriver "gorm.io/driver/mysql"
+	"gorm.io/gorm"
+
 	"github.com/rs/zerolog"
 	uuid "github.com/satori/go.uuid"
 )
@@ -49,10 +53,16 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 	appConfig := config.NewConfig(appConfigDefaults)
 	log.InitializeGlobalSettings()
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	consoleOnlyLogger := log.New(appName, appConfig.GetString("LOG_LEVEL"), consoleWriter)
+	consoleOnlyLogger := log.New(appName, appConfig.GetString("LOG_LEVEL"), os.Stdout)
+	multiWriters := io.MultiWriter(os.Stdout)
+	//To log a human-friendly, colorized output
+	if appConfig.GetString("FORMAT_CONSOLE_LOG") == "true" {
+		consoleOnlyLogger = log.New(appName, appConfig.GetString("LOG_LEVEL"), consoleWriter)
+		multiWriters = io.MultiWriter(consoleWriter)
+	}
+	consoleOnlyLogger.Info().Msgf("Staring: %v", appName)
 	// consoleOnlyLogger := zerolog.New(consoleWriter).With().Timestamp().Str("service", appName).Logger().Level()
 
-	multiWriters := io.MultiWriter(consoleWriter)
 	var err error
 	var appEventDispatcher event.Dispatcher
 	if appConfig.GetStringWithDefault("ENABLE_EVENT_DISPATCHER", "0") == "1" || appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
@@ -61,7 +71,10 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 			consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize event dispatcher to queue, exiting the application!")
 		}
 		if appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
-			multiWriters = io.MultiWriter(consoleWriter, event.NewEventQWriter(appEventDispatcher))
+			multiWriters = io.MultiWriter(os.Stdout, event.NewEventQWriter(appEventDispatcher))
+			if appConfig.GetString("FORMAT_CONSOLE_LOG") == "true" {
+				multiWriters = io.MultiWriter(consoleWriter, event.NewEventQWriter(appEventDispatcher))
+			}
 		}
 	} else {
 		consoleOnlyLogger.Warn().Msg("Event dispatcher not enabled. Please set ISLA_ENABLE_EVENT_DISPATCHER or ISLA_LOG_TO_EVENTQ to '1' to enable it.")
@@ -87,23 +100,40 @@ func New(appName string, appConfigDefaults map[string]interface{}, appLog zerolo
 }
 
 func (app *App) initializeDB() error {
-	var db *gorm.DB
-	err := retry.Do(3, time.Second*15, func() error {
-		var err error
-		db, err = gorm.Open("mysql", app.GetConnectionString())
-		if err != nil && strings.Contains(err.Error(), "connection refused") {
-			app.log.Warn().Msgf("Error connecting to Database [%v]. Trying again...", err)
-			return err
-		}
+	if app.Config.GetBool(config.EvSuffixForDBRequired) {
+		var db *gorm.DB
+		err := retry.Do(3, time.Second*15, func() error {
+			//gorm custom logger
+			dbLogger := log.NewGormLogger(app.log, log.Config{SlowThreshold: time.Duration(app.Config.GetInt(config.EvSuffixForGormSlowThreshold)) * time.Millisecond})
+			var err error
+			dbconf := &gorm.Config{PrepareStmt: true, Logger: dbLogger}
 
-		return retry.Stop{OriginalError: err}
-	})
-	app.DB = db
-	if strings.ToLower(app.Config.GetString("LOG_LEVEL")) == "trace" {
-		app.DB = app.DB.LogMode(true)
+			if app.Config.GetBool("DB_NAMING_STRATEGY_IS_SINGULAR") {
+				dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: true}
+			}
+
+			sqlDB, err := sql.Open("mysql", app.GetConnectionString())
+			if err != nil {
+				app.log.Error().Err(err).Msgf("Error creating connection pool [%v]. Trying again...", err)
+			}
+			sqlDB.SetConnMaxLifetime(time.Duration(app.Config.GetInt(config.EvSuffixForDBConnectionLifetime)) * time.Minute)
+			sqlDB.SetMaxIdleConns(app.Config.GetInt(config.EvSuffixForDBMaxIdleConnections))
+			sqlDB.SetMaxOpenConns(app.Config.GetInt(config.EvSuffixForDBMaxOpenConnections))
+			db, err = gorm.Open(gormmysqldriver.New(gormmysqldriver.Config{
+				Conn: sqlDB,
+			}), dbconf)
+			if err != nil && strings.Contains(err.Error(), "connection refused") {
+				app.log.Warn().Msgf("Error connecting to Database [%v]. Trying again...", err)
+				return err
+			}
+
+			return retry.Stop{OriginalError: err}
+		})
+		app.DB = db
+		app.log.Info().Msg("Database connected!")
+		return err
 	}
-	app.log.Info().Msg("Database connected!")
-	return err
+	return nil
 }
 
 // GetConnectionString gets database connection string
@@ -118,8 +148,8 @@ func (app *App) GetConnectionString() string {
 }
 
 // NewUnitOfWork creates new UnitOfWork
-func (app *App) NewUnitOfWork(readOnly bool) *repository.UnitOfWork {
-	return repository.NewUnitOfWork(app.DB, readOnly)
+func (app *App) NewUnitOfWork(readOnly bool, logger zerolog.Logger) *repository.UnitOfWork {
+	return repository.NewUnitOfWork(app.DB, readOnly, logger, log.Config{SlowThreshold: time.Duration(app.Config.GetInt(config.EvSuffixForGormSlowThreshold)) * time.Millisecond})
 }
 
 //Initialize initializes properties of the app
@@ -156,26 +186,29 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 
 //Start http server and start listening to the requests
 func (app *App) Start() {
-	if err := app.server.ListenAndServe(); err != nil {
-		if err != http.ErrServerClosed {
-			app.log.Fatal().Err(err).Msg("Unable to start server, exiting the application!")
+	if app.Config.GetString("ENABLE_TLS") == "true" {
+		app.StartSecure(app.Config.GetString("TLS_CRT"), app.Config.GetString("TLS_KEY"))
+	} else {
+		if err := app.server.ListenAndServe(); err != nil {
+			if err != http.ErrServerClosed {
+				app.log.Fatal().Err(err).Msg("Unable to start server, exiting the application!")
+			}
 		}
 	}
 }
 
 //StartSecure starts https server and listens to the requests
-func (app *App) StartSecure(securityCert string, securityKey string) {
-	certFile := app.Config.GetString(securityCert)
-	if certFile == "" {
-		app.log.Fatal().Msg("Cert file could not be found, exiting the application!")
+func (app *App) StartSecure(tlsCert string, tlsKey string) {
+
+	if tlsCert == "" {
+		app.log.Fatal().Msg("TLS_CRT is not defined or empty, exiting the application!")
 	}
 
-	keyFile := app.Config.GetString(securityKey)
-	if certFile == "" {
-		app.log.Fatal().Msg("Key file could not be found, exiting the application!")
+	if tlsKey == "" {
+		app.log.Fatal().Msg("TLS_KEY is not defined or empty, exiting the application!")
 	}
 
-	if err := app.server.ListenAndServeTLS(certFile, keyFile); err != nil {
+	if err := app.server.ListenAndServeTLS(tlsCert, tlsKey); err != nil {
 		app.log.Fatal().Err(err).Msg("Unable to start server or server stopped, exiting the application!")
 	}
 }
@@ -229,7 +262,13 @@ func (app *App) Stop() {
 	defer cancel()
 
 	app.server.Shutdown(ctx)
-	app.DB.Close()
+
+	if app.Config.GetBool("DB_REQUIRED") {
+		sqlDB, err := app.DB.DB()
+		if err != nil {
+			sqlDB.Close()
+		}
+	}
 }
 
 type httpStatusRecorder struct {
@@ -252,12 +291,16 @@ func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 		logger := app.Logger("Ingress").With().Timestamp().Str("caller", r.Header.Get("X-Client")).Str("correlationId", r.Header.Get("X-Correlation-ID")).Str("method", r.Method).Str("requestURI", r.RequestURI).Logger()
 
 		rec := &httpStatusRecorder{ResponseWriter: w}
-		logger.Info().Msg("Begin")
+		if !strings.HasSuffix(r.RequestURI, "/health") || app.Config.GetBool(config.EvSuffixForEnableHealthLog) {
+			logger.Info().Msg("Begin")
+		}
 		next.ServeHTTP(rec, r)
-		if rec.status >= http.StatusInternalServerError {
-			logger.Error().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
-		} else {
-			logger.Info().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+		if !strings.HasSuffix(r.RequestURI, "/health") || app.Config.GetBool(config.EvSuffixForEnableHealthLog) {
+			if rec.status >= http.StatusInternalServerError {
+				logger.Error().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+			} else {
+				logger.Info().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
+			}
 		}
 	})
 }
@@ -270,18 +313,33 @@ func (app *App) DispatchEvent(token string, corelationID string, topic string, p
 }
 
 // NewExecutionContext creates new exectuion context
-func (app *App) NewExecutionContext(uow *repository.UnitOfWork, token *security.JwtToken, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(uow, token, correlationID, action, app.log)
+func (app *App) NewExecutionContext(token *security.JwtToken, correlationID string, action string, isUOWReqd, isUOWReadonly bool) microappCtx.ExecutionContext {
+	executionContext := microappCtx.NewExecutionContext(token, correlationID, action, app.log)
+	if isUOWReqd {
+		uow := app.NewUnitOfWork(isUOWReadonly, *executionContext.GetDefaultLogger())
+		executionContext.SetUOW(uow)
+	}
+	return executionContext
 }
 
 // NewExecutionContextWithCustomToken creates new exectuion context with custom made token
-func (app *App) NewExecutionContextWithCustomToken(uow *repository.UnitOfWork, tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: tenantID, UserID: userID, UserName: username}, correlationID, action, app.log)
+func (app *App) NewExecutionContextWithCustomToken(tenantID uuid.UUID, userID uuid.UUID, username string, correlationID string, action string, admin, isUOWReqd, isUOWReadonly bool) microappCtx.ExecutionContext {
+	executionContext := microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: tenantID, UserID: userID, UserName: username}, correlationID, action, app.log)
+	if isUOWReqd {
+		uow := app.NewUnitOfWork(isUOWReadonly, *executionContext.GetDefaultLogger())
+		executionContext.SetUOW(uow)
+	}
+	return executionContext
 }
 
 // NewExecutionContextWithSystemToken creates new exectuion context with sys default token
-func (app *App) NewExecutionContextWithSystemToken(uow *repository.UnitOfWork, correlationID string, action string) microappCtx.ExecutionContext {
-	return microappCtx.NewExecutionContext(uow, &security.JwtToken{TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, correlationID, action, app.log)
+func (app *App) NewExecutionContextWithSystemToken(correlationID string, action string, admin, isUOWReqd, isUOWReadonly bool) microappCtx.ExecutionContext {
+	executionContext := microappCtx.NewExecutionContext(&security.JwtToken{Admin: admin, TenantID: uuid.Nil, UserID: uuid.Nil, TenantName: "None", UserName: "System", DisplayName: "System"}, correlationID, action, app.log)
+	if isUOWReqd {
+		uow := app.NewUnitOfWork(isUOWReadonly, *executionContext.GetDefaultLogger())
+		executionContext.SetUOW(uow)
+	}
+	return executionContext
 }
 
 // GetCorrelationIDFromRequest returns correlationId from request header
