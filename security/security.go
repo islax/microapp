@@ -83,7 +83,7 @@ func GetUnverifiedTokenFromRawAuthHeader(rawAuthHeaderToken string) (*JwtToken, 
 	tk := &JwtToken{}
 
 	token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.GetString("JWT_SECRET")), nil
+		return []byte("Not Applicable"), nil
 	})
 
 	if err != nil { //Malformed token, returns with http code 403 as usual
