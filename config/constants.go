@@ -42,4 +42,6 @@ const (
 	EvSuffixForEnableMetrics = "ENABLE_METRICS"
 	// EvSuffixForGormMetricsRefresh environment variable name for gorm metrics refresh interval
 	EvSuffixForGormMetricsRefresh = "GORM_METRICS_REFRESH_INTERVAL"
+	// EvSuffixForSingularTableName environment variable name for gorm auto migration to create table with singular name. Allowed value 'true' - will create singular table name
+	EvSuffixForSingularTableName = "DB_NAMING_STRATEGY_IS_SINGULAR"
 )

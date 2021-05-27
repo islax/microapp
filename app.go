@@ -112,7 +112,7 @@ func (app *App) initializeDB() error {
 			var err error
 			dbconf := &gorm.Config{PrepareStmt: true, Logger: dbLogger}
 
-			if app.Config.GetBool("DB_NAMING_STRATEGY_IS_SINGULAR") {
+			if app.Config.GetBool(config.EvSuffixForSingularTableName) {
 				dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: true}
 			}
 
