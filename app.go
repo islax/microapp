@@ -308,7 +308,7 @@ func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 		logger := app.Logger("Ingress").With().Timestamp().Str("caller", r.Header.Get("X-Client")).Str("correlationId", r.Header.Get("X-Correlation-ID")).Str("method", r.Method).Str("requestURI", r.RequestURI).Logger()
 
 		rec := &httpStatusRecorder{ResponseWriter: w}
-		if !strings.HasSuffix(r.RequestURI, "/health") || app.Config.GetBool(config.EvSuffixForEnableHealthLog) {
+		if (!strings.HasSuffix(r.RequestURI, "/health") || app.Config.GetBool(config.EvSuffixForEnableHealthLog)) && !strings.HasSuffix(r.RequestURI, "/metrics") {
 			logger.Info().Msg("Begin")
 		}
 		next.ServeHTTP(rec, r)
