@@ -67,3 +67,28 @@ func GetTokenFromRawAuthHeader(config *config.Config, rawAuthHeaderToken string)
 
 	return tk, nil
 }
+
+// GetUnverifiedTokenFromRawAuthHeader gets JwtToken from given raw auth header token string
+// rawAuthHeaderToken should be of format `Bearer {token-body}`
+func GetUnverifiedTokenFromRawAuthHeader(rawAuthHeaderToken string) (*JwtToken, error) {
+	if rawAuthHeaderToken == "" { //Token is missing, returns with error code 403 Unauthorized
+		return nil, errors.New("Key_MissingAuthToken")
+	}
+	splitted := strings.Split(rawAuthHeaderToken, " ") //The token normally comes in format `Bearer {token-body}`, we check if the retrieved token matched this requirement
+	if len(splitted) != 2 {
+		return nil, errors.New("Key_InvalidAuthToken")
+	}
+
+	tokenPart := splitted[1] //Grab the token part, what we are truly interested in
+	tk := &JwtToken{}
+
+	token, err := new(jwt.Parser).ParseUnverified((tokenPart, tk)
+
+	if err != nil { //Malformed token, returns with http code 403 as usual
+		return nil, errors.New("Key_InvalidAuthToken")
+	}
+
+	tk.Raw = rawAuthHeaderToken
+
+	return tk, nil
+}
