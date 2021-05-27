@@ -82,7 +82,9 @@ func GetUnverifiedTokenFromRawAuthHeader(rawAuthHeaderToken string) (*JwtToken, 
 	tokenPart := splitted[1] //Grab the token part, what we are truly interested in
 	tk := &JwtToken{}
 
-	token, err := new(jwt.Parser).ParseUnverified(tokenPart, tk)
+	token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.GetString("JWT_SECRET")), nil
+	})
 
 	if err != nil { //Malformed token, returns with http code 403 as usual
 		return nil, errors.New("Key_InvalidAuthToken")
