@@ -38,4 +38,8 @@ const (
 	EvSuffixForGormSlowThreshold = "GORM_SLOW_THRESHOLD"
 	// EvSuffixForEnableHealthLog environment variable name for log level
 	EvSuffixForEnableHealthLog = "ENABLE_HEALTH_LOG"
+	// EvSuffixForEnableMetrics environment variable name for enable metrics
+	EvSuffixForEnableMetrics = "ENABLE_METRICS"
+	// EvSuffixForGormMetricsRefresh environment variable name for gorm metrics refresh interval
+	EvSuffixForGormMetricsRefresh = "GORM_METRICS_REFRESH_INTERVAL"
 )

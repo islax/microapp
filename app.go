@@ -22,14 +22,19 @@ import (
 	microappCtx "github.com/islax/microapp/context"
 	"github.com/islax/microapp/event"
 	"github.com/islax/microapp/log"
+	"github.com/islax/microapp/metrics"
 	"github.com/islax/microapp/repository"
 	"github.com/islax/microapp/retry"
 	"github.com/islax/microapp/security"
 	gormmysqldriver "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	uuid "github.com/satori/go.uuid"
+	prometheusmetrics "github.com/slok/go-http-metrics/metrics/prometheus"
+	"github.com/slok/go-http-metrics/middleware"
+	"github.com/slok/go-http-metrics/middleware/std"
 )
 
 // RouteSpecifier should be implemented by the class that sets routes for the API endpoints
@@ -156,11 +161,24 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 	logger := app.log
 	app.Router = mux.NewRouter()
 	app.Router.Use(mux.CORSMethodMiddleware(app.Router))
-	app.Router.Use(app.loggingMiddleware)
 
 	for _, routeSpecifier := range routeSpecifiers {
 		routeSpecifier.RegisterRoutes(app.Router)
 	}
+
+	//prometheus
+	if app.Config.GetBool(config.EvSuffixForEnableMetrics) {
+		metrics.RegisterGormMetrics(app.DB, app.Config)
+		// Create our middleware.
+		mdlw := middleware.New(middleware.Config{
+			Recorder: prometheusmetrics.NewRecorder(prometheusmetrics.Config{}),
+			Service:  app.Name,
+		})
+		app.Router.Use(std.HandlerProvider("", mdlw))
+		app.Router.Path("/metrics").Handler(promhttp.Handler())
+	}
+
+	app.Router.Use(app.loggingMiddleware)
 
 	//TODO: Revisit this logic
 	apiPort := "80"
@@ -294,7 +312,7 @@ func (app *App) loggingMiddleware(next http.Handler) http.Handler {
 			logger.Info().Msg("Begin")
 		}
 		next.ServeHTTP(rec, r)
-		if !strings.HasSuffix(r.RequestURI, "/health") || app.Config.GetBool(config.EvSuffixForEnableHealthLog) {
+		if (!strings.HasSuffix(r.RequestURI, "/health") || app.Config.GetBool(config.EvSuffixForEnableHealthLog)) && !strings.HasSuffix(r.RequestURI, "/metrics") {
 			if rec.status >= http.StatusInternalServerError {
 				logger.Error().Int("status", rec.status).Dur("responseTime", time.Now().Sub(startTime)).Msg("End.")
 			} else {
