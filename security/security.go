@@ -82,7 +82,7 @@ func GetUnverifiedTokenFromRawAuthHeader(rawAuthHeaderToken string) (*JwtToken, 
 	tokenPart := splitted[1] //Grab the token part, what we are truly interested in
 	tk := &JwtToken{}
 
-	token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
+	_, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
 		return []byte("Not Applicable"), nil
 	})
 
