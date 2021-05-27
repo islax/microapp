@@ -33,7 +33,7 @@ func NewConfig(defaults map[string]interface{}) *Config {
 
 	config.viper.SetDefault("TLS_CRT", "/opt/isla/tls.crt")
 	config.viper.SetDefault("TLS_KEY", "/opt/isla/tls.key")
-
+	config.viper.SetDefault(EvSuffixForGormMetricsRefresh, 30)
 	for key, value := range defaults {
 		config.viper.SetDefault(key, value)
 	}
