@@ -1,6 +1,8 @@
 package monitor
 
 import (
+	"net"
+	"os"
 	"strings"
 
 	"github.com/go-stomp/stomp"
@@ -23,7 +25,7 @@ func (monitor *activeMQEventMonitor) initialize(eventsToMonitor []string) error 
 }
 
 func (monitor *activeMQEventMonitor) activemqConnector() {
-	conn, err := stomp.Dial("tcp", "172.20.80.1:61613", stomp.Options{HeartBeat: "1000,0"}) //TODO remove hardcoded values
+	conn, err := stomp.Dial("tcp", getQueueHostPort(), stomp.Options{HeartBeat: "1000,0"}) //TODO remove hardcoded values
 	if err != nil {
 		monitor.logger.Error().Err(err).Msg("Failed to connect to activemq.")
 		return
@@ -75,4 +77,20 @@ func (monitor *activeMQEventMonitor) Start() {
 }
 
 func (monitor *activeMQEventMonitor) Stop() {
+}
+
+func getQueueHostPort() string {
+	var queueHost string
+	queueHost = os.Getenv("ISLA_QUEUE_HOST")
+	if len(queueHost) == 0 {
+		queueHost = "localhost"
+	}
+
+	var queuePort string
+	queuePort = os.Getenv("ISLA_QUEUE_PORT")
+	if len(queueHost) == 0 {
+		queuePort = "61616"
+	}
+
+	return net.JoinHostPort(queueHost, queuePort)
 }

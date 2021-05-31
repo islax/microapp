@@ -27,7 +27,7 @@ func NewActiveMQEventDispatcher(logger *zerolog.Logger) (*ActiveMQEventDispatche
 	retryChannel := make(chan *retryCommand, 200)
 
 	getQueueConnectionString()
-	netConn, err := net.DialTimeout("tcp", net.JoinHostPort(os.Getenv("ISLA_QUEUE_HOST"),os.Getenv("ISLA_QUEUE_PORT")), 10*time.Second)
+	netConn, err := net.DialTimeout("tcp", getQueueHostPort(), 10*time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -109,4 +109,20 @@ func (eventDispatcher *ActiveMQEventDispatcher) start() {
 // DispatchEvent dispatches events to the message queue
 func (eventDispatcher *ActiveMQEventDispatcher) DispatchEvent(token string, correlationID string, topic string, payload interface{}) {
 	eventDispatcher.sendChannel <- &queueCommand{token: token, topic: topic, payload: payload}
+}
+
+func getQueueHostPort() string {
+	var queueHost string
+	queueHost = os.Getenv("ISLA_QUEUE_HOST")
+	if len(queueHost) == 0 {
+		queueHost = "localhost"
+	}
+
+	var queuePort string
+	queuePort = os.Getenv("ISLA_QUEUE_PORT")
+	if len(queueHost) == 0 {
+		queuePort = "61616"
+	}
+
+	return net.JoinHostPort(queueHost, queuePort)
 }
