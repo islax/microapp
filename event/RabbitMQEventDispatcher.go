@@ -16,10 +16,10 @@ import (
 )
 
 type queueCommand struct {
-	token        string
-	topic        string
-	corelationID string
-	payload      interface{}
+	token         string
+	topic         string
+	correlationID string
+	payload       interface{}
 }
 
 type retryCommand struct {
@@ -64,7 +64,7 @@ func NewRabbitMQEventDispatcher(logger *zerolog.Logger) (*RabbitMQEventDispatche
 }
 
 // DispatchEvent dispatches events to the message queue
-func (eventDispatcher *RabbitMQEventDispatcher) DispatchEvent(token string, corelationID string, topic string, payload interface{}) {
+func (eventDispatcher *RabbitMQEventDispatcher) DispatchEvent(token string, correlationID string, topic string, payload interface{}) {
 	eventDispatcher.sendChannel <- &queueCommand{token: token, topic: topic, payload: payload}
 }
 
@@ -108,7 +108,7 @@ func (eventDispatcher *RabbitMQEventDispatcher) start() {
 				amqp.Publishing{
 					ContentType: "application/json",
 					Body:        body,
-					Headers:     map[string]interface{}{"X-Authorization": command.token, "X-Correlation-ID": command.corelationID},
+					Headers:     map[string]interface{}{"X-Authorization": command.token, "X-Correlation-ID": command.correlationID},
 				})
 
 			if err != nil {
@@ -227,9 +227,10 @@ func getQueueConnectionString() (string, bool, string) {
 	if !ok {
 		queuePort = "5672"
 	}
-	tls, ok := os.LookupEnv("ISLA_QUEUE_TLS_ENABLED")
+
+	tlsEnabled, ok := os.LookupEnv("ISLA_QUEUE_TLS_ENABLED")
 	if ok {
-		isTLS, _ = strconv.ParseBool(tls)
+		isTLS, _ = strconv.ParseBool(tlsEnabled)
 		if isTLS {
 			queueProtocol = "amqps"
 		}

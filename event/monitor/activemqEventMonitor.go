@@ -23,7 +23,7 @@ func (monitor *activeMQEventMonitor) initialize(eventsToMonitor []string) error 
 }
 
 func (monitor *activeMQEventMonitor) activemqConnector() {
-	conn, err := stomp.Dial("tcp", "172.20.80.1:61613", stomp.Options{HeartBeat: "1000,0"})
+	conn, err := stomp.Dial("tcp", "172.20.80.1:61613", stomp.Options{HeartBeat: "1000,0"}) //TODO remove hardcoded values
 	if err != nil {
 		monitor.logger.Error().Err(err).Msg("Failed to connect to activemq.")
 		return
@@ -43,24 +43,25 @@ func (monitor *activeMQEventMonitor) activemqConnector() {
 func (monitor *activeMQEventMonitor) monitorQueueAndProcessMessages(sub *stomp.Subscription, queue string) {
 	for message := range sub.C {
 		monitor.logger.Debug().Msg("event received")
-		//monitor.logger.Debug().Msg(fmt.Sprintf("%+v", message))
+
 		if message.Err != nil {
 			monitor.logger.Error().Err(message.Err).Msg("Error in receiving message")
 			continue
 		}
 
 		authorizationHeader := message.Header.Get("X-Authorization")
-		corelationIDHeader := message.Header.Get("X-Correlation-ID")
+		correlationIDHeader := message.Header.Get("X-Correlation-ID")
 		payload := string(message.Body)
 
 		command := &EventInfo{
 			Payload:      payload,
 			Name:         strings.TrimPrefix(message.Destination, "/queue/"),
-			CorelationID: corelationIDHeader,
+			CorelationID: correlationIDHeader,
 			RawToken:     authorizationHeader,
 		}
-		//monitor.logger.Debug().Msg(fmt.Sprintf("%+v", command))
+
 		monitor.eventSignal <- command
+
 		// acknowledge the message
 		err := monitor.connection.Ack(message)
 		if err != nil {

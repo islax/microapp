@@ -129,18 +129,18 @@ func (monitor *rabbitMQEventMonitor) monitorQueueAndProcessMessages() {
 	for message := range monitor.messageChanel {
 		payload := string(message.Body)
 		token := ""
-		corelationID := ""
+		correlationID := ""
 		authorizationHeader, ok := message.Headers["X-Authorization"]
 		if ok {
 			token = authorizationHeader.(string)
 		}
-		corelationIDHeader, ok := message.Headers["X-Correlation-ID"]
+		correlationIDHeader, ok := message.Headers["X-Correlation-ID"]
 		if ok {
-			corelationID = corelationIDHeader.(string)
+			correlationID = correlationIDHeader.(string)
 		}
 
 		command := &EventInfo{
-			CorelationID: corelationID,
+			CorelationID: correlationID,
 			Payload:      payload,
 			RawToken:     token,
 

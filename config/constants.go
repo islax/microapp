@@ -38,4 +38,6 @@ const (
 	EvSuffixForGormSlowThreshold = "GORM_SLOW_THRESHOLD"
 	// EvSuffixForEnableHealthLog environment variable name for log level
 	EvSuffixForEnableHealthLog = "ENABLE_HEALTH_LOG"
+	// EvMessageBroker environment variable name for message broker
+	EvMessageBroker = "MESSAGE_BROKER"
 )
