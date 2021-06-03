@@ -2,44 +2,51 @@ package event
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
-	"sync"
-	"time"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"strings"
+	"sync"
 
 	"github.com/rs/zerolog"
 )
 
-// SQSEventDispatcher is an event dispatcher that sends event to the RabbitMQ Exchange
+// SQSEventDispatcher is an event dispatcher that sends event to the SQS
 type SQSEventDispatcher struct {
-	logger          *zerolog.Logger
-	sendChannel     chan *queueCommand
-	retryChannel    chan *retryCommand
-	sqsSvc          *sqs.SQS
-	snsSvc          *sns.SNS
-	connectionMutex sync.Mutex
+	logger                     *zerolog.Logger
+	snsSvc                     *sns.SNS
+	availableTopicARNs         []string
+	sendChannel                chan *queueCommand
+	retryMessagePublishChannel chan *retryCommand
+	retryTopicCreateChannel    chan *retryCommand
+	connectionMutex            sync.Mutex
 }
 
 // NewSQSEventDispatcher create and returns a new SQSEventDispatcher
 func NewSQSEventDispatcher(logger *zerolog.Logger) (*SQSEventDispatcher, error) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		Config:            aws.Config{Region: aws.String("us-west-2")},
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 
 	ctxLogger := logger.With().Str("module", "SQSEventDispatcher").Logger()
 
+	svc := sns.New(sess)
+
+	availableTopics, _ := svc.ListTopics(nil)
+
+	availableTopicARNs := make([]string, len(availableTopics.Topics))
+
+	for i, t := range availableTopics.Topics {
+		availableTopicARNs[i] = *t.TopicArn
+	}
+
 	dispatcher := &SQSEventDispatcher{
-		logger:       &ctxLogger,
-		sqsSvc:       sqs.New(sess),
-		snsSvc:       sns.New(sess),
-		sendChannel:  make(chan *queueCommand, 200),
-		retryChannel: make(chan *retryCommand, 200),
+		logger:                     &ctxLogger,
+		snsSvc:                     svc,
+		availableTopicARNs:         availableTopicARNs,
+		sendChannel:                make(chan *queueCommand, 200),
+		retryMessagePublishChannel: make(chan *retryCommand, 200),
+		retryTopicCreateChannel:    make(chan *retryCommand, 200),
 	}
 
 	go dispatcher.start()
@@ -50,8 +57,10 @@ func NewSQSEventDispatcher(logger *zerolog.Logger) (*SQSEventDispatcher, error) 
 func (eventDispatcher *SQSEventDispatcher) start() {
 
 	for {
+
 		var command *queueCommand
-		var retryCount int
+		var retryMessagePublishCount int
+		var retryTopicCreateCount int
 
 		// Ensure that connection process is not going on
 		eventDispatcher.connectionMutex.Lock()
@@ -60,14 +69,16 @@ func (eventDispatcher *SQSEventDispatcher) start() {
 		select {
 		case commandFromSendChannel := <-eventDispatcher.sendChannel:
 			command = commandFromSendChannel
-		case commandFromRetryChannel := <-eventDispatcher.retryChannel:
-			command = commandFromRetryChannel.command
-			retryCount = commandFromRetryChannel.retryCount
+		case commandFromMessagePublishRetryChannel := <-eventDispatcher.retryMessagePublishChannel:
+			command = commandFromMessagePublishRetryChannel.command
+			retryMessagePublishCount = commandFromMessagePublishRetryChannel.retryCount
+		case commandFromTopicCreateRetryChannel := <-eventDispatcher.retryTopicCreateChannel:
+			command = commandFromTopicCreateRetryChannel.command
+			retryTopicCreateCount = commandFromTopicCreateRetryChannel.retryCount
 		}
-		fmt.Printf("command: %+v", command)
-		routingKey := command.topic
-		//routingKey := strings.ReplaceAll(command.topic, "_", ".")
-		routingKey = strings.ReplaceAll(routingKey, ".", "_")
+
+		routingKey := strings.ReplaceAll(command.topic, ".", "_")
+
 		var body []byte
 		var err error
 
@@ -76,108 +87,86 @@ func (eventDispatcher *SQSEventDispatcher) start() {
 			body, err = json.Marshal(command.payload)
 			if err != nil {
 				eventDispatcher.logger.Error().Msg("Failed to convert payload to JSON" + ": " + err.Error())
-			}
-		}
-
-		var queueUrl *string
-		fmt.Println("routingKey", routingKey)
-		queueUrlOutput, errGetQueueUrl := eventDispatcher.sqsSvc.GetQueueUrl(&sqs.GetQueueUrlInput{
-			QueueName: &routingKey,
-		})
-		fmt.Printf("queueUrlOutput,errGetQueueUrl: %+v %+v\n", queueUrlOutput, errGetQueueUrl)
-		// if queue is not exists, create one
-		if errGetQueueUrl != nil {
-			createQueueOutput, err := eventDispatcher.sqsSvc.CreateQueue(&sqs.CreateQueueInput{
-				QueueName: &routingKey,
-			})
-			fmt.Printf("createQueueOutput, err: %+v %+v\n", createQueueOutput, err)
-			queueUrl = createQueueOutput.QueueUrl
-
-			_, err = eventDispatcher.snsSvc.CreateTopic(&sns.CreateTopicInput{Name: &routingKey})
-			fmt.Printf("CreateTopic: %+v\n", err)
-			errGetQueueUrl = err
-		} else {
-			queueUrl = queueUrlOutput.QueueUrl
-		}
-		fmt.Println(errGetQueueUrl)
-		if errGetQueueUrl == nil {
-
-			listTopicsRequest := sns.ListTopicsInput{}
-
-			// List all topics and loop through the results until we find a match
-			allTopics, _ := eventDispatcher.snsSvc.ListTopics(&listTopicsRequest)
-
-			var topicARN string
-			for _, t := range allTopics.Topics {
-				if strings.Contains(*t.TopicArn, routingKey) {
-					topicARN = *t.TopicArn
-					break
-				}
-			}
-			//topicARN = "arn:aws:sns:us-west-2:104722656260:user_updated"
-			protocol := "sqs"
-
-			queueAttrs, _ := eventDispatcher.sqsSvc.GetQueueAttributes(&sqs.GetQueueAttributesInput{
-				AttributeNames: aws.StringSlice([]string{"QueueArn"}),
-				QueueUrl:       queueUrl,
-			})
-
-			queueARN, _ := queueAttrs.Attributes["QueueArn"]
-
-			subscribeQueueInput := sns.SubscribeInput{
-				TopicArn: &topicARN,
-				Protocol: &protocol,
-				Endpoint: queueARN,
-			}
-
-			_, err := eventDispatcher.snsSvc.Subscribe(&subscribeQueueInput)
-			fmt.Println(err)
-			if err != nil {
 				continue
 			}
+		}
 
-			_, err = eventDispatcher.sqsSvc.SendMessage(&sqs.SendMessageInput{
-				DelaySeconds: aws.Int64(10),
-				MessageAttributes: map[string]*sqs.MessageAttributeValue{
-					"X-Authorization": {
-						DataType:    aws.String("String"),
-						StringValue: aws.String(command.token),
-					},
-					//"X-Correlation-ID": {
-					//	DataType:    aws.String("String"),
-					//	StringValue: aws.String(command.correlationID),
-					//},
-				},
-				MessageBody: aws.String(string(body)),
-				QueueUrl:    queueUrl,
-			})
+		var requiredTopicArn string
 
-			if err != nil {
-				if retryCount < 3 {
-					eventDispatcher.logger.Warn().Msg("Publish to queue failed. Trying again ... Error: " + err.Error())
-
-					go func(command *queueCommand, retryCount int) {
-						time.Sleep(time.Second)
-						eventDispatcher.retryChannel <- &retryCommand{retryCount: retryCount, command: command}
-					}(command, retryCount+1)
-				} else {
-					eventDispatcher.logger.Error().Msg("Failed to publish to an Exchange" + ": " + err.Error())
-				}
-			} else {
-				eventDispatcher.logger.Trace().Msg("Sent message to queue")
+		for _, t := range eventDispatcher.availableTopicARNs {
+			if strings.Contains(t, routingKey) {
+				requiredTopicArn = t
 			}
 		}
+
+		if len(requiredTopicArn) == 0 {
+
+			topicOutput, err := eventDispatcher.snsSvc.CreateTopic(&sns.CreateTopicInput{Name: &routingKey})
+			if err != nil {
+				if retryTopicCreateCount < 3 {
+					eventDispatcher.logger.Warn().Msg("Failed to create topic. Trying again ... Error: " + err.Error())
+					go eventDispatcher.retryCreateTopic(retryTopicCreateCount+1, command)
+				} else {
+					eventDispatcher.logger.Error().Msg("Failed to create topic" + ": " + err.Error())
+					continue
+				}
+			}
+
+			requiredTopicArn = *topicOutput.TopicArn
+
+			eventDispatcher.availableTopicARNs = append(eventDispatcher.availableTopicARNs, requiredTopicArn)
+		}
+
+		// message attribute values cannot be empty so passing random values when empty
+		// TODO: find better solution
+		token := "random-string"
+		if len(command.token) > 0 {
+			token = command.token
+		}
+
+		correlationID := "00000000-0000-0000-0000-000000000000"
+		if len(command.correlationID) > 0 {
+			correlationID = command.correlationID
+		}
+
+		_, err = eventDispatcher.snsSvc.Publish(&sns.PublishInput{
+			Message:  aws.String(string(body)),
+			TopicArn: aws.String(requiredTopicArn),
+			MessageAttributes: map[string]*sns.MessageAttributeValue{
+				"X-Authorization": {
+					DataType:    aws.String("String"),
+					StringValue: aws.String(token),
+				},
+				"X-Correlation-ID": {
+					DataType:    aws.String("String"),
+					StringValue: aws.String(correlationID),
+				},
+			},
+		})
+
+		if err != nil {
+			if retryMessagePublishCount < 3 {
+				eventDispatcher.logger.Warn().Msg("Failed to publish message. Trying again ... Error: " + err.Error())
+				go eventDispatcher.retryCreateTopic(retryMessagePublishCount+1, command)
+			} else {
+				eventDispatcher.logger.Error().Msg("Failed to publish message" + ": " + err.Error())
+				continue
+			}
+		}
+
+		eventDispatcher.logger.Trace().Msgf("message published to topic %s", command.topic)
 	}
 }
 
 // DispatchEvent dispatches events to the message queue
 func (eventDispatcher *SQSEventDispatcher) DispatchEvent(token string, correlationID string, topic string, payload interface{}) {
-	fmt.Println("sending to sendChannel")
-	eventDispatcher.sendChannel <- &queueCommand{token: token, topic: topic, payload: payload}
-	fmt.Println("sent to sendChannel")
+	eventDispatcher.sendChannel <- &queueCommand{token: token, topic: topic, correlationID: correlationID, payload: payload}
 }
 
-func convertQueueURLToARN(inputURL string) string {
-	queueARN := strings.Replace(strings.Replace(strings.Replace(inputURL, "https://sqs.", "arn:aws:sqs:", -1), ".amazonaws.com/", ":", -1), "/", ":", -1)
-	return queueARN
+func (eventDispatcher *SQSEventDispatcher) retryMessagePublish(retryCount int, command *queueCommand) {
+	eventDispatcher.retryMessagePublishChannel <- &retryCommand{retryCount: retryCount, command: command}
+}
+
+func (eventDispatcher *SQSEventDispatcher) retryCreateTopic(retryCount int, command *queueCommand) {
+	eventDispatcher.retryTopicCreateChannel <- &retryCommand{retryCount: retryCount, command: command}
 }
