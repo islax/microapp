@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -20,10 +21,6 @@ type sqsEventMonitor struct {
 }
 
 func (monitor *sqsEventMonitor) initialize(eventsToMonitor []string) error {
-	eventsToMonitorforsqs := make([]string, len(eventsToMonitor))
-	for idx, em := range eventsToMonitor {
-		eventsToMonitorforsqs[idx] = strings.ReplaceAll(em, ".", "")
-	}
 	monitor.eventsToMonitor = eventsToMonitor
 	go monitor.sqsConnector()
 
@@ -39,11 +36,11 @@ func (monitor *sqsEventMonitor) sqsConnector() {
 	monitor.snsSvc = sns.New(sess)
 
 	for _, queue := range monitor.eventsToMonitor {
-
+		routingKey := strings.ReplaceAll(queue, ".", "_")
 		queueUrlOutput, err := monitor.sqsSvc.GetQueueUrl(&sqs.GetQueueUrlInput{
-			QueueName: &queue,
+			QueueName: &routingKey,
 		})
-
+		fmt.Println("queueUrlOutput", err, routingKey, queueUrlOutput)
 		if err != nil {
 			continue
 		}
@@ -60,26 +57,28 @@ func (monitor *sqsEventMonitor) sqsConnector() {
 			monitor.logger.Error().Err(err).Msg("Failed to subscribe to queue")
 			continue
 		}
-
-		go monitor.monitorQueueAndProcessMessages(result, *queueUrlOutput.QueueUrl)
+		//fmt.Println("result", result, queue, result.Messages)
+		//fmt.Println("result.Messages", result.Messages)
+		go monitor.monitorQueueAndProcessMessages(result, queue)
 	}
 }
 
 func (monitor *sqsEventMonitor) monitorQueueAndProcessMessages(sub *sqs.ReceiveMessageOutput, queue string) {
 	for _, message := range sub.Messages {
-
+		fmt.Println("message", message)
 		monitor.logger.Debug().Msg("event received")
 
 		var token string
-		authorizationAttr, ok := message.Attributes["X-Authorization"]
+		authorizationAttr, ok := message.MessageAttributes["X-Authorization"]
+		fmt.Println("authorizationAttr", authorizationAttr, ok)
 		if ok && authorizationAttr != nil {
-			token = *authorizationAttr
+			token = *authorizationAttr.StringValue
 		}
 
 		var correlationID string
-		correlationIDAttr, ok := message.Attributes["X-Correlation-ID"]
+		correlationIDAttr, ok := message.MessageAttributes["X-Correlation-ID"]
 		if ok && correlationIDAttr != nil {
-			correlationID = *correlationIDAttr
+			correlationID = *correlationIDAttr.StringValue
 		}
 
 		command := &EventInfo{
@@ -92,7 +91,7 @@ func (monitor *sqsEventMonitor) monitorQueueAndProcessMessages(sub *sqs.ReceiveM
 		monitor.eventSignal <- command
 
 		// delete the message to avoid duplication
-		go monitor.deleteMessage(message, queue)
+		//go monitor.deleteMessage(message, queue)
 	}
 }
 

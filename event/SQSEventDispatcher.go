@@ -65,8 +65,9 @@ func (eventDispatcher *SQSEventDispatcher) start() {
 			retryCount = commandFromRetryChannel.retryCount
 		}
 		fmt.Printf("command: %+v", command)
-		routingKey := strings.ReplaceAll(command.topic, "_", ".")
-		routingKey = strings.ReplaceAll(routingKey, ".", "")
+		routingKey := command.topic
+		//routingKey := strings.ReplaceAll(command.topic, "_", ".")
+		routingKey = strings.ReplaceAll(routingKey, ".", "_")
 		var body []byte
 		var err error
 
