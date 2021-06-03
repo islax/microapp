@@ -1,6 +1,8 @@
 package monitor
 
 import (
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -18,6 +20,10 @@ type sqsEventMonitor struct {
 }
 
 func (monitor *sqsEventMonitor) initialize(eventsToMonitor []string) error {
+	eventsToMonitorforsqs := make([]string, len(eventsToMonitor))
+	for idx, em := range eventsToMonitor {
+		eventsToMonitorforsqs[idx] = strings.ReplaceAll(em, ".", "")
+	}
 	monitor.eventsToMonitor = eventsToMonitor
 	go monitor.sqsConnector()
 

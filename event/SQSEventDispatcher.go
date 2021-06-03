@@ -2,13 +2,15 @@ package event
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -26,6 +28,7 @@ type SQSEventDispatcher struct {
 // NewSQSEventDispatcher create and returns a new SQSEventDispatcher
 func NewSQSEventDispatcher(logger *zerolog.Logger) (*SQSEventDispatcher, error) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		Config:            aws.Config{Region: aws.String("us-west-2")},
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 
@@ -61,9 +64,9 @@ func (eventDispatcher *SQSEventDispatcher) start() {
 			command = commandFromRetryChannel.command
 			retryCount = commandFromRetryChannel.retryCount
 		}
-
+		fmt.Printf("command: %+v", command)
 		routingKey := strings.ReplaceAll(command.topic, "_", ".")
-
+		routingKey = strings.ReplaceAll(routingKey, ".", "")
 		var body []byte
 		var err error
 
@@ -76,23 +79,27 @@ func (eventDispatcher *SQSEventDispatcher) start() {
 		}
 
 		var queueUrl *string
-		queueUrlOutput, _ := eventDispatcher.sqsSvc.GetQueueUrl(&sqs.GetQueueUrlInput{
+		fmt.Println("routingKey", routingKey)
+		queueUrlOutput, errGetQueueUrl := eventDispatcher.sqsSvc.GetQueueUrl(&sqs.GetQueueUrlInput{
 			QueueName: &routingKey,
 		})
-
+		fmt.Printf("queueUrlOutput,errGetQueueUrl: %+v %+v\n", queueUrlOutput, errGetQueueUrl)
 		// if queue is not exists, create one
-		if queueUrlOutput == nil {
-			createQueueOutput, _ := eventDispatcher.sqsSvc.CreateQueue(&sqs.CreateQueueInput{
+		if errGetQueueUrl != nil {
+			createQueueOutput, err := eventDispatcher.sqsSvc.CreateQueue(&sqs.CreateQueueInput{
 				QueueName: &routingKey,
 			})
+			fmt.Printf("createQueueOutput, err: %+v %+v\n", createQueueOutput, err)
 			queueUrl = createQueueOutput.QueueUrl
 
-			_,  err = eventDispatcher.snsSvc.CreateTopic(&sns.CreateTopicInput{Name: &routingKey})
+			_, err = eventDispatcher.snsSvc.CreateTopic(&sns.CreateTopicInput{Name: &routingKey})
+			fmt.Printf("CreateTopic: %+v\n", err)
+			errGetQueueUrl = err
 		} else {
 			queueUrl = queueUrlOutput.QueueUrl
 		}
-
-		if err == nil {
+		fmt.Println(errGetQueueUrl)
+		if errGetQueueUrl == nil {
 
 			listTopicsRequest := sns.ListTopicsInput{}
 
@@ -106,12 +113,12 @@ func (eventDispatcher *SQSEventDispatcher) start() {
 					break
 				}
 			}
-
+			//topicARN = "arn:aws:sns:us-west-2:104722656260:user_updated"
 			protocol := "sqs"
 
 			queueAttrs, _ := eventDispatcher.sqsSvc.GetQueueAttributes(&sqs.GetQueueAttributesInput{
 				AttributeNames: aws.StringSlice([]string{"QueueArn"}),
-				QueueUrl: queueUrl,
+				QueueUrl:       queueUrl,
 			})
 
 			queueARN, _ := queueAttrs.Attributes["QueueArn"]
@@ -123,6 +130,7 @@ func (eventDispatcher *SQSEventDispatcher) start() {
 			}
 
 			_, err := eventDispatcher.snsSvc.Subscribe(&subscribeQueueInput)
+			fmt.Println(err)
 			if err != nil {
 				continue
 			}
@@ -134,10 +142,10 @@ func (eventDispatcher *SQSEventDispatcher) start() {
 						DataType:    aws.String("String"),
 						StringValue: aws.String(command.token),
 					},
-					"X-Correlation-ID": {
-						DataType:    aws.String("String"),
-						StringValue: aws.String(command.correlationID),
-					},
+					//"X-Correlation-ID": {
+					//	DataType:    aws.String("String"),
+					//	StringValue: aws.String(command.correlationID),
+					//},
 				},
 				MessageBody: aws.String(string(body)),
 				QueueUrl:    queueUrl,
@@ -163,7 +171,9 @@ func (eventDispatcher *SQSEventDispatcher) start() {
 
 // DispatchEvent dispatches events to the message queue
 func (eventDispatcher *SQSEventDispatcher) DispatchEvent(token string, correlationID string, topic string, payload interface{}) {
+	fmt.Println("sending to sendChannel")
 	eventDispatcher.sendChannel <- &queueCommand{token: token, topic: topic, payload: payload}
+	fmt.Println("sent to sendChannel")
 }
 
 func convertQueueURLToARN(inputURL string) string {

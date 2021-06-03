@@ -3,6 +3,7 @@ module github.com/islax/microapp
 go 1.12
 
 require (
+	github.com/aws/aws-sdk-go v1.17.7
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-stomp/stomp v1.0.1
 	github.com/golang-migrate/migrate/v4 v4.5.0
