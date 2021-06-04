@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-stomp/stomp"
+	"github.com/go-stomp/stomp/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -26,13 +26,7 @@ func NewActiveMQEventDispatcher(logger *zerolog.Logger) (*ActiveMQEventDispatche
 	sendChannel := make(chan *queueCommand, 200)
 	retryChannel := make(chan *retryCommand, 200)
 
-	getQueueConnectionString()
-	netConn, err := net.DialTimeout("tcp", getQueueHostPort(), 10*time.Second)
-	if err != nil {
-		return nil, err
-	}
-
-	stompConn, err := stomp.Connect(netConn, stomp.Options{HeartBeat: "1000,0"})
+	stompConn, err := stomp.Dial("tcp", getQueueHostPort())
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +79,7 @@ func (eventDispatcher *ActiveMQEventDispatcher) start() {
 
 		if err == nil {
 
-			h := stomp.NewHeader("X-Authorization", command.token, "X-Correlation-ID", command.correlationID)
-			err = eventDispatcher.connection.Send(routingKey, "application/json", body, h)
+			err = eventDispatcher.connection.Send(routingKey, "application/json", body, stomp.SendOpt.Header("X-Authorization", command.token), stomp.SendOpt.Header("X-Correlation-ID", command.correlationID))
 
 			if err != nil {
 				if retryCount < 3 {
