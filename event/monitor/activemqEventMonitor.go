@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-stomp/stomp"
+	"github.com/go-stomp/stomp/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -25,7 +25,7 @@ func (monitor *activeMQEventMonitor) initialize(eventsToMonitor []string) error 
 }
 
 func (monitor *activeMQEventMonitor) activemqConnector() {
-	conn, err := stomp.Dial("tcp", getQueueHostPort(), stomp.Options{HeartBeat: "1000,0"}) //TODO remove hardcoded values
+	conn, err := stomp.Dial("tcp", getQueueHostPort())
 	if err != nil {
 		monitor.logger.Error().Err(err).Msg("Failed to connect to activemq.")
 		return

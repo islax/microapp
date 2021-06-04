@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/aws/aws-sdk-go v1.17.7
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/go-stomp/stomp v1.0.1
+	github.com/go-stomp/stomp/v3 v3.0.1 // indirect
 	github.com/golang-migrate/migrate/v4 v4.5.0
 	github.com/gorilla/mux v1.7.1
 	github.com/rs/zerolog v1.18.0
