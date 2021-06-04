@@ -160,7 +160,7 @@ func (monitor *sqsEventMonitor) monitorQueueAndProcessMessages(queueURL, topic s
 			monitor.eventSignal <- command
 
 			// delete the message to avoid duplication
-			//go monitor.deleteMessage(message, queueURL)
+			go monitor.deleteMessage(message, queueURL)
 		}
 	}
 }
