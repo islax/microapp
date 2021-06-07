@@ -34,15 +34,36 @@ type JwtToken struct {
 }
 
 func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
-	if ok, _ := inArray("*", token.Scopes); ok {
+	permissiveTokenScopes := []string{}
+	nonPermissiveTokenScopes := []string{}
+
+	for _, tokenScope := range token.Scopes {
+		if strings.HasPrefix(tokenScope, "-") {
+			nonPermissiveTokenScopes = append(nonPermissiveTokenScopes, tokenScope[1:])
+		} else {
+			permissiveTokenScopes = append(permissiveTokenScopes, tokenScope)
+		}
+	}
+
+	if len(nonPermissiveTokenScopes) > 0 {
+		if isScopePresent(nonPermissiveTokenScopes, allowedScopes) {
+			return false
+		}
+	}
+
+	return isScopePresent(permissiveTokenScopes, allowedScopes)
+}
+
+func isScopePresent(scopes []string, scopeToCheck []string) bool {
+	if ok, _ := inArray("*", scopes); ok {
 		return true
 	}
 	allScopesMatched := true
-	for _, allowedScope := range allowedScopes {
-		if ok, _ := inArray(allowedScope, token.Scopes); !ok {
+	for _, allowedScope := range scopeToCheck {
+		if ok, _ := inArray(allowedScope, scopes); !ok {
 			scopeParts := strings.Split(allowedScope, ":")
-			if ok, _ := inArray(scopeParts[0]+":*", token.Scopes); !ok {
-				if ok, _ := inArray("*:"+scopeParts[1], token.Scopes); !ok {
+			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
+				if ok, _ := inArray("*:"+scopeParts[1], scopes); !ok {
 					allScopesMatched = false
 				}
 			}

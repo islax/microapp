@@ -14,6 +14,8 @@ var scopeCombinations = []struct {
 	{[]string{"appliance:*", "trustedGroup:*"}, []string{"trustedGroup:read"}, true},
 	{[]string{"trustedGroup:read"}, []string{"trustedGroup:read"}, true},
 	{[]string{"trustedGroup:write"}, []string{"trustedGroup:read"}, false},
+	{[]string{"*", "-trustedGroup:*"}, []string{"trustedGroup:read"}, false},
+	{[]string{"trusterdGroup:*", "-trustedGroup:read"}, []string{"trustedGroup:read"}, false},
 }
 
 func TestScopes(t *testing.T) {
