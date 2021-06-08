@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -65,7 +66,7 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 
 	rand.Seed(time.Now().UnixNano())
 	randomAPIPort := fmt.Sprintf("10%v%v%v", rand.Intn(9), rand.Intn(9), rand.Intn(9)) // Generating random API port so that if multiple tests can run parallel
-	application := New(appName, map[string]interface{}{"API_PORT": randomAPIPort}, zerolog.New(os.Stdout), db, nil)
+	application := New(appName, map[string]interface{}{"API_PORT": randomAPIPort, "JWT_PRIVATE_KEY_PATH": "certs/star.dev.cyberinc.com.key", "JWT_PUBLIC_KEY_PATH": "certs/star.dev.cyberinc.com.crt"}, zerolog.New(os.Stdout), db, nil)
 
 	return &TestApp{application: application, controllerRouteProvider: controllerRouteProvider, dbInitializer: dbInitializer}
 }
@@ -345,9 +346,9 @@ func (testApp *TestApp) SetControllerRouteProviderAndInitialize(controllerRouteP
 
 // generateToken generates and return token
 func (testApp *TestApp) generateToken(tenantID string, userID string, username string, name string, externalID string, externalIDType string, scope []string, admin bool) string {
-	hmacSampleSecret := []byte(testApp.application.Config.GetString("JWT_SECRET"))
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	signBytes, _ := ioutil.ReadFile(testApp.application.Config.GetString("JWT_PRIVATE_KEY_PATH"))
+	jwtSecret, _ := jwt.ParseRSAPrivateKeyFromPEM(signBytes)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS512, jwt.MapClaims{
 		"iss":              "http://isla.cyberinc.com",
 		"aud":              "http://isla.cyberinc.com",
 		"iat":              time.Now().Unix(),
@@ -364,7 +365,7 @@ func (testApp *TestApp) generateToken(tenantID string, userID string, username s
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(hmacSampleSecret)
+	tokenString, err := token.SignedString(jwtSecret)
 
 	if err != nil {
 		panic(err)
