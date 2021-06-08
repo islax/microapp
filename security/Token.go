@@ -53,6 +53,7 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 
 	if len(nonPermissiveTokenScopes) > 0 {
 		if isScopePresent(nonPermissiveTokenScopes, allowedScopes, true, false) {
+			fmt.Println("Negative Scoping Is True")
 			return false
 		}
 	}
@@ -69,9 +70,12 @@ func isScopePresent(scopes []string, scopeToCheck []string, isNegativeScopeCheck
 	allScopesMatched := shouldAllScopeMatch
 	for _, allowedScope := range scopeToCheck {
 		if ok, _ := inArray(allowedScope, scopes); !ok {
+			fmt.Println("1")
 			scopeParts := strings.Split(allowedScope, ":")
 			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
+				fmt.Println("2", scopeParts[0])
 				if ok, _ := inArray("*:"+scopeParts[1], scopes); !ok {
+					fmt.Println("3", scopeParts[1])
 					allScopesMatched = !shouldAllScopeMatch
 					break
 				}
