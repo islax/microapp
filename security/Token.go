@@ -1,6 +1,7 @@
 package security
 
 import (
+	"fmt"
 	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -45,28 +46,34 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 		}
 	}
 
+	fmt.Println("nonPermissiveTokenScopes", nonPermissiveTokenScopes)
+	fmt.Println()
+	fmt.Println("permissiveTokenScopes", permissiveTokenScopes)
+	fmt.Println()
+
 	if len(nonPermissiveTokenScopes) > 0 {
-		if isScopePresent(nonPermissiveTokenScopes, allowedScopes, true) {
+		if isScopePresent(nonPermissiveTokenScopes, allowedScopes, true, false) {
 			return false
 		}
 	}
 
-	return isScopePresent(permissiveTokenScopes, allowedScopes, false)
+	return isScopePresent(permissiveTokenScopes, allowedScopes, false, true)
 }
 
-func isScopePresent(scopes []string, scopeToCheck []string, isNegativeScopeCheck bool) bool {
+func isScopePresent(scopes []string, scopeToCheck []string, isNegativeScopeCheck bool, shouldAllScopeMatch bool) bool {
 	if !isNegativeScopeCheck {
 		if ok, _ := inArray("*", scopes); ok {
 			return true
 		}
 	}
-	allScopesMatched := !isNegativeScopeCheck
+	allScopesMatched := shouldAllScopeMatch
 	for _, allowedScope := range scopeToCheck {
 		if ok, _ := inArray(allowedScope, scopes); !ok {
 			scopeParts := strings.Split(allowedScope, ":")
 			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
 				if ok, _ := inArray("*:"+scopeParts[1], scopes); !ok {
-					allScopesMatched = isNegativeScopeCheck
+					allScopesMatched = !shouldAllScopeMatch
+					break
 				}
 			}
 		}
