@@ -46,17 +46,19 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 	}
 
 	if len(nonPermissiveTokenScopes) > 0 {
-		if isScopePresent(nonPermissiveTokenScopes, allowedScopes) {
+		if isScopePresent(nonPermissiveTokenScopes, allowedScopes, true) {
 			return false
 		}
 	}
 
-	return isScopePresent(permissiveTokenScopes, allowedScopes)
+	return isScopePresent(permissiveTokenScopes, allowedScopes, false)
 }
 
-func isScopePresent(scopes []string, scopeToCheck []string) bool {
-	if ok, _ := inArray("*", scopes); ok {
-		return true
+func isScopePresent(scopes []string, scopeToCheck []string, isNegativeScopeCheck bool) bool {
+	if !isNegativeScopeCheck {
+		if ok, _ := inArray("*", scopes); ok {
+			return true
+		}
 	}
 	allScopesMatched := true
 	for _, allowedScope := range scopeToCheck {
