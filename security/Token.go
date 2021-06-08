@@ -69,8 +69,9 @@ func isScopePresent(scopes []string, scopeToCheck []string, isNegativeScopeCheck
 	}
 	allScopesMatched := shouldAllScopeMatch
 	for _, allowedScope := range scopeToCheck {
+		fmt.Println("0")
 		if ok, _ := inArray(allowedScope, scopes); !ok {
-			fmt.Println("1")
+			fmt.Println("1", allowedScope)
 			scopeParts := strings.Split(allowedScope, ":")
 			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
 				fmt.Println("2", scopeParts[0])
@@ -86,6 +87,7 @@ func isScopePresent(scopes []string, scopeToCheck []string, isNegativeScopeCheck
 }
 
 func inArray(val string, array []string) (ok bool, i int) {
+	fmt.Println("inArray", val, array)
 	for i = range array {
 		if ok = array[i] == val; ok {
 			return
