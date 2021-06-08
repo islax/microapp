@@ -60,13 +60,13 @@ func isScopePresent(scopes []string, scopeToCheck []string, isNegativeScopeCheck
 			return true
 		}
 	}
-	allScopesMatched := true
+	allScopesMatched := !isNegativeScopeCheck
 	for _, allowedScope := range scopeToCheck {
 		if ok, _ := inArray(allowedScope, scopes); !ok {
 			scopeParts := strings.Split(allowedScope, ":")
 			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
 				if ok, _ := inArray("*:"+scopeParts[1], scopes); !ok {
-					allScopesMatched = false
+					allScopesMatched = isNegativeScopeCheck
 				}
 			}
 		}
