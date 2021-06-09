@@ -2,6 +2,7 @@ package security
 
 import (
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -51,8 +52,11 @@ func GetTokenFromRawAuthHeader(config *config.Config, rawAuthHeaderToken string)
 	tokenPart := splitted[1] //Grab the token part, what we are truly interested in
 	tk := &JwtToken{}
 
+	pubkeyBytes, _ := ioutil.ReadFile(config.GetString("JWT_PUBLIC_KEY_PATH"))
+	jwtPublicKey, _ := jwt.ParseRSAPublicKeyFromPEM(pubkeyBytes)
+
 	token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
-		return []byte(config.GetString("JWT_SECRET")), nil
+		return jwtPublicKey, nil
 	})
 
 	if err != nil { //Malformed token, returns with http code 403 as usual
