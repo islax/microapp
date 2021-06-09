@@ -46,15 +46,15 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 	}
 
 	if len(nonPermissiveTokenScopes) > 0 {
-		if isNegativeScopePresent(nonPermissiveTokenScopes, allowedScopes) {
+		if isDisallowed(nonPermissiveTokenScopes, allowedScopes) {
 			return false
 		}
 	}
 
-	return isPositiveScopePresent(permissiveTokenScopes, allowedScopes)
+	return isAllowed(permissiveTokenScopes, allowedScopes)
 }
 
-func isPositiveScopePresent(scopes []string, scopeToCheck []string) bool {
+func isAllowed(scopes []string, scopeToCheck []string) bool {
 	if ok, _ := inArray("*", scopes); ok {
 		return true
 	}
@@ -71,15 +71,19 @@ func isPositiveScopePresent(scopes []string, scopeToCheck []string) bool {
 	return true
 }
 
-func isNegativeScopePresent(scopes []string, scopeToCheck []string) bool {
+func isDisallowed(scopes []string, scopeToCheck []string) bool {
 	for _, allowedScope := range scopeToCheck {
-		if ok, _ := inArray(allowedScope, scopes); ok {
+		if ok, _ := inArray(allowedScope, scopes); !ok {
 			scopeParts := strings.Split(allowedScope, ":")
-			if ok, _ := inArray(scopeParts[0]+":*", scopes); ok {
+			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
 				if ok, _ := inArray("*:"+scopeParts[1], scopes); ok {
 					return true
 				}
+			} else {
+				return true
 			}
+		} else {
+			return true
 		}
 	}
 	return false
