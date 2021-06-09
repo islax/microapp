@@ -1,7 +1,6 @@
 package security
 
 import (
-	"fmt"
 	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -46,54 +45,51 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 		}
 	}
 
-	fmt.Println("nonPermissiveTokenScopes", nonPermissiveTokenScopes)
-	fmt.Println()
-	fmt.Println("permissiveTokenScopes", permissiveTokenScopes)
-	fmt.Println()
-
 	if len(nonPermissiveTokenScopes) > 0 {
-		if isScopePresent(nonPermissiveTokenScopes, allowedScopes, true, false) {
-			fmt.Println("Negative Scoping Is True")
+		if isNegativeScopePresent(nonPermissiveTokenScopes, allowedScopes) {
 			return false
 		}
 	}
 
-	return isScopePresent(permissiveTokenScopes, allowedScopes, false, true)
+	return isPositiveScopePresent(permissiveTokenScopes, allowedScopes)
 }
 
-func isScopePresent(scopes []string, scopeToCheck []string, isNegativeScopeCheck bool, shouldAllScopeMatch bool) bool {
-	if !isNegativeScopeCheck {
-		if ok, _ := inArray("*", scopes, isNegativeScopeCheck); ok {
-			return true
-		}
+func isPositiveScopePresent(scopes []string, scopeToCheck []string) bool {
+	if ok, _ := inArray("*", scopes); ok {
+		return true
 	}
-	allScopesMatched := shouldAllScopeMatch
 	for _, allowedScope := range scopeToCheck {
-		fmt.Println("0")
-		if ok, _ := inArray(allowedScope, scopes, isNegativeScopeCheck); !ok {
-			fmt.Println("1", allowedScope)
+		if ok, _ := inArray(allowedScope, scopes); !ok {
 			scopeParts := strings.Split(allowedScope, ":")
-			if ok, _ := inArray(scopeParts[0]+":*", scopes, isNegativeScopeCheck); !ok {
-				fmt.Println("2", scopeParts[0])
-				if ok, _ := inArray("*:"+scopeParts[1], scopes, isNegativeScopeCheck); !ok {
-					fmt.Println("3", scopeParts[1])
-					allScopesMatched = !shouldAllScopeMatch
-					break
+			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
+				if ok, _ := inArray("*:"+scopeParts[1], scopes); !ok {
+					return false
 				}
 			}
 		}
 	}
-	return allScopesMatched
+	return true
 }
 
-func inArray(val string, array []string, isNegativeScopeCheck bool) (ok bool, i int) {
-	fmt.Println("inArray", val, array)
-	for i = range array {
-		fmt.Println("loop i, array[i]", i, array[i])
-		fmt.Println("array[i] == val", (array[i] == val))
-		if ok = array[i] == val; ok {
-			return (ok && !isNegativeScopeCheck), i
+func isNegativeScopePresent(scopes []string, scopeToCheck []string) bool {
+	for _, allowedScope := range scopeToCheck {
+		if ok, _ := inArray(allowedScope, scopes); ok {
+			scopeParts := strings.Split(allowedScope, ":")
+			if ok, _ := inArray(scopeParts[0]+":*", scopes); ok {
+				if ok, _ := inArray("*:"+scopeParts[1], scopes); ok {
+					return true
+				}
+			}
 		}
 	}
-	return false || isNegativeScopeCheck, 0
+	return false
+}
+
+func inArray(val string, array []string) (ok bool, i int) {
+	for i = range array {
+		if ok = array[i] == val; ok {
+			return
+		}
+	}
+	return
 }
