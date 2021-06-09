@@ -45,7 +45,7 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 		}
 	}
 
-	if len(nonPermissiveTokenScopes) > 0 {
+	if len(nonPermissiveTokenScopes) > 0 && len(allowedScopes) > 0 {
 		if isScopePresent(nonPermissiveTokenScopes, allowedScopes) {
 			return false
 		}
