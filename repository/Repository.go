@@ -32,7 +32,9 @@ type Repository interface {
 	CheckVersionAndUpdate(uow *UnitOfWork, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 
 	Add(uow *UnitOfWork, out interface{}) microappError.DatabaseError
+	AddWithOmit(uow *UnitOfWork, out interface{}, omitFields []string) microappError.DatabaseError
 	Update(uow *UnitOfWork, out interface{}) microappError.DatabaseError
+	UpdateWithOmit(uow *UnitOfWork, out interface{}, omitFields []string) microappError.DatabaseError
 	Delete(uow *UnitOfWork, out interface{}, where ...interface{}) microappError.DatabaseError
 	DeleteForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID) microappError.DatabaseError
 	DeletePermanent(uow *UnitOfWork, out interface{}, where ...interface{}) microappError.DatabaseError
@@ -375,9 +377,25 @@ func (repository *GormRepository) Add(uow *UnitOfWork, entity interface{}) micro
 	return nil
 }
 
+// AddWithOmit add specified Entity by omits passed fields
+func (repository *GormRepository) AddWithOmit(uow *UnitOfWork, entity interface{}, omitFields []string) microappError.DatabaseError {
+	if err := uow.DB.Omit(omitFields...).Create(entity).Error; err != nil {
+		return microappError.NewDatabaseError(err)
+	}
+	return nil
+}
+
 // Update specified Entity
 func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) microappError.DatabaseError {
 	if err := uow.DB.Model(entity).Updates(entity).Error; err != nil {
+		return microappError.NewDatabaseError(err)
+	}
+	return nil
+}
+
+// UpdateWithOmit updates specified Entity by omits passed fields
+func (repository *GormRepository) UpdateWithOmit(uow *UnitOfWork, entity interface{}, omitFields []string) microappError.DatabaseError {
+	if err := uow.DB.Model(entity).Omit(omitFields...).Updates(entity).Error; err != nil {
 		return microappError.NewDatabaseError(err)
 	}
 	return nil
