@@ -377,7 +377,7 @@ func (repository *GormRepository) Add(uow *UnitOfWork, entity interface{}) micro
 	return nil
 }
 
-// AddWithOmit add specified Entity by omits passed fields
+// AddWithOmit add specified Entity by omitting passed fields
 func (repository *GormRepository) AddWithOmit(uow *UnitOfWork, entity interface{}, omitFields []string) microappError.DatabaseError {
 	if err := uow.DB.Omit(omitFields...).Create(entity).Error; err != nil {
 		return microappError.NewDatabaseError(err)
@@ -393,7 +393,7 @@ func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) mi
 	return nil
 }
 
-// UpdateWithOmit updates specified Entity by omits passed fields
+// UpdateWithOmit updates specified Entity by omitting passed fields
 func (repository *GormRepository) UpdateWithOmit(uow *UnitOfWork, entity interface{}, omitFields []string) microappError.DatabaseError {
 	if err := uow.DB.Model(entity).Omit(omitFields...).Updates(entity).Error; err != nil {
 		return microappError.NewDatabaseError(err)
