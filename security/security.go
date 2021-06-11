@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/islax/microapp/config"
@@ -51,7 +52,7 @@ func validateTokenHeader(config *config.Config, tokenHeader string) (*JwtToken, 
 	tokenPart := splitted[1] //Grab the token part, what we are truly interested in
 	tk := &JwtToken{}
 
-	pubkeyBytes, _ := ioutil.ReadFile(config.GetString("JWT_PUBLIC_KEY_PATH"))
+	pubkeyBytes, _ := ioutil.ReadFile(os.Getenv("ISLA_JWT_PUBLIC_KEY_PATH"))
 	jwtPublicKey, _ := jwt.ParseRSAPublicKeyFromPEM(pubkeyBytes)
 
 	token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
