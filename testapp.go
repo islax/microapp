@@ -1,6 +1,8 @@
 package microapp
 
 import (
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -93,9 +95,11 @@ func (testApp *TestApp) GetFullToken(tenantID string, userID string, username st
 
 // generateToken generates and return token
 func (testApp *TestApp) generateToken(tenantID string, userID string, username string, name string, externalID string, externalIDType string, scope []string, admin bool) string {
-	hmacSampleSecret := []byte(testApp.application.Config.GetString("ISLA_JWT_SECRET"))
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	signBytes, err := ioutil.ReadFile("certs/star.dev.local.key")
+	fmt.Println(err)
+	jwtSecret, err := jwt.ParseRSAPrivateKeyFromPEM(signBytes)
+	fmt.Println(err)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS512, jwt.MapClaims{
 		"iss":              "http://isla.cyberinc.com",
 		"aud":              "http://isla.cyberinc.com",
 		"iat":              time.Now().Unix(),
@@ -112,7 +116,7 @@ func (testApp *TestApp) generateToken(tenantID string, userID string, username s
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(hmacSampleSecret)
+	tokenString, err := token.SignedString(jwtSecret)
 
 	if err != nil {
 		panic(err)
