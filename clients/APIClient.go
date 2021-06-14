@@ -39,7 +39,7 @@ func (apiClient *APIClient) DoRequestBasic(context microappCtx.ExecutionContext,
 
 	payloadAsIOReader, err := apiClient.getJSONRequestBody(payload)
 	if err != nil {
-		return nil, microappError.NewAPIClientError(apiURL, nil, nil, fmt.Errorf("Unable to encode payload: %w", err))
+		return nil, microappError.NewAPIClientError(apiURL, nil, nil, fmt.Errorf("unable to encode payload: %w", err))
 	}
 
 	// Not checking for error here, as request and apiURL are internal values and body is already checked for err above.
@@ -61,7 +61,7 @@ func (apiClient *APIClient) DoRequestBasic(context microappCtx.ExecutionContext,
 
 	response, err := apiClient.HTTPClient.Do(request)
 	if err != nil {
-		return nil, microappError.NewAPIClientError(apiURL, nil, nil, fmt.Errorf("Unable to invoke API: %w", err))
+		return nil, microappError.NewAPIClientError(apiURL, nil, nil, fmt.Errorf("unable to invoke API: %w", err))
 	}
 
 	return response, nil
@@ -78,7 +78,7 @@ func (apiClient *APIClient) DoRequestProxy(context microappCtx.ExecutionContext,
 
 	request, err := http.NewRequest(r.Method, apiURL, r.Body)
 	if err != nil {
-		return nil, microappError.NewAPIClientError(apiURL, nil, nil, fmt.Errorf("Unable to create HTTP request: %w", err))
+		return nil, microappError.NewAPIClientError(apiURL, nil, nil, fmt.Errorf("unable to create HTTP request: %w", err))
 	}
 
 	request.Header.Set("X-Client", apiClient.AppName)
@@ -97,13 +97,13 @@ func (apiClient *APIClient) DoRequestProxy(context microappCtx.ExecutionContext,
 
 	response, err := apiClient.HTTPClient.Do(request)
 	if err != nil {
-		return nil, microappError.NewAPIClientError(apiURL, nil, nil, fmt.Errorf("Unable to invoke API: %w", err))
+		return nil, microappError.NewAPIClientError(apiURL, nil, nil, fmt.Errorf("unable to invoke API: %w", err))
 	}
 	return response, nil
 }
 
 // DoRequestWithResponseParam do request with response param
-func (apiClient *APIClient) DoRequestWithResponseParam(context microappCtx.ExecutionContext, url string, requestMethod string, rawToken string, payload map[string]interface{}, out interface{}) microappError.APIClientError {
+func (apiClient *APIClient) DoRequestWithResponseParam(context microappCtx.ExecutionContext, url string, requestMethod string, rawToken string, payload interface{}, out interface{}) microappError.APIClientError {
 	apiURL := apiClient.BaseURL + url
 
 	response, apiClientErr := apiClient.DoRequestBasic(context, url, requestMethod, rawToken, payload)
@@ -116,12 +116,12 @@ func (apiClient *APIClient) DoRequestWithResponseParam(context microappCtx.Execu
 		if responseBodyBytes, err := ioutil.ReadAll(response.Body); err == nil {
 			responseBodyString = string(responseBodyBytes)
 		}
-		return microappError.NewAPIClientError(apiURL, &response.StatusCode, &responseBodyString, fmt.Errorf("Received non-success code: %v", response.StatusCode))
+		return microappError.NewAPIClientError(apiURL, &response.StatusCode, &responseBodyString, fmt.Errorf("received non-success code: %v", response.StatusCode))
 	}
 
 	if out != nil {
 		if err := json.NewDecoder(response.Body).Decode(out); err != nil {
-			return microappError.NewAPIClientError(apiURL, &response.StatusCode, nil, fmt.Errorf("Unable parse response payload: %w", err))
+			return microappError.NewAPIClientError(apiURL, &response.StatusCode, nil, fmt.Errorf("unable parse response payload: %w", err))
 		}
 	}
 	return nil
@@ -141,12 +141,12 @@ func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url 
 		if responseBodyBytes, err := ioutil.ReadAll(response.Body); err == nil {
 			responseBodyString = string(responseBodyBytes)
 		}
-		return nil, microappError.NewAPIClientError(apiURL, &response.StatusCode, &responseBodyString, fmt.Errorf("Received non-success code: %v", response.StatusCode))
+		return nil, microappError.NewAPIClientError(apiURL, &response.StatusCode, &responseBodyString, fmt.Errorf("received non-success code: %v", response.StatusCode))
 	}
 
 	var mapResponse interface{}
 	if err := json.NewDecoder(response.Body).Decode(&mapResponse); err != nil {
-		return nil, microappError.NewAPIClientError(apiURL, &response.StatusCode, nil, fmt.Errorf("Unable parse response payload: %w", err))
+		return nil, microappError.NewAPIClientError(apiURL, &response.StatusCode, nil, fmt.Errorf("unable parse response payload: %w", err))
 	}
 
 	return mapResponse, nil
@@ -161,7 +161,7 @@ func (apiClient *APIClient) DoGet(context microappCtx.ExecutionContext, requestS
 
 	mapResponse, ok := response.(map[string]interface{})
 	if !ok {
-		return nil, errors.New("Could not parse Json to map")
+		return nil, errors.New("could not parse Json to map")
 	}
 	return mapResponse, nil
 }
@@ -174,7 +174,7 @@ func (apiClient *APIClient) DoGetList(context microappCtx.ExecutionContext, requ
 	}
 	sliceOfGenericObjects, ok := response.([]interface{})
 	if !ok {
-		return nil, errors.New("Could not parse Json to map")
+		return nil, errors.New("could not parse Json to map")
 	}
 	var sliceOfMapObjects []map[string]interface{}
 	for _, obj := range sliceOfGenericObjects {
@@ -182,7 +182,7 @@ func (apiClient *APIClient) DoGetList(context microappCtx.ExecutionContext, requ
 		if ok {
 			sliceOfMapObjects = append(sliceOfMapObjects, mapObject)
 		} else {
-			return nil, errors.New("Could not parse Json to map")
+			return nil, errors.New("could not parse Json to map")
 		}
 	}
 	return sliceOfMapObjects, nil
@@ -197,7 +197,7 @@ func (apiClient *APIClient) DoPost(context microappCtx.ExecutionContext, request
 
 	mapResponse, ok := response.(map[string]interface{})
 	if !ok {
-		return nil, errors.New("Could not parse Json to map")
+		return nil, errors.New("could not parse Json to map")
 	}
 	return mapResponse, nil
 }
