@@ -168,7 +168,9 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 
 	//prometheus
 	if app.Config.GetBool(config.EvSuffixForEnableMetrics) {
-		metrics.RegisterGormMetrics(app.DB, app.Config)
+		if app.Config.GetBool(config.EvSuffixForDBRequired) {
+			metrics.RegisterGormMetrics(app.DB, app.Config)
+		}
 		// Create our middleware.
 		mdlw := middleware.New(middleware.Config{
 			Recorder: prometheusmetrics.NewRecorder(prometheusmetrics.Config{}),
