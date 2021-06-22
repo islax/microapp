@@ -1,6 +1,7 @@
 package security
 
 import (
+	"fmt"
 	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -55,6 +56,8 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 }
 
 func isScopePresent(scopes []string, scopeToCheck []string) bool {
+	fmt.Println("scopes --> ", scopes)
+	fmt.Println("scopeToCheck --> ", scopeToCheck)
 	if ok, _ := inArray("*", scopes); ok {
 		return true
 	}
@@ -63,6 +66,7 @@ func isScopePresent(scopes []string, scopeToCheck []string) bool {
 		if ok, _ := inArray(allowedScope, scopes); !ok {
 			scopeParts := strings.Split(allowedScope, ":")
 			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
+				fmt.Println("for loop scopeParts --> ", scopeParts)
 				if ok, _ := inArray("*:"+scopeParts[1], scopes); !ok {
 					allScopesMatched = false
 				}
