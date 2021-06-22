@@ -20,6 +20,9 @@ var scopeCombinations = []struct {
 	{[]string{"-user:read", "*"}, []string{"user:read", "user:write"}, true},
 	{[]string{"user:read", "*"}, []string{"user:read", "user:write"}, true},
 	{[]string{"user:read", "user:write", "user:delete"}, []string{"user:read", "user:write"}, true},
+	{[]string{"*"}, []string{"*"}, true},
+	{[]string{"user:read"}, []string{"*"}, false},
+	{[]string{"user:read", "*"}, []string{"*"}, true},
 }
 
 func TestScopes(t *testing.T) {
