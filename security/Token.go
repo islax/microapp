@@ -66,6 +66,12 @@ func isScopePresent(scopes []string, scopeToCheck []string) bool {
 	for _, allowedScope := range scopeToCheck {
 		if ok, _ := inArray(allowedScope, scopes); !ok {
 			scopeParts := strings.Split(allowedScope, ":")
+			if len(scopeParts) == 1 {
+				if ok, _ := inArray(scopeParts[0], scopes); !ok {
+					allScopesMatched = false
+				}
+				continue
+			}
 			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
 				fmt.Println("for loop scopeParts --> ", scopeParts)
 				if ok, _ := inArray("*:"+scopeParts[1], scopes); !ok {
