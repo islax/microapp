@@ -1,7 +1,6 @@
 package security
 
 import (
-	"fmt"
 	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -47,18 +46,14 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 	}
 
 	if len(nonPermissiveTokenScopes) > 0 && len(allowedScopes) > 0 {
-		fmt.Println("Negative scopes")
 		if isScopePresent(nonPermissiveTokenScopes, allowedScopes) {
 			return false
 		}
 	}
-	fmt.Println("Positive scopes")
 	return isScopePresent(permissiveTokenScopes, allowedScopes)
 }
 
 func isScopePresent(scopes []string, scopeToCheck []string) bool {
-	fmt.Println("scopes --> ", scopes)
-	fmt.Println("scopeToCheck --> ", scopeToCheck)
 	if ok, _ := inArray("*", scopes); ok {
 		return true
 	}
@@ -66,6 +61,7 @@ func isScopePresent(scopes []string, scopeToCheck []string) bool {
 	for _, allowedScope := range scopeToCheck {
 		if ok, _ := inArray(allowedScope, scopes); !ok {
 			scopeParts := strings.Split(allowedScope, ":")
+			// If the api scope only has 1 value with no separator, e.g []string{"*"}, then we need to check if both scopes are same
 			if len(scopeParts) == 1 {
 				if ok, _ := inArray(scopeParts[0], scopes); !ok {
 					allScopesMatched = false
@@ -73,7 +69,6 @@ func isScopePresent(scopes []string, scopeToCheck []string) bool {
 				continue
 			}
 			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
-				fmt.Println("for loop scopeParts --> ", scopeParts)
 				if ok, _ := inArray("*:"+scopeParts[1], scopes); !ok {
 					allScopesMatched = false
 				}
