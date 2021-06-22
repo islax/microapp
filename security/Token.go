@@ -47,11 +47,12 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 	}
 
 	if len(nonPermissiveTokenScopes) > 0 && len(allowedScopes) > 0 {
+		fmt.Println("Negative scopes")
 		if isScopePresent(nonPermissiveTokenScopes, allowedScopes) {
 			return false
 		}
 	}
-
+	fmt.Println("Positive scopes")
 	return isScopePresent(permissiveTokenScopes, allowedScopes)
 }
 
