@@ -56,11 +56,11 @@ func NewExecutionContext(token *security.JwtToken, correlationID string, action 
 			Str("correlationId", cid).Logger()
 
 		if len(token.ExternalID) > 0 {
-			executionCtxLogger.With().Str("externalId", token.ExternalID)
+			executionCtxLogger = executionCtxLogger.With().Str("externalId", token.ExternalID).Logger()
 		}
 
 		if len(token.ExternalIDType) > 0 {
-			executionCtxLogger.With().Str("externalIdType", token.ExternalIDType)
+			executionCtxLogger  = executionCtxLogger.With().Str("externalIdType", token.ExternalIDType).Logger()
 		}
 
 	} else {
