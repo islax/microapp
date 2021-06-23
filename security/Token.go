@@ -50,7 +50,6 @@ func (token *JwtToken) isValidForScope(allowedScopes []string) bool {
 			return false
 		}
 	}
-
 	return isScopePresent(permissiveTokenScopes, allowedScopes)
 }
 
@@ -62,6 +61,13 @@ func isScopePresent(scopes []string, scopeToCheck []string) bool {
 	for _, allowedScope := range scopeToCheck {
 		if ok, _ := inArray(allowedScope, scopes); !ok {
 			scopeParts := strings.Split(allowedScope, ":")
+			// If the api scope only has 1 value with no separator, e.g []string{"*"}, then we need to check if both scopes are same
+			if len(scopeParts) == 1 {
+				if ok, _ := inArray(scopeParts[0], scopes); !ok {
+					allScopesMatched = false
+				}
+				continue
+			}
 			if ok, _ := inArray(scopeParts[0]+":*", scopes); !ok {
 				if ok, _ := inArray("*:"+scopeParts[1], scopes); !ok {
 					allScopesMatched = false
