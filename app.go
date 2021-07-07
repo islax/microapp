@@ -70,19 +70,31 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 
 	var err error
 	var appEventDispatcher event.Dispatcher
+	// if appConfig.GetStringWithDefault("ENABLE_EVENT_DISPATCHER", "0") == "1" || appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
+	// 	if appEventDispatcher, err = event.NewRabbitMQEventDispatcher(consoleOnlyLogger); err != nil {
+	// 		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize event dispatcher to queue, exiting the application!")
+	// 	}
+	// 	if appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
+	// 		multiWriters = io.MultiWriter(os.Stdout, event.NewEventQWriter(appEventDispatcher))
+	// 		if appConfig.GetString("FORMAT_CONSOLE_LOG") == "true" {
+	// 			multiWriters = io.MultiWriter(consoleWriter, event.NewEventQWriter(appEventDispatcher))
+	// 		}
+	// 	}
+	// } else {
+	// 	consoleOnlyLogger.Warn().Msg("Event dispatcher not enabled. Please set ISLA_ENABLE_EVENT_DISPATCHER or ISLA_LOG_TO_EVENTQ to '1' to enable it.")
+	// }
+
 	if appConfig.GetStringWithDefault("ENABLE_EVENT_DISPATCHER", "0") == "1" || appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
 		if appEventDispatcher, err = event.NewRabbitMQEventDispatcher(consoleOnlyLogger); err != nil {
 			consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize event dispatcher to queue, exiting the application!")
 		}
 		if appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
-			multiWriters = io.MultiWriter(os.Stdout, event.NewEventQWriter(appEventDispatcher))
-			if appConfig.GetString("FORMAT_CONSOLE_LOG") == "true" {
-				multiWriters = io.MultiWriter(consoleWriter, event.NewEventQWriter(appEventDispatcher))
-			}
+			multiWriters = io.MultiWriter(consoleWriter, event.NewEventQWriter(appEventDispatcher))
 		}
 	} else {
 		consoleOnlyLogger.Warn().Msg("Event dispatcher not enabled. Please set ISLA_ENABLE_EVENT_DISPATCHER or ISLA_LOG_TO_EVENTQ to '1' to enable it.")
 	}
+
 	//TODO: default module to system
 	appLogger := log.New(appName, appConfig.GetString("LOG_LEVEL"), multiWriters)
 	//TODO: Need to wait till eventDispatcher is ready
