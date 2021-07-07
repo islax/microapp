@@ -85,13 +85,17 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 	// }
 
 	if appConfig.GetStringWithDefault("ENABLE_EVENT_DISPATCHER", "0") == "1" || appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
+		fmt.Println("NewWithEnvValues", "1")
 		if appEventDispatcher, err = event.NewRabbitMQEventDispatcher(consoleOnlyLogger); err != nil {
+			fmt.Println("NewWithEnvValues", "2")
 			consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize event dispatcher to queue, exiting the application!")
 		}
 		if appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
+			fmt.Println("NewWithEnvValues", "3")
 			multiWriters = io.MultiWriter(consoleWriter, event.NewEventQWriter(appEventDispatcher))
 		}
 	} else {
+		fmt.Println("NewWithEnvValues", "4")
 		consoleOnlyLogger.Warn().Msg("Event dispatcher not enabled. Please set ISLA_ENABLE_EVENT_DISPATCHER or ISLA_LOG_TO_EVENTQ to '1' to enable it.")
 	}
 
