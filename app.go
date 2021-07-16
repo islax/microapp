@@ -71,7 +71,11 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 	var err error
 	var appEventDispatcher event.Dispatcher
 	if appConfig.GetStringWithDefault("ENABLE_EVENT_DISPATCHER", "0") == "1" || appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {
-		if appEventDispatcher, err = event.NewEventDispatcher(consoleOnlyLogger, event.NewRabbitMQPublisher(consoleOnlyLogger)); err != nil {
+		eventPublisher, err := event.NewEventPublisher(appConfig, consoleOnlyLogger)
+		if err != nil {
+			consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize queue publisher, exiting the application!")
+		}
+		if appEventDispatcher, err = event.NewEventDispatcher(consoleOnlyLogger, eventPublisher); err != nil {
 			consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize event dispatcher to queue, exiting the application!")
 		}
 		if appConfig.GetStringWithDefault("LOG_TO_EVENTQ", "0") == "1" {

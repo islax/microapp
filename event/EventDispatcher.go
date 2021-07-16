@@ -3,9 +3,12 @@ package event
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/islax/microapp/config"
+	"github.com/islax/microapp/event/constants"
 	"github.com/rs/zerolog"
 )
 
@@ -123,5 +126,18 @@ func (eventDispatcher *EventDispatcher) connector() {
 			eventDispatcher.Queue.connect()
 			eventDispatcher.connectionMutex.Unlock()
 		}
+	}
+}
+
+func NewEventPublisher(appConfig *config.Config, logger *zerolog.Logger) (Queue, error) {
+	switch appConfig.GetString(config.EvMessageBroker) {
+	case constants.QUEUE_RABBITMQ:
+		return NewRabbitMQPublisher(logger), nil
+	case constants.QUEUE_ACTIVEMQ:
+		return NewActiveMQPublisher(logger)
+	//case constants.QUEUE_AWSSQS:
+	//return NewSQSEventDispatcher(logger)
+	default:
+		return nil, fmt.Errorf("invalid message broker value %s. possible values are %s, %s, %s", appConfig.GetString("MESSAGE_BROKER"), constants.QUEUE_RABBITMQ, constants.QUEUE_ACTIVEMQ, constants.QUEUE_AWSSQS)
 	}
 }

@@ -42,4 +42,6 @@ const (
 	EvSuffixForEnableMetrics = "ENABLE_METRICS"
 	// EvSuffixForGormMetricsRefresh environment variable name for gorm metrics refresh interval
 	EvSuffixForGormMetricsRefresh = "GORM_METRICS_REFRESH_INTERVAL"
+	// EvMessageBroker environment variable name for message broker
+	EvMessageBroker = "MESSAGE_BROKER"
 )
