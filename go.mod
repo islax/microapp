@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210608223527-2377c96fe795 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/docker/distribution v2.7.0+incompatible // indirect
 	github.com/docker/docker v0.7.3-0.20190108045446-77df18c24acf // indirect
 	github.com/golang-migrate/migrate/v4 v4.2.1
