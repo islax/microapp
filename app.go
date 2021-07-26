@@ -2,9 +2,12 @@ package microapp
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -29,6 +32,7 @@ import (
 	gormmysqldriver "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
+	gomysqldriver "github.com/go-sql-driver/mysql"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	uuid "github.com/satori/go.uuid"
@@ -116,6 +120,10 @@ func (app *App) initializeDB() error {
 				dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: true}
 			}
 
+			if err = registerTLSconfig(app.Config.GetString("DB_SSL_CA_PATH"), app.Config.GetString("DB_SSL_CERT_PATH"), app.Config.GetString("DB_SSL_KEY_PATH")); err != nil {
+				app.log.Error().Err(err).Msgf("TLS config error [%v]. Trying again...", err)
+			}
+
 			sqlDB, err := sql.Open("mysql", app.GetConnectionString())
 			if err != nil {
 				app.log.Error().Err(err).Msgf("Error creating connection pool [%v]. Trying again...", err)
@@ -148,7 +156,7 @@ func (app *App) GetConnectionString() string {
 	dbUser := app.Config.GetString("DB_USER")
 	dbPassword := app.Config.GetString("DB_PWD")
 
-	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?multiStatements=true&charset=utf8&parseTime=True&loc=Local", dbUser, dbPassword, dbHost, dbPort, dbName)
+	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?multiStatements=true&charset=utf8&parseTime=True&loc=Local&tls=custom", dbUser, dbPassword, dbHost, dbPort, dbName)
 }
 
 // NewUnitOfWork creates new UnitOfWork
@@ -364,4 +372,26 @@ func (app *App) NewExecutionContextWithSystemToken(correlationID string, action 
 // GetCorrelationIDFromRequest returns correlationId from request header
 func GetCorrelationIDFromRequest(r *http.Request) string {
 	return r.Header.Get("X-Correlation-ID")
+}
+
+func registerTLSconfig(ssl_ca, ssl_cert, ssl_key string) error {
+	rootCertPool := x509.NewCertPool()
+	pem, err := ioutil.ReadFile(ssl_ca)
+	if err != nil {
+		return err
+	}
+	if ok := rootCertPool.AppendCertsFromPEM(pem); !ok {
+		return err
+	}
+	clientCert := make([]tls.Certificate, 0, 1)
+	certs, err := tls.LoadX509KeyPair(ssl_cert, ssl_key)
+	if err != nil {
+		return err
+	}
+	clientCert = append(clientCert, certs)
+	gomysqldriver.RegisterTLSConfig("custom", &tls.Config{
+		RootCAs:      rootCertPool,
+		Certificates: clientCert,
+	})
+	return nil
 }
