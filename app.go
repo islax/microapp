@@ -121,7 +121,7 @@ func (app *App) initializeDB() error {
 			}
 
 			if err = registerTLSconfig(app.Config.GetString("DB_SSL_CA_PATH"), app.Config.GetString("DB_SSL_CERT_PATH"), app.Config.GetString("DB_SSL_KEY_PATH")); err != nil {
-				app.log.Error().Err(err).Msgf("TLS config error [%v]. Trying again...", err)
+				app.log.Warn().Err(err).Msgf("TLS config error [%v]. Connecting without certificates", err)
 			}
 
 			sqlDB, err := sql.Open("mysql", app.GetConnectionString())
@@ -156,7 +156,7 @@ func (app *App) GetConnectionString() string {
 	dbUser := app.Config.GetString("DB_USER")
 	dbPassword := app.Config.GetString("DB_PWD")
 
-	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?multiStatements=true&charset=utf8&parseTime=True&loc=Local&tls=custom", dbUser, dbPassword, dbHost, dbPort, dbName)
+	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?multiStatements=true&charset=utf8&parseTime=True&loc=Local&tls=preferred", dbUser, dbPassword, dbHost, dbPort, dbName)
 }
 
 // NewUnitOfWork creates new UnitOfWork
