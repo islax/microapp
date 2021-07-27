@@ -3,7 +3,10 @@ package microapp
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
+	"runtime/debug"
+	"strings"
 
 	"time"
 
@@ -37,12 +40,28 @@ type App struct {
 // New creates a new microApp
 func New(appName string, appConfigOverride map[string]string, appLog *log.Logger, appDB *gorm.DB, appEventDispatcher event.EventDispatcher) *App {
 	appConfig := config.NewConfig(appConfigOverride)
+	printMicroAppVersion(appConfig)
 	return &App{Name: appName, Config: appConfig, log: appLog, DB: appDB, eventDispatcher: appEventDispatcher}
 }
 
 // NewUnitOfWork creates new UnitOfWork
 func (app *App) NewUnitOfWork(readOnly bool) *repository.UnitOfWork {
 	return repository.NewUnitOfWork(app.DB, readOnly)
+}
+
+func printMicroAppVersion(c *config.Config) {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		fmt.Println("Failed to read build info")
+		return
+	}
+
+	for _, dep := range bi.Deps {
+		if strings.Contains(dep.Path, "microapp") {
+			fmt.Println("Microapp Version:" + dep.Version)
+			break
+		}
+	}
 }
 
 //Initialize initializes properties of the app
