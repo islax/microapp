@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -56,6 +57,7 @@ type App struct {
 // NewWithEnvValues creates a new application with environment variable values for initializing database, event dispatcher and logger.
 func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) *App {
 	appConfig := config.NewConfig(appConfigDefaults)
+	printMicroAppVersion(appConfig)
 	log.InitializeGlobalSettings()
 	consoleWriter := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
 	consoleOnlyLogger := log.New(appName, appConfig.GetString("LOG_LEVEL"), os.Stdout)
@@ -158,6 +160,7 @@ func (app *App) NewUnitOfWork(readOnly bool, logger zerolog.Logger) *repository.
 
 //Initialize initializes properties of the app
 func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
+
 	logger := app.log
 	app.Router = mux.NewRouter()
 	app.Router.Use(mux.CORSMethodMiddleware(app.Router))
@@ -205,6 +208,7 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 
 //Start http server and start listening to the requests
 func (app *App) Start() {
+
 	if app.Config.GetString("ENABLE_TLS") == "true" {
 		app.StartSecure(app.Config.GetString("TLS_CRT"), app.Config.GetString("TLS_KEY"))
 	} else {
@@ -212,6 +216,21 @@ func (app *App) Start() {
 			if err != http.ErrServerClosed {
 				app.log.Fatal().Err(err).Msg("Unable to start server, exiting the application!")
 			}
+		}
+	}
+}
+
+func printMicroAppVersion(c *config.Config) {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		fmt.Printf("Failed to read build info")
+		return
+	}
+
+	for _, dep := range bi.Deps {
+		if strings.Contains(dep.Path, "microapp") {
+			fmt.Println("Microapp Version:" + dep.Version)
+			break
 		}
 	}
 }
