@@ -156,7 +156,7 @@ func (app *App) GetConnectionString() string {
 	dbUser := app.Config.GetString("DB_USER")
 	dbPassword := app.Config.GetString("DB_PWD")
 
-	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?multiStatements=true&charset=utf8&parseTime=True&loc=Local&tls=true", dbUser, dbPassword, dbHost, dbPort, dbName)
+	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?multiStatements=true&charset=utf8&parseTime=True&loc=Local&tls=preferred", dbUser, dbPassword, dbHost, dbPort, dbName)
 }
 
 // NewUnitOfWork creates new UnitOfWork
