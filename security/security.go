@@ -9,7 +9,7 @@ import (
 	"github.com/islax/microapp/config"
 	"github.com/islax/microapp/web"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
 )
 
 // Protect authenticates and makes sure that caller is authorized to make the call before
