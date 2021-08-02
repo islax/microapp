@@ -10,7 +10,7 @@ import (
 
 	uuid "github.com/satori/go.uuid"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite" // Used
 	log "github.com/sirupsen/logrus"

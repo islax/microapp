@@ -3,7 +3,7 @@ package security
 import (
 	"strings"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
 	uuid "github.com/satori/go.uuid"
 )
 
