@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/islax/microapp"
@@ -14,16 +15,15 @@ import (
 	microappLog "github.com/islax/microapp/log"
 	microappRepo "github.com/islax/microapp/repository"
 	microappSecurity "github.com/islax/microapp/security"
+	tenantService "github.com/islax/microapp/service"
+	tenantModel "github.com/islax/microapp/settingsmetadata/model"
 	microappWeb "github.com/islax/microapp/web"
-	tenantService "github.com/microapp/service"
-	tenantModel "github.com/microapp/settingsmetadata/model"
-	tenantsettingsRepo "github.com/microapp/settingsmetadata/repository"
 	uuid "github.com/satori/go.uuid"
 )
 
 // NewPolicyProfileController creates a new policy profile controller
-func NewSettingsMetadataController(app *microapp.App, repository microappRepo.Repository, tenantRepo tenantsettingsRepo.TenantSettingsRepository) *SettingsMetadataController {
-	controller := &SettingsMetadataController{app: app, repository: tenantRepo}
+func NewSettingsMetadataController(app *microapp.App, repository microappRepo.Repository) *SettingsMetadataController {
+	controller := &SettingsMetadataController{app: app, repository: repository}
 	return controller
 
 }
@@ -37,19 +37,44 @@ type SettingsMetadataController struct {
 // RegisterRoutes implements interface RouteSpecifier
 func (controller *SettingsMetadataController) RegisterRoutes(muxRouter *mux.Router) {
 	apiRouter := muxRouter.PathPrefix("/api").Subrouter()
-	policySettingsRouter := apiRouter.PathPrefix("/policyengine").Subrouter()
+	policySettingsRouter := apiRouter.PathPrefix(fmt.Sprintf("/%s", strings.ToLower(controller.app.Name))).Subrouter()
 
-	policySettingsMetadataRouter := policySettingsRouter.PathPrefix("/settings-metadata").Subrouter()
-	policySettingsMetadataRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.getPolicySettingsMetadata, []string{"settingsmetadata:read"}, false)).Methods("GET")
+	settingsMetadataRouter := policySettingsRouter.PathPrefix("/settings-metadata").Subrouter()
+	settingsMetadataRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.getSettingsMetadata, []string{"settingsmetadata:read"}, false)).Methods("GET")
 
-	policyTenantSettingsRouter := policySettingsRouter.PathPrefix("/tenants/{id}").Subrouter()
-	policyTenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.get, []string{"tenantsettings:read"}, false)).Methods("GET")
-	policyTenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.update, []string{"tenantsettings:write"}, false)).Methods("PUT")
-	policyTenantSettingsRouter.HandleFunc("/{settingName}", microappSecurity.Protect(controller.app.Config, controller.getByName, []string{"tenantsettings:read"}, false)).Methods("GET")
+	globalSettingsMetadataRouter := policySettingsRouter.PathPrefix("/global-settings-metadata").Subrouter()
+	globalSettingsMetadataRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.getGlobalSettingsMetadata, []string{"settingsmetadata:read"}, false)).Methods("GET")
+
+	tenantSettingsRouter := policySettingsRouter.PathPrefix("/tenants/{id}").Subrouter()
+	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.get, []string{"tenantsettings:read"}, false)).Methods("GET")
+	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.update, []string{"tenantsettings:write"}, false)).Methods("PUT")
+	tenantSettingsRouter.HandleFunc("/{settingName}", microappSecurity.Protect(controller.app.Config, controller.getByName, []string{"tenantsettings:read"}, false)).Methods("GET")
 
 }
 
-func (controller *SettingsMetadataController) getPolicySettingsMetadata(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
+func (controller *SettingsMetadataController) getGlobalSettingsMetadata(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
+	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "globalsettingsmetadata.get", false, false)
+
+	var settingsmetadata []map[string]interface{}
+	jsonFile, err := os.Open(controller.app.Config.GetString("GLOBAL_SETTINGS_METADATA_PATH"))
+	if err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "opening global-settings-metadata config file."))
+		microappWeb.RespondError(w, err)
+		return
+	}
+	defer jsonFile.Close()
+	byteValue, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "reading global settings config file."))
+		microappWeb.RespondError(w, err)
+		return
+	}
+	json.Unmarshal(byteValue, &settingsmetadata)
+
+	microappWeb.RespondJSON(w, http.StatusOK, settingsmetadata)
+}
+
+func (controller *SettingsMetadataController) getSettingsMetadata(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
 	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "settingsmetadata.get", false, false)
 
 	var settingsmetadata []map[string]interface{}
@@ -196,8 +221,8 @@ func (controller *SettingsMetadataController) getByName(w http.ResponseWriter, r
 	microappWeb.RespondJSON(w, http.StatusOK, settingsParameter)
 }
 
-func (controller *SettingsMetadataController) getTenant(context microappCtx.ExecutionContext, uow *microappRepo.UnitOfWork, repository microappRepo.Repository, tenantID uuid.UUID) (*tenantModel.Tenant, error) {
-	tenant := tenantModel.Tenant{}
+func (controller *SettingsMetadataController) getTenant(context microappCtx.ExecutionContext, uow *microappRepo.UnitOfWork, repository microappRepo.Repository, tenantID uuid.UUID) (*tenantModel.TenantSettings, error) {
+	tenant := tenantModel.TenantSettings{}
 	queryProcessor := []microappRepo.QueryProcessor{}
 	queryProcessor = append(queryProcessor, microappRepo.Filter("id = ?", tenantID))
 	if err := repository.GetFirst(uow, &tenant, queryProcessor); err != nil {
@@ -211,7 +236,7 @@ func (controller *SettingsMetadataController) getTenant(context microappCtx.Exec
 	return &tenant, nil
 }
 
-func toDTO(tenant *tenantModel.Tenant) tenantDTO {
+func toDTO(tenant *tenantModel.TenantSettings) tenantDTO {
 	settings := make(map[string]interface{})
 	json.Unmarshal([]byte(tenant.Settings), &settings)
 	return tenantDTO{
