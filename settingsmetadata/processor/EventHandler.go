@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/islax/microapp"
+	"github.com/islax/microapp/config"
 	microappCtx "github.com/islax/microapp/context"
 	"github.com/islax/microapp/event/monitor"
 	microappLog "github.com/islax/microapp/log"
@@ -32,7 +33,7 @@ func NewEventHandler(app *microapp.App, repository microappRepo.Repository, even
 func (handler *EventHandler) Start() {
 	for eventPayload := range handler.eventChannel {
 		switch eventPayload.Name {
-		case "tenant.added":
+		case "tenant.added", "globalsettings.initialize":
 			handler.processTenantAdd(eventPayload)
 		case "tenant.deleted":
 			handler.processTenantDelete(eventPayload)
@@ -54,8 +55,14 @@ func (handler *EventHandler) createTenantSettingsMetadata(uow *microappRepo.Unit
 	eventData := make(map[string]interface{})
 	var settingsmetadata []tenantModel.SettingsMetaData
 	var tenantID uuid.UUID
+	configPath := config.EvSuffixForSettingsMetadataPath
 
-	jsonFile, err := os.Open(handler.app.Config.GetString("SETTINGS_METADATA_PATH"))
+	json.Unmarshal([]byte(eventPayload.Payload), &eventData)
+	tenantID, _ = uuid.FromString(eventData["id"].(string))
+	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
+		configPath = config.EvSuffixForGlobalSettingsMetadataPath
+	}
+	jsonFile, err := os.Open(handler.app.Config.GetString(configPath))
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "opening settings-metadata config file."))
 		return
@@ -63,13 +70,11 @@ func (handler *EventHandler) createTenantSettingsMetadata(uow *microappRepo.Unit
 	defer jsonFile.Close()
 	byteValue, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "reading tenant role config file."))
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "reading settings-metadata config file."))
 		return
 	}
 	json.Unmarshal(byteValue, &settingsmetadata)
 
-	json.Unmarshal([]byte(eventPayload.Payload), &eventData)
-	tenantID, _ = uuid.FromString(eventData["id"].(string))
 	tenant, err := tenantModel.NewTenant(context, tenantID, settingsmetadata)
 	if err != nil {
 		context.LogError(err, "Unable to add new tenant.")

@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/islax/microapp"
+	"github.com/islax/microapp/config"
 	microappCtx "github.com/islax/microapp/context"
 	microappError "github.com/islax/microapp/error"
 	microappLog "github.com/islax/microapp/log"
@@ -56,7 +57,7 @@ func (controller *SettingsMetadataController) getGlobalSettingsMetadata(w http.R
 	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "globalsettingsmetadata.get", false, false)
 
 	var settingsmetadata []map[string]interface{}
-	jsonFile, err := os.Open(controller.app.Config.GetString("GLOBAL_SETTINGS_METADATA_PATH"))
+	jsonFile, err := os.Open(controller.app.Config.GetString(config.EvSuffixForGlobalSettingsMetadataPath))
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "opening global-settings-metadata config file."))
 		microappWeb.RespondError(w, err)
@@ -78,7 +79,7 @@ func (controller *SettingsMetadataController) getSettingsMetadata(w http.Respons
 	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "settingsmetadata.get", false, false)
 
 	var settingsmetadata []map[string]interface{}
-	jsonFile, err := os.Open(controller.app.Config.GetString("SETTINGS_METADATA_PATH"))
+	jsonFile, err := os.Open(controller.app.Config.GetString(config.EvSuffixForSettingsMetadataPath))
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "opening settings-metadata config file."))
 		microappWeb.RespondError(w, err)
@@ -125,7 +126,7 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 	defer uow.Complete()
 	params := mux.Vars(r)
 	stringTenantID := params["id"]
-
+	configPath := config.EvSuffixForSettingsMetadataPath
 	var reqDTO tenantDTO
 	if err := microappWeb.UnmarshalJSON(r, &reqDTO); err != nil {
 		context.LogJSONParseError(err)
@@ -146,8 +147,11 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 		return
 	}
 
+	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
+		configPath = config.EvSuffixForGlobalSettingsMetadataPath
+	}
 	var settingsmetadata []tenantModel.SettingsMetaData
-	jsonFile, err := os.Open(controller.app.Config.GetString("SETTINGS_METADATA_PATH"))
+	jsonFile, err := os.Open(controller.app.Config.GetString(configPath))
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "opening settings-metadata config file."))
 		return
