@@ -149,6 +149,7 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 
 	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
 		configPath = config.EvSuffixForGlobalSettingsMetadataPath
+		uow.DB = uow.DB.Where("id = ?", tenantID.String())
 	}
 	var settingsmetadata []tenantModel.SettingsMetaData
 	jsonFile, err := os.Open(controller.app.Config.GetString(configPath))
