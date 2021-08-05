@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 
 	microappCtx "github.com/islax/microapp/context"
 	microappError "github.com/islax/microapp/error"
@@ -47,6 +48,25 @@ func (tenant *TenantSettings) GetSettings() (map[string]interface{}, error) {
 		return nil, err
 	}
 	return settings, nil
+}
+
+// GetSettingsMap
+func (tenant *TenantSettings) GetSettingsMap() (map[string]string, error) {
+	if tenant.Settings == "" {
+		return map[string]string{}, nil
+	}
+
+	settings := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(tenant.Settings), &settings); err != nil {
+		return map[string]string{}, err
+	}
+
+	settingsVal := make(map[string]string)
+	for key, val := range settings {
+		valueMap := val.(map[string]interface{})
+		settingsVal[key] = fmt.Sprintf("%v", valueMap["value"])
+	}
+	return settingsVal, nil
 }
 
 // SetTenantSettings updates the tenant settings
