@@ -38,12 +38,12 @@ func (tenant *TenantSettings) Update(configuration map[string]interface{}, metad
 }
 
 // GetSettings gets unmarshalled settings for tenant
-func (tenant *TenantSettings) GetSettings() (map[string]interface{}, error) {
+func (tenant *TenantSettings) GetSettings() (map[string]string, error) {
 	if tenant.Settings == "" {
-		return map[string]interface{}{}, nil
+		return map[string]string{}, nil
 	}
 
-	settings := make(map[string]interface{})
+	settings := make(map[string]string)
 	if err := json.Unmarshal([]byte(tenant.Settings), &settings); err != nil {
 		return nil, err
 	}

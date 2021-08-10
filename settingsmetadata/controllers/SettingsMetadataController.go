@@ -191,7 +191,7 @@ func (controller *SettingsMetadataController) getByName(w http.ResponseWriter, r
 
 	params := mux.Vars(r)
 	stringTenantID := params["id"]
-	var settingsName interface{}
+	//var settingsName interface{}
 	tenantID, err := tenantService.GetTenantIDFromToken().GetTenantIDAsUUID(params, token, stringTenantID)
 	if err != nil {
 		context.LogError(err, microappLog.MessageUnableToFindURLResource)
@@ -212,16 +212,17 @@ func (controller *SettingsMetadataController) getByName(w http.ResponseWriter, r
 		return
 	}
 
-	for key, settingsValue := range settings {
-		value := settingsValue.(map[string]interface{})
-		requiredValue := value["value"]
-		if params["settingName"] == key {
-			settingsName = requiredValue
-			break
+	/*
+		for key, settingsValue := range settings {
+			value := settingsValue.(map[string]interface{})
+			requiredValue := value["value"]
+			if params["settingName"] == key {
+				settingsName = requiredValue
+				break
+			}
 		}
-	}
-
-	settingsParameter := map[string]interface{}{params["settingName"]: settingsName}
+	*/
+	settingsParameter := map[string]interface{}{params["settingName"]: settings[params["settingName"]]}
 	microappWeb.RespondJSON(w, http.StatusOK, settingsParameter)
 }
 
