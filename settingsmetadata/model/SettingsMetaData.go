@@ -23,8 +23,8 @@ type SettingsMetaData struct {
 	MaxValue        float32 `json:"maxValue"`
 	MinValue        float32 `json:"minValue"`
 	Hidden          bool    `json:"hidden"`
-	//Access          string  `json:"access"`
-	//DefaultAccess   string  `json:"defaultAccess"`
+	//Access          string  `json:"access"` //remove this function before sending Merge request
+	//DefaultAccess   string  `json:"defaultAccess"`//remove this function before sending Merge request
 }
 
 func inArray(val string, array []string) (ok bool, i int) {
@@ -37,6 +37,8 @@ func inArray(val string, array []string) (ok bool, i int) {
 }
 
 /*
+
+
 func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface{}, error) {
 	errors := make(map[string]string)
 	var stringValue string
