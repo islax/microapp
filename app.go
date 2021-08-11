@@ -18,7 +18,7 @@ import (
 
 	"time"
 
-	migrate "github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	"github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/gorilla/mux"
@@ -157,8 +157,12 @@ func (app *App) GetConnectionString() string {
 	dbPort := app.Config.GetString("DB_PORT")
 	dbUser := app.Config.GetString("DB_USER")
 	dbPassword := app.Config.GetString("DB_PWD")
+	dbTLSMode := app.Config.GetString("DB_TLS_MODE")
+	if dbTLSMode != "custom" && dbTLSMode != "preferred" {
+		dbTLSMode = "preferred"
+	}
 
-	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?multiStatements=true&charset=utf8&parseTime=True&loc=Local&tls=preferred", dbUser, dbPassword, dbHost, dbPort, dbName)
+	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?multiStatements=true&charset=utf8&parseTime=True&loc=Local&tls=%s", dbUser, dbPassword, dbHost, dbPort, dbName, dbTLSMode)
 }
 
 // NewUnitOfWork creates new UnitOfWork
