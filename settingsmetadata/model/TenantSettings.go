@@ -20,7 +20,7 @@ type TenantSettings struct {
 func NewTenant(context microappCtx.ExecutionContext, tenantID uuid.UUID, metadata []SettingsMetaData) (*TenantSettings, error) {
 	tenant := &TenantSettings{}
 	tenant.ID = tenantID
-	if err := tenant.SetTenantSettingsAndAccess(metadata, map[string]interface{}{}); err != nil {
+	if err := tenant.SetTenantSettings(metadata, map[string]interface{}{}); err != nil {
 		return nil, err
 	}
 	return tenant, nil
@@ -29,7 +29,7 @@ func NewTenant(context microappCtx.ExecutionContext, tenantID uuid.UUID, metadat
 // Update tenant data
 func (tenant *TenantSettings) Update(configuration map[string]interface{}, metadatas []SettingsMetaData) error {
 	if configuration != nil {
-		if err := tenant.SetTenantSettingsAndAccess(metadatas, configuration); err != nil {
+		if err := tenant.SetTenantSettings(metadatas, configuration); err != nil {
 			return err
 		}
 	}
@@ -70,7 +70,7 @@ func (tenant *TenantSettings) GetSettingsMap() (map[string]string, error) {
 }
 
 // SetTenantSettings updates the tenant settings
-func (tenant *TenantSettings) SetTenantSettingsAndAccess(metadatas []SettingsMetaData, values map[string]interface{}) error {
+func (tenant *TenantSettings) SetTenantSettings(metadatas []SettingsMetaData, values map[string]interface{}) error {
 	finalValues := make(map[string]interface{})
 	errors := make(map[string]string)
 	defaultValues, _ := tenant.GetSettings()
@@ -81,7 +81,10 @@ func (tenant *TenantSettings) SetTenantSettingsAndAccess(metadatas []SettingsMet
 			if err != nil {
 				mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
 			} else {
-				finalValues[metadata.Code] = finalValue
+				finalValueStr := fmt.Sprintf("%v", finalValue)
+				if finalValueStr != "" && finalValueStr != metadata.Default {
+					finalValues[metadata.Code] = finalValue
+				}
 			}
 		} else {
 			defaultValue, ok := defaultValues[metadata.Code]
@@ -92,14 +95,14 @@ func (tenant *TenantSettings) SetTenantSettingsAndAccess(metadatas []SettingsMet
 				} else {
 					finalValues[metadata.Code] = finalValue
 				}
-			} else {
+			} /*else {
 				finalValue, err := metadata.ParseAndValidate(nil)
 				if err != nil {
 					mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
 				} else {
 					finalValues[metadata.Code] = finalValue
 				}
-			}
+			}*/
 		}
 	}
 	if len(errors) > 0 {

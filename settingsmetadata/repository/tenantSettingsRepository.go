@@ -1,7 +1,6 @@
 package repository
 
 import (
-	microappError "github.com/islax/microapp/error"
 	"github.com/islax/microapp/repository"
 	"github.com/islax/microapp/settingsmetadata/model"
 	uuid "github.com/satori/go.uuid"
@@ -26,10 +25,9 @@ func (tenantRepository *gormTenantSettingsRepository) GetTenantSettings(uow *rep
 	tenant := model.TenantSettings{}
 	queryProcessor := []repository.QueryProcessor{repository.Filter("id = ?", tenantID)}
 	if err := tenantRepository.GetFirst(uow, &tenant, queryProcessor); err != nil {
-		if err.IsRecordNotFoundError() {
-			return nil, microappError.NewHTTPResourceNotFound("tenant", tenantID.String())
+		if !err.IsRecordNotFoundError() {
+			return nil, err
 		}
-		return nil, err
 	}
 	return &tenant, nil
 }

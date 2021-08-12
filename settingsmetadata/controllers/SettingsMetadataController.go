@@ -12,7 +12,6 @@ import (
 	"github.com/islax/microapp"
 	"github.com/islax/microapp/config"
 	microappCtx "github.com/islax/microapp/context"
-	microappError "github.com/islax/microapp/error"
 	microappLog "github.com/islax/microapp/log"
 	microappRepo "github.com/islax/microapp/repository"
 	microappSecurity "github.com/islax/microapp/security"
@@ -31,8 +30,10 @@ func NewSettingsMetadataController(app *microapp.App, repository microappRepo.Re
 
 //SettingsMetadataController
 type SettingsMetadataController struct {
-	app        *microapp.App
-	repository microappRepo.Repository
+	app                     *microapp.App
+	repository              microappRepo.Repository
+	settingsMetadatas       []tenantModel.SettingsMetaData
+	globalsettingsMetadatas []tenantModel.SettingsMetaData
 }
 
 // RegisterRoutes implements interface RouteSpecifier
@@ -111,6 +112,11 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 		return
 	}
 
+	if err := controller.checkAndInitializeSettingsMetadata(); err != nil {
+		microappWeb.RespondError(w, err)
+		return
+	}
+
 	tenant, err := controller.getTenant(context, uow, controller.repository, tenantID)
 	if err != nil {
 		microappWeb.RespondError(w, err)
@@ -126,7 +132,6 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 	defer uow.Complete()
 	params := mux.Vars(r)
 	stringTenantID := params["id"]
-	configPath := config.EvSuffixForSettingsMetadataPath
 	var reqDTO tenantDTO
 	if err := microappWeb.UnmarshalJSON(r, &reqDTO); err != nil {
 		context.LogJSONParseError(err)
@@ -141,29 +146,21 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 		return
 	}
 
+	if err := controller.checkAndInitializeSettingsMetadata(); err != nil {
+		microappWeb.RespondError(w, err)
+		return
+	}
+
+	settingsmetadata := controller.settingsMetadatas
+	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
+		settingsmetadata = controller.globalsettingsMetadatas
+	}
+
 	tenant, err := controller.getTenant(context, uow, controller.repository, tenantID)
 	if err != nil {
 		microappWeb.RespondError(w, err)
 		return
 	}
-
-	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
-		configPath = config.EvSuffixForGlobalSettingsMetadataPath
-		uow.DB = uow.DB.Where("id = ?", tenantID.String())
-	}
-	var settingsmetadata []tenantModel.SettingsMetaData
-	jsonFile, err := os.Open(controller.app.Config.GetString(configPath))
-	if err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "opening settings-metadata config file."))
-		return
-	}
-	defer jsonFile.Close()
-	byteValue, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "reading tenant role config file."))
-		return
-	}
-	json.Unmarshal(byteValue, &settingsmetadata)
 
 	if err = tenant.Update(reqDTO.Settings, settingsmetadata); err != nil {
 		context.LogError(err, microappLog.MessageNewEntityError)
@@ -227,18 +224,60 @@ func (controller *SettingsMetadataController) getByName(w http.ResponseWriter, r
 }
 
 func (controller *SettingsMetadataController) getTenant(context microappCtx.ExecutionContext, uow *microappRepo.UnitOfWork, repository microappRepo.Repository, tenantID uuid.UUID) (*tenantModel.TenantSettings, error) {
-	tenant := tenantModel.TenantSettings{}
+	tenant := &tenantModel.TenantSettings{}
 	queryProcessor := []microappRepo.QueryProcessor{}
 	queryProcessor = append(queryProcessor, microappRepo.Filter("id = ?", tenantID))
-	if err := repository.GetFirst(uow, &tenant, queryProcessor); err != nil {
-		if err.IsRecordNotFoundError() {
-			context.LogError(err, microappLog.MessageUnableToFindURLResource)
-			return nil, microappError.NewHTTPResourceNotFound("tenant", tenantID.String())
+	if err := repository.GetFirst(uow, tenant, queryProcessor); err != nil {
+		if !err.IsRecordNotFoundError() {
+			/*tenant, err := tenantModel.NewTenant(context, tenantID, settingsmetadata)
+			if err != nil {
+				context.LogError(err, "Unable to get all tenant setting")
+				return nil, err
+			}
+			return tenant, nil
+			*/
+			context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant from database"))
+			return nil, err
 		}
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant from database"))
-		return nil, err
 	}
-	return &tenant, nil
+	/*if err := tenant.SetTenantSettingsAndAccess(settingsmetadata, map[string]interface{}{}); err != nil {
+		context.LogError(err, "Unable to get tenant setting")
+		return nil, err
+	}*/
+	return tenant, nil
+}
+
+func (controller *SettingsMetadataController) checkAndInitializeSettingsMetadata() error {
+	if len(controller.settingsMetadatas) == 0 {
+		settingMetadata, err := controller.initSettingsMetaData(config.EvSuffixForSettingsMetadataPath)
+		if err != nil {
+			return err
+		}
+		controller.settingsMetadatas = settingMetadata
+	}
+	if len(controller.globalsettingsMetadatas) == 0 {
+		globalsettingMetadata, err := controller.initSettingsMetaData(config.EvSuffixForGlobalSettingsMetadataPath)
+		if err != nil {
+			return err
+		}
+		controller.globalsettingsMetadatas = globalsettingMetadata
+	}
+	return nil
+}
+
+func (controller *SettingsMetadataController) initSettingsMetaData(filePath string) ([]tenantModel.SettingsMetaData, error) {
+	var settingsmetadata []tenantModel.SettingsMetaData
+	jsonFile, err := os.Open(controller.app.Config.GetString(config.EvSuffixForSettingsMetadataPath))
+	if err != nil {
+		return settingsmetadata, err
+	}
+	defer jsonFile.Close()
+	byteValue, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+		return settingsmetadata, err
+	}
+	json.Unmarshal(byteValue, &settingsmetadata)
+	return settingsmetadata, nil
 }
 
 func toDTO(tenant *tenantModel.TenantSettings) tenantDTO {
