@@ -225,6 +225,7 @@ func (controller *SettingsMetadataController) getByName(w http.ResponseWriter, r
 
 func (controller *SettingsMetadataController) getTenant(context microappCtx.ExecutionContext, uow *microappRepo.UnitOfWork, repository microappRepo.Repository, tenantID uuid.UUID) (*tenantModel.TenantSettings, error) {
 	tenant := &tenantModel.TenantSettings{}
+	tenant.ID = tenantID
 	queryProcessor := []microappRepo.QueryProcessor{}
 	queryProcessor = append(queryProcessor, microappRepo.Filter("id = ?", tenantID))
 	if err := repository.GetFirst(uow, tenant, queryProcessor); err != nil {
