@@ -395,7 +395,17 @@ func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) mi
 }
 
 // Update or insert if not found
-func (repository *GormRepository) Upsert(uow *UnitOfWork, entity interface{}) microappError.DatabaseError {
+func (repository *GormRepository) Upsert(uow *UnitOfWork, entity interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError {
+	db := uow.DB
+	if queryProcessors != nil {
+		var err error
+		for _, queryProcessor := range queryProcessors {
+			db, err = queryProcessor(db, entity)
+			if err != nil {
+				return microappError.NewDatabaseError(err)
+			}
+		}
+	}
 	result := uow.DB.Model(entity).Updates(entity)
 	if result.Error != nil {
 		return microappError.NewDatabaseError(result.Error)

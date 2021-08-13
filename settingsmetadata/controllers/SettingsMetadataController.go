@@ -13,6 +13,7 @@ import (
 	"github.com/islax/microapp/config"
 	microappCtx "github.com/islax/microapp/context"
 	microappLog "github.com/islax/microapp/log"
+	"github.com/islax/microapp/repository"
 	microappRepo "github.com/islax/microapp/repository"
 	microappSecurity "github.com/islax/microapp/security"
 	tenantService "github.com/islax/microapp/service"
@@ -159,7 +160,8 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 	}
 
 	if tenant.Settings != "" {
-		err = controller.repository.Upsert(uow, &tenant)
+		queryProcessor := []repository.QueryProcessor{repository.Filter("id = ?", tenantID)}
+		err = controller.repository.Upsert(uow, &tenant, queryProcessors)
 		if err != nil {
 			context.LogError(err, microappLog.MessageUpdateEntityError)
 			microappWeb.RespondError(w, err)
