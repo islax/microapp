@@ -56,46 +56,22 @@ func (controller *SettingsMetadataController) RegisterRoutes(muxRouter *mux.Rout
 
 func (controller *SettingsMetadataController) getGlobalSettingsMetadata(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
 	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "globalsettingsmetadata.get", false, false)
-
-	var settingsmetadata []map[string]interface{}
-	jsonFile, err := os.Open(controller.app.Config.GetString(config.EvSuffixForGlobalSettingsMetadataPath))
-	if err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "opening global-settings-metadata config file."))
+	if err := controller.checkAndInitializeSettingsMetadata(); err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "initializing settings-metadata"))
 		microappWeb.RespondError(w, err)
 		return
 	}
-	defer jsonFile.Close()
-	byteValue, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "reading global settings config file."))
-		microappWeb.RespondError(w, err)
-		return
-	}
-	json.Unmarshal(byteValue, &settingsmetadata)
-
-	microappWeb.RespondJSON(w, http.StatusOK, settingsmetadata)
+	microappWeb.RespondJSON(w, http.StatusOK, controller.globalsettingsMetadatas)
 }
 
 func (controller *SettingsMetadataController) getSettingsMetadata(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
 	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "settingsmetadata.get", false, false)
-
-	var settingsmetadata []map[string]interface{}
-	jsonFile, err := os.Open(controller.app.Config.GetString(config.EvSuffixForSettingsMetadataPath))
-	if err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "opening settings-metadata config file."))
+	if err := controller.checkAndInitializeSettingsMetadata(); err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "initializing settings-metadata"))
 		microappWeb.RespondError(w, err)
 		return
 	}
-	defer jsonFile.Close()
-	byteValue, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "reading tenant role config file."))
-		microappWeb.RespondError(w, err)
-		return
-	}
-	json.Unmarshal(byteValue, &settingsmetadata)
-
-	microappWeb.RespondJSON(w, http.StatusOK, settingsmetadata)
+	microappWeb.RespondJSON(w, http.StatusOK, controller.settingsMetadatas)
 }
 
 func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
@@ -262,6 +238,7 @@ func (controller *SettingsMetadataController) getTenant(context microappCtx.Exec
 
 func (controller *SettingsMetadataController) checkAndInitializeSettingsMetadata() error {
 	if len(controller.settingsMetadatas) == 0 && config.EvSuffixForSettingsMetadataPath != "" {
+		fmt.Println(config.EvSuffixForSettingsMetadataPath)
 		settingMetadata, err := controller.initSettingsMetaData(config.EvSuffixForSettingsMetadataPath)
 		if err != nil {
 			return err
@@ -269,6 +246,7 @@ func (controller *SettingsMetadataController) checkAndInitializeSettingsMetadata
 		controller.settingsMetadatas = settingMetadata
 	}
 	if len(controller.globalsettingsMetadatas) == 0 && config.EvSuffixForGlobalSettingsMetadataPath != "" {
+		fmt.Println(config.EvSuffixForGlobalSettingsMetadataPath)
 		globalsettingMetadata, err := controller.initSettingsMetaData(config.EvSuffixForGlobalSettingsMetadataPath)
 		if err != nil {
 			return err
@@ -280,6 +258,7 @@ func (controller *SettingsMetadataController) checkAndInitializeSettingsMetadata
 
 func (controller *SettingsMetadataController) initSettingsMetaData(filePath string) ([]tenantModel.SettingsMetaData, error) {
 	var settingsmetadata []tenantModel.SettingsMetaData
+	fmt.Println(filePath, controller.app.Config.GetString(filePath))
 	jsonFile, err := os.Open(controller.app.Config.GetString(filePath))
 	if err != nil {
 		return settingsmetadata, err
