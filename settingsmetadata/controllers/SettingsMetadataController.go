@@ -237,7 +237,7 @@ func (controller *SettingsMetadataController) getTenant(context microappCtx.Exec
 }
 
 func (controller *SettingsMetadataController) checkAndInitializeSettingsMetadata() error {
-	if len(controller.settingsMetadatas) == 0 && config.EvSuffixForSettingsMetadataPath != "" {
+	if len(controller.settingsMetadatas) == 0 && controller.app.Config.IsSet(config.EvSuffixForSettingsMetadataPath) {
 		fmt.Println(config.EvSuffixForSettingsMetadataPath)
 		settingMetadata, err := controller.initSettingsMetaData(config.EvSuffixForSettingsMetadataPath)
 		if err != nil {
@@ -245,7 +245,7 @@ func (controller *SettingsMetadataController) checkAndInitializeSettingsMetadata
 		}
 		controller.settingsMetadatas = settingMetadata
 	}
-	if len(controller.globalsettingsMetadatas) == 0 && config.EvSuffixForGlobalSettingsMetadataPath != "" {
+	if len(controller.globalsettingsMetadatas) == 0 && controller.app.Config.IsSet(config.EvSuffixForGlobalSettingsMetadataPath) {
 		fmt.Println(config.EvSuffixForGlobalSettingsMetadataPath)
 		globalsettingMetadata, err := controller.initSettingsMetaData(config.EvSuffixForGlobalSettingsMetadataPath)
 		if err != nil {
