@@ -113,6 +113,7 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 	}
 
 	if err := controller.checkAndInitializeSettingsMetadata(); err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "initializing settings-metadata"))
 		microappWeb.RespondError(w, err)
 		return
 	}
@@ -124,12 +125,14 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 
 	tenant, err := controller.getTenant(context, uow, controller.repository, tenantID)
 	if err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant from database"))
 		microappWeb.RespondError(w, err)
 		return
 	}
 
 	err = tenant.GetTenantSettings(settingsmetadata)
 	if err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant settings from database"))
 		microappWeb.RespondError(w, err)
 		return
 	}
