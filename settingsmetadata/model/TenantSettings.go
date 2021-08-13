@@ -93,7 +93,10 @@ func (tenant *TenantSettings) SetTenantSettings(metadatas []SettingsMetaData, va
 				if err != nil {
 					mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
 				} else {
-					finalValues[metadata.Code] = finalValue
+					finalValueStr := fmt.Sprintf("%v", finalValue)
+					if finalValueStr != "" && finalValueStr != metadata.Default {
+						finalValues[metadata.Code] = finalValue
+					}
 				}
 			} /*else {
 				finalValue, err := metadata.ParseAndValidate(nil)

@@ -35,6 +35,7 @@ type Repository interface {
 	AddWithOmit(uow *UnitOfWork, out interface{}, omitFields []string) microappError.DatabaseError
 	Update(uow *UnitOfWork, out interface{}) microappError.DatabaseError
 	UpdateWithOmit(uow *UnitOfWork, out interface{}, omitFields []string) microappError.DatabaseError
+	Upsert(uow *UnitOfWork, out interface{}) microappError.DatabaseError
 	Delete(uow *UnitOfWork, out interface{}, where ...interface{}) microappError.DatabaseError
 	DeleteForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID) microappError.DatabaseError
 	DeletePermanent(uow *UnitOfWork, out interface{}, where ...interface{}) microappError.DatabaseError
@@ -390,6 +391,22 @@ func (repository *GormRepository) Update(uow *UnitOfWork, entity interface{}) mi
 	if err := uow.DB.Model(entity).Updates(entity).Error; err != nil {
 		return microappError.NewDatabaseError(err)
 	}
+	return nil
+}
+
+// Update or insert if not found
+func (repository *GormRepository) Upsert(uow *UnitOfWork, entity interface{}) microappError.DatabaseError {
+	result := uow.DB.Model(entity).Updates(entity)
+	if result.Error != nil {
+		return microappError.NewDatabaseError(result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		if err := uow.DB.Create(entity).Error; err != nil {
+			return microappError.NewDatabaseError(err)
+		}
+	}
+
 	return nil
 }
 

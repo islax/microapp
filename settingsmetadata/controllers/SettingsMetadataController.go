@@ -168,11 +168,13 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 		return
 	}
 
-	err = controller.repository.Update(uow, &tenant)
-	if err != nil {
-		context.LogError(err, microappLog.MessageUpdateEntityError)
-		microappWeb.RespondError(w, err)
-		return
+	if tenant.Settings != "" {
+		err = controller.repository.Upsert(uow, &tenant)
+		if err != nil {
+			context.LogError(err, microappLog.MessageUpdateEntityError)
+			microappWeb.RespondError(w, err)
+			return
+		}
 	}
 
 	uow.Commit()
