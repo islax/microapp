@@ -98,14 +98,43 @@ func (tenant *TenantSettings) SetTenantSettings(metadatas []SettingsMetaData, va
 						finalValues[metadata.Code] = finalValue
 					}
 				}
-			} /*else {
-				finalValue, err := metadata.ParseAndValidate(nil)
-				if err != nil {
-					mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
-				} else {
-					finalValues[metadata.Code] = finalValue
-				}
-			}*/
+			}
+		}
+	}
+	if len(errors) > 0 {
+		return microappError.NewInvalidFieldsError(errors)
+	}
+
+	settings, err := json.Marshal(finalValues)
+	if err != nil {
+		return err
+	}
+	tenant.Settings = string(settings)
+
+	return nil
+}
+
+// GetTenantSettings gets the tenant settings with default
+func (tenant *TenantSettings) GetTenantSettings(metadatas []SettingsMetaData) error {
+	finalValues := make(map[string]interface{})
+	errors := make(map[string]string)
+	defaultValues, _ := tenant.GetSettings()
+	for _, metadata := range metadatas {
+		defaultValue, ok := defaultValues[metadata.Code]
+		if ok {
+			finalValue, err := metadata.ParseAndValidate(defaultValue)
+			if err != nil {
+				mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
+			} else {
+				finalValues[metadata.Code] = finalValue
+			}
+		} else {
+			finalValue, err := metadata.ParseAndValidate(nil)
+			if err != nil {
+				mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
+			} else {
+				finalValues[metadata.Code] = finalValue
+			}
 		}
 	}
 	if len(errors) > 0 {

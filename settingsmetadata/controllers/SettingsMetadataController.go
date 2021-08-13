@@ -117,7 +117,18 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 		return
 	}
 
+	settingsmetadata := controller.settingsMetadatas
+	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
+		settingsmetadata = controller.globalsettingsMetadatas
+	}
+
 	tenant, err := controller.getTenant(context, uow, controller.repository, tenantID)
+	if err != nil {
+		microappWeb.RespondError(w, err)
+		return
+	}
+
+	err = tenant.GetTenantSettings(settingsmetadata)
 	if err != nil {
 		microappWeb.RespondError(w, err)
 		return
@@ -170,6 +181,13 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 
 	if tenant.Settings != "" {
 		err = controller.repository.Upsert(uow, &tenant)
+		if err != nil {
+			context.LogError(err, microappLog.MessageUpdateEntityError)
+			microappWeb.RespondError(w, err)
+			return
+		}
+	} else {
+		err = controller.repository.Delete(uow, tenantModel.TenantSettings{}, tenantID)
 		if err != nil {
 			context.LogError(err, microappLog.MessageUpdateEntityError)
 			microappWeb.RespondError(w, err)
@@ -232,21 +250,10 @@ func (controller *SettingsMetadataController) getTenant(context microappCtx.Exec
 	queryProcessor = append(queryProcessor, microappRepo.Filter("id = ?", tenantID))
 	if err := repository.GetFirst(uow, tenant, queryProcessor); err != nil {
 		if !err.IsRecordNotFoundError() {
-			/*tenant, err := tenantModel.NewTenant(context, tenantID, settingsmetadata)
-			if err != nil {
-				context.LogError(err, "Unable to get all tenant setting")
-				return nil, err
-			}
-			return tenant, nil
-			*/
 			context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant from database"))
 			return nil, err
 		}
 	}
-	/*if err := tenant.SetTenantSettingsAndAccess(settingsmetadata, map[string]interface{}{}); err != nil {
-		context.LogError(err, "Unable to get tenant setting")
-		return nil, err
-	}*/
 	return tenant, nil
 }
 
@@ -270,7 +277,7 @@ func (controller *SettingsMetadataController) checkAndInitializeSettingsMetadata
 
 func (controller *SettingsMetadataController) initSettingsMetaData(filePath string) ([]tenantModel.SettingsMetaData, error) {
 	var settingsmetadata []tenantModel.SettingsMetaData
-	jsonFile, err := os.Open(controller.app.Config.GetString(config.EvSuffixForSettingsMetadataPath))
+	jsonFile, err := os.Open(controller.app.Config.GetString(filePath))
 	if err != nil {
 		return settingsmetadata, err
 	}
