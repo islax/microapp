@@ -161,7 +161,7 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 
 	if tenant.Settings != "" {
 		queryProcessor := []repository.QueryProcessor{repository.Filter("id = ?", tenantID)}
-		err = controller.repository.Upsert(uow, &tenant, queryProcessors)
+		err = controller.repository.Upsert(uow, &tenant, queryProcessor)
 		if err != nil {
 			context.LogError(err, microappLog.MessageUpdateEntityError)
 			microappWeb.RespondError(w, err)
