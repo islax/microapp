@@ -18,8 +18,8 @@ type TenantSettingsRepository interface {
 }
 
 //NewAlertRepository
-func NewTenantSettingsRepository() TenantSettingsRepository {
-	return &gormTenantSettingsRepository{}
+func NewTenantSettingsRepository(config *config.Config) TenantSettingsRepository {
+	return &gormTenantSettingsRepository{Config: config}
 }
 
 type gormTenantSettingsRepository struct {
