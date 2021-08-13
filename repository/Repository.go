@@ -406,7 +406,7 @@ func (repository *GormRepository) Upsert(uow *UnitOfWork, entity interface{}, qu
 			}
 		}
 	}
-	result := uow.DB.Model(entity).Updates(entity)
+	result := db.Model(entity).Updates(entity)
 	if result.Error != nil {
 		return microappError.NewDatabaseError(result.Error)
 	}
