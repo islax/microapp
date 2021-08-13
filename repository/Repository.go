@@ -35,7 +35,7 @@ type Repository interface {
 	AddWithOmit(uow *UnitOfWork, out interface{}, omitFields []string) microappError.DatabaseError
 	Update(uow *UnitOfWork, out interface{}) microappError.DatabaseError
 	UpdateWithOmit(uow *UnitOfWork, out interface{}, omitFields []string) microappError.DatabaseError
-	Upsert(uow *UnitOfWork, out interface{}) microappError.DatabaseError
+	Upsert(uow *UnitOfWork, out interface{}, queryProcessors []QueryProcessor) microappError.DatabaseError
 	Delete(uow *UnitOfWork, out interface{}, where ...interface{}) microappError.DatabaseError
 	DeleteForTenant(uow *UnitOfWork, out interface{}, tenantID uuid.UUID) microappError.DatabaseError
 	DeletePermanent(uow *UnitOfWork, out interface{}, where ...interface{}) microappError.DatabaseError
