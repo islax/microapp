@@ -95,6 +95,7 @@ func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface
 
 // ParseAndValidate checks if the supplied value matches the metadata
 func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface{}, error) {
+	fmt.Println(value)
 	errors := make(map[string]string)
 
 	var stringValue string
@@ -111,7 +112,7 @@ func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface
 		errors[metadata.Code] = microappError.ErrorCodeRequired
 		return nil, microappError.NewInvalidFieldsError(errors)
 	}
-
+	fmt.Println(stringValue)
 	switch metadata.Type {
 	case "string":
 		return stringValue, nil
@@ -125,6 +126,7 @@ func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface
 		}
 	case "number":
 		numberValue, err := strconv.Atoi(stringValue)
+		fmt.Println("type number", numberValue, err)
 		if err == nil {
 			return numberValue, nil
 		}
