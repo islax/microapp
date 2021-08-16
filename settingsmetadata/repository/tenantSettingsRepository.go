@@ -2,6 +2,7 @@ package repository
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -52,7 +53,19 @@ func (tenantRepository *gormTenantSettingsRepository) GetTenantSettings(uow *rep
 	if err != nil {
 		return nil, err
 	}
-	return tenant.GetSettings()
+
+	settingsMap, err := tenant.GetSettings()
+	if err != nil {
+		return nil, err
+	}
+
+	//convert to map[string]string
+	returnMap := make(map[string]string)
+	for key, setting := range settingsMap {
+		returnMap[key] = fmt.Sprintf("%v", setting)
+	}
+
+	return returnMap, nil
 }
 
 func (tenantRepository *gormTenantSettingsRepository) checkAndInitializeSettingsMetadata() error {
