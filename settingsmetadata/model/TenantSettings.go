@@ -123,6 +123,7 @@ func (tenant *TenantSettings) GetTenantSettings(metadatas []SettingsMetaData) er
 		defaultValue, ok := defaultValues[metadata.Code]
 		if ok {
 			finalValue, err := metadata.ParseAndValidate(defaultValue)
+			fmt.Println("finalValue, err: ", finalValue, err)
 			if err != nil {
 				mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
 			} else {

@@ -95,7 +95,7 @@ func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface
 
 // ParseAndValidate checks if the supplied value matches the metadata
 func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface{}, error) {
-	fmt.Println(value)
+	fmt.Println(value, metadata.Code)
 	errors := make(map[string]string)
 
 	var stringValue string

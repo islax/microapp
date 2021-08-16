@@ -107,6 +107,7 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 		return
 	}
 
+	fmt.Println("tenant: ", tenant)
 	err = tenant.GetTenantSettings(settingsmetadata)
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant settings from database"))
