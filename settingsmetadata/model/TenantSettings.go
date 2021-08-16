@@ -119,8 +119,10 @@ func (tenant *TenantSettings) GetTenantSettings(metadatas []SettingsMetaData) er
 	finalValues := make(map[string]interface{})
 	errors := make(map[string]string)
 	defaultValues, _ := tenant.GetSettings()
+	fmt.Println("defaultValues", defaultValues)
 	for _, metadata := range metadatas {
 		defaultValue, ok := defaultValues[metadata.Code]
+		fmt.Println("defaultValue, ok", defaultValue, ok)
 		if ok {
 			finalValue, err := metadata.ParseAndValidate(defaultValue)
 			fmt.Println("finalValue, err: ", finalValue, err)
