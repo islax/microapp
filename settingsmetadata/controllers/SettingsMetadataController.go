@@ -107,7 +107,6 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 		return
 	}
 
-	fmt.Println("tenant: ", tenant)
 	err = tenant.GetTenantSettings(settingsmetadata)
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant settings from database"))
@@ -160,7 +159,7 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 		return
 	}
 
-	if tenant.Settings != "" {
+	if tenant.Settings != "{}" {
 		queryProcessor := []repository.QueryProcessor{repository.Filter("id = ?", tenantID)}
 		err = controller.repository.Upsert(uow, &tenant, queryProcessor)
 		if err != nil {
@@ -259,7 +258,6 @@ func (controller *SettingsMetadataController) checkAndInitializeSettingsMetadata
 
 func (controller *SettingsMetadataController) initSettingsMetaData(filePath string) ([]tenantModel.SettingsMetaData, error) {
 	var settingsmetadata []tenantModel.SettingsMetaData
-	fmt.Println(filePath, controller.app.Config.GetString(filePath))
 	jsonFile, err := os.Open(controller.app.Config.GetString(filePath))
 	if err != nil {
 		return settingsmetadata, err

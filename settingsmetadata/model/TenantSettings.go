@@ -118,14 +118,11 @@ func (tenant *TenantSettings) SetTenantSettings(metadatas []SettingsMetaData, va
 func (tenant *TenantSettings) GetTenantSettings(metadatas []SettingsMetaData) error {
 	finalValues := make(map[string]interface{})
 	errors := make(map[string]string)
-	defaultValues, err := tenant.GetSettings()
-	fmt.Println("defaultValues", defaultValues, err)
+	defaultValues, _ := tenant.GetSettings()
 	for _, metadata := range metadatas {
 		defaultValue, ok := defaultValues[metadata.Code]
-		fmt.Println("defaultValue, ok", defaultValue, ok)
 		if ok {
 			finalValue, err := metadata.ParseAndValidate(defaultValue)
-			fmt.Println("finalValue, err: ", finalValue, err)
 			if err != nil {
 				mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
 			} else {

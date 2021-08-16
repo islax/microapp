@@ -22,7 +22,7 @@ type SettingsMetaData struct {
 	Validation      string  `json:"validation"`
 	MaxValue        float32 `json:"maxValue"`
 	MinValue        float32 `json:"minValue"`
-	Hidden          bool    `json:"hidden"`
+	//Hidden          bool    `json:"hidden"` //remove this function before sending Merge request
 	//Access          string  `json:"access"` //remove this function before sending Merge request
 	//DefaultAccess   string  `json:"defaultAccess"`//remove this function before sending Merge request
 }
@@ -95,7 +95,6 @@ func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface
 
 // ParseAndValidate checks if the supplied value matches the metadata
 func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface{}, error) {
-	fmt.Println(value, metadata.Code)
 	errors := make(map[string]string)
 
 	var stringValue string
@@ -112,7 +111,6 @@ func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface
 		errors[metadata.Code] = microappError.ErrorCodeRequired
 		return nil, microappError.NewInvalidFieldsError(errors)
 	}
-	fmt.Println(stringValue)
 	switch metadata.Type {
 	case "string":
 		return stringValue, nil
@@ -126,7 +124,6 @@ func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface
 		}
 	case "number":
 		numberValue, err := strconv.Atoi(stringValue)
-		fmt.Println("type number", numberValue, err)
 		if err == nil {
 			return numberValue, nil
 		}
