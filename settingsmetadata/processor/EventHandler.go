@@ -54,7 +54,6 @@ func (handler *EventHandler) processTenantAdd(eventPayload *monitor.EventInfo) {
 
 func (handler *EventHandler) createTenantSettingsMetadata(uow *microappRepo.UnitOfWork, context microappCtx.ExecutionContext, eventPayload *monitor.EventInfo) {
 	eventData := make(map[string]interface{})
-	var settingsmetadata []tenantModel.SettingsMetaData
 	var tenantID uuid.UUID
 
 	if err := handler.checkAndInitializeSettingsMetadata(); err != nil {
@@ -65,7 +64,7 @@ func (handler *EventHandler) createTenantSettingsMetadata(uow *microappRepo.Unit
 	tenantID, _ = uuid.FromString(eventData["id"].(string))
 	tenantDisplayName := eventData["displayName"].(string)
 
-	tenant, err := tenantModel.NewTenant(context, tenantID, map[string]interface{}{"displayName": tenantDisplayName}, settingsmetadata)
+	tenant, err := tenantModel.NewTenant(context, tenantID, map[string]interface{}{"displayName": tenantDisplayName}, handler.settingsMetadatas)
 	if err != nil {
 		context.LogError(err, "Unable to add new tenant.")
 		return
