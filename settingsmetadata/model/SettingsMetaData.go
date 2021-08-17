@@ -22,7 +22,7 @@ type SettingsMetaData struct {
 	Validation      string  `json:"validation"`
 	MaxValue        float32 `json:"maxValue"`
 	MinValue        float32 `json:"minValue"`
-	//Hidden          bool    `json:"hidden"` //remove this function before sending Merge request
+	Hidden          bool    `json:"hidden"` //remove this function before sending Merge request
 	//Access          string  `json:"access"` //remove this function before sending Merge request
 	//DefaultAccess   string  `json:"defaultAccess"`//remove this function before sending Merge request
 }

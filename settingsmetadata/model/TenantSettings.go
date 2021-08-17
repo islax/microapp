@@ -17,10 +17,10 @@ type TenantSettings struct {
 }
 
 // NewTenant creates new instance of Tenant with specified parameters and returns it
-func NewTenant(context microappCtx.ExecutionContext, tenantID uuid.UUID, metadata []SettingsMetaData) (*TenantSettings, error) {
+func NewTenant(context microappCtx.ExecutionContext, tenantID uuid.UUID, configuration map[string]interface{}, metadata []SettingsMetaData) (*TenantSettings, error) {
 	tenant := &TenantSettings{}
 	tenant.ID = tenantID
-	if err := tenant.SetTenantSettings(metadata, map[string]interface{}{}); err != nil {
+	if err := tenant.SetTenantSettings(metadata, configuration); err != nil {
 		return nil, err
 	}
 	return tenant, nil

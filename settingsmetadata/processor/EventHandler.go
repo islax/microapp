@@ -19,22 +19,23 @@ import (
 
 //EventHandler handles events
 type EventHandler struct {
-	app          *microapp.App
-	repository   microappRepo.Repository
-	eventChannel chan *monitor.EventInfo
+	app               *microapp.App
+	repository        microappRepo.Repository
+	eventChannel      chan *monitor.EventInfo
+	settingsMetadatas []tenantModel.SettingsMetaData
 }
 
 // NewEventHandler creates new instance of TenantActionEventHandler
 func NewEventHandler(app *microapp.App, repository microappRepo.Repository, eventChannel chan *monitor.EventInfo) *EventHandler {
-	return &EventHandler{app, repository, eventChannel}
+	return &EventHandler{app: app, repository: repository, eventChannel: eventChannel}
 }
 
 // Start will start listening to channel for events
 func (handler *EventHandler) Start() {
 	for eventPayload := range handler.eventChannel {
 		switch eventPayload.Name {
-		//case "tenant.added", "globalsettings.initialize":
-		//	handler.processTenantAdd(eventPayload)
+		case "tenant.added":
+			handler.processTenantAdd(eventPayload)
 		case "tenant.deleted":
 			handler.processTenantDelete(eventPayload)
 		}
@@ -55,27 +56,16 @@ func (handler *EventHandler) createTenantSettingsMetadata(uow *microappRepo.Unit
 	eventData := make(map[string]interface{})
 	var settingsmetadata []tenantModel.SettingsMetaData
 	var tenantID uuid.UUID
-	configPath := config.EvSuffixForSettingsMetadataPath
 
+	if err := handler.checkAndInitializeSettingsMetadata(); err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "initializing settings-metadata"))
+		return
+	}
 	json.Unmarshal([]byte(eventPayload.Payload), &eventData)
 	tenantID, _ = uuid.FromString(eventData["id"].(string))
-	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
-		configPath = config.EvSuffixForGlobalSettingsMetadataPath
-	}
-	jsonFile, err := os.Open(handler.app.Config.GetString(configPath))
-	if err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "opening settings-metadata config file."))
-		return
-	}
-	defer jsonFile.Close()
-	byteValue, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "reading settings-metadata config file."))
-		return
-	}
-	json.Unmarshal(byteValue, &settingsmetadata)
+	tenantDisplayName := eventData["displayName"].(string)
 
-	tenant, err := tenantModel.NewTenant(context, tenantID, settingsmetadata)
+	tenant, err := tenantModel.NewTenant(context, tenantID, map[string]interface{}{"displayName": tenantDisplayName}, settingsmetadata)
 	if err != nil {
 		context.LogError(err, "Unable to add new tenant.")
 		return
@@ -103,4 +93,30 @@ func (handler *EventHandler) processTenantDelete(eventPayload *monitor.EventInfo
 
 	uow.Commit()
 	context.LoggerEventActionCompletion().Msg("Tenant deleted.")
+}
+
+func (handler *EventHandler) checkAndInitializeSettingsMetadata() error {
+	if len(handler.settingsMetadatas) == 0 && handler.app.Config.IsSet(config.EvSuffixForSettingsMetadataPath) {
+		settingMetadata, err := handler.initSettingsMetaData(config.EvSuffixForSettingsMetadataPath)
+		if err != nil {
+			return err
+		}
+		handler.settingsMetadatas = settingMetadata
+	}
+	return nil
+}
+
+func (handler *EventHandler) initSettingsMetaData(filePath string) ([]tenantModel.SettingsMetaData, error) {
+	var settingsmetadata []tenantModel.SettingsMetaData
+	jsonFile, err := os.Open(handler.app.Config.GetString(filePath))
+	if err != nil {
+		return settingsmetadata, err
+	}
+	defer jsonFile.Close()
+	byteValue, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+		return settingsmetadata, err
+	}
+	json.Unmarshal(byteValue, &settingsmetadata)
+	return settingsmetadata, nil
 }
