@@ -33,8 +33,8 @@ func NewEventHandler(app *microapp.App, repository microappRepo.Repository, even
 func (handler *EventHandler) Start() {
 	for eventPayload := range handler.eventChannel {
 		switch eventPayload.Name {
-		case "tenant.added", "globalsettings.initialize":
-			handler.processTenantAdd(eventPayload)
+		//case "tenant.added", "globalsettings.initialize":
+		//	handler.processTenantAdd(eventPayload)
 		case "tenant.deleted":
 			handler.processTenantDelete(eventPayload)
 		}
