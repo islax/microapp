@@ -168,7 +168,7 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 			return
 		}
 	} else {
-		err = controller.repository.Delete(uow, tenantModel.TenantSettings{}, tenantID)
+		err = controller.repository.DeletePermanent(uow, tenantModel.TenantSettings{}, tenantID)
 		if err != nil {
 			context.LogError(err, microappLog.MessageUpdateEntityError)
 			microappWeb.RespondError(w, err)
