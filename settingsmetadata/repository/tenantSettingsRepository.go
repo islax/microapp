@@ -69,14 +69,14 @@ func (tenantRepository *gormTenantSettingsRepository) GetTenantSettings(uow *rep
 }
 
 func (tenantRepository *gormTenantSettingsRepository) checkAndInitializeSettingsMetadata() error {
-	if len(tenantRepository.settingsMetadatas) == 0 {
+	if len(tenantRepository.settingsMetadatas) == 0 && tenantRepository.Config.IsSet(config.EvSuffixForSettingsMetadataPath) {
 		settingMetadata, err := tenantRepository.initSettingsMetaData(config.EvSuffixForSettingsMetadataPath)
 		if err != nil {
 			return err
 		}
 		tenantRepository.settingsMetadatas = settingMetadata
 	}
-	if len(tenantRepository.globalsettingsMetadatas) == 0 {
+	if len(tenantRepository.globalsettingsMetadatas) == 0 && tenantRepository.Config.IsSet(config.EvSuffixForGlobalSettingsMetadataPath) {
 		globalsettingMetadata, err := tenantRepository.initSettingsMetaData(config.EvSuffixForGlobalSettingsMetadataPath)
 		if err != nil {
 			return err
