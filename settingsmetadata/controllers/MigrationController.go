@@ -40,9 +40,9 @@ func (controller *SettingsMetadataMigrationController) RegisterRoutes(muxRouter 
 	apiRouter := muxRouter.PathPrefix("/api").Subrouter()
 	tenantSettingsRouter := apiRouter.PathPrefix(fmt.Sprintf("/%s", strings.ToLower(controller.app.Name))).Subrouter()
 
-	migrationsRouter := tenantSettingsRouter.PathPrefix("/tenants/migrate/").Subrouter()
-	migrationsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.migratetenants, []string{"settingsmetadata:read"}, false)).Methods("PUT")
-	migrationsRouter.HandleFunc("{id}", microappSecurity.Protect(controller.app.Config, controller.migratetenant, []string{"settingsmetadata:read"}, false)).Methods("PUT")
+	migrationsRouter := tenantSettingsRouter.PathPrefix("/tenantsettings/migrate/").Subrouter()
+	migrationsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.migratetenants, []string{"settingsmetadata:write"}, false)).Methods("PUT")
+	migrationsRouter.HandleFunc("{id}", microappSecurity.Protect(controller.app.Config, controller.migratetenant, []string{"settingsmetadata:write"}, false)).Methods("PUT")
 }
 
 func (controller *SettingsMetadataMigrationController) migratetenants(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
