@@ -22,7 +22,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// NewPolicyProfileController creates a new policy profile controller
+// NewSettingsMetadataController creates a new setting metadata controller
 func NewSettingsMetadataController(app *microapp.App, repository microappRepo.Repository) *SettingsMetadataController {
 	controller := &SettingsMetadataController{app: app, repository: repository}
 	return controller
@@ -118,7 +118,7 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 }
 
 func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
-	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "tenantsettings.update", true, true)
+	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "tenantsettings.update", true, false)
 	uow := context.GetUOW()
 	defer uow.Complete()
 	params := mux.Vars(r)
