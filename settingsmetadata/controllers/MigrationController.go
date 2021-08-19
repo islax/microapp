@@ -66,7 +66,6 @@ func (controller *SettingsMetadataMigrationController) migratetenants(w http.Res
 	successTenants := make([]string, 0)
 	failureTenants := make([]string, 0)
 	for _, tenantMap := range tenantSettings {
-		fmt.Println(tenantMap)
 		tenantIDStr := tenantMap["id"].(string)
 		tenantID, err := uuid.FromString(tenantIDStr)
 		if err != nil {
@@ -82,7 +81,6 @@ func (controller *SettingsMetadataMigrationController) migratetenants(w http.Res
 				failureTenants = append(failureTenants, tenantIDStr)
 				continue
 			}
-			fmt.Println(tenant)
 			if tenant.Settings != "{}" {
 				if err := controller.repository.Add(uow, tenant); err != nil {
 					context.LogError(err, "Unable to add tenant settings.")
@@ -93,7 +91,7 @@ func (controller *SettingsMetadataMigrationController) migratetenants(w http.Res
 		}
 		successTenants = append(successTenants, tenantIDStr)
 	}
-
+	uow.Commit()
 	microappWeb.RespondJSON(w, http.StatusOK, map[string]interface{}{"successTenants": successTenants, "failureTenants": failureTenants})
 }
 
@@ -138,7 +136,8 @@ func (controller *SettingsMetadataMigrationController) migratetenant(w http.Resp
 			return
 		}
 	}
-
+	uow.Commit()
+	context.LoggerEventActionCompletion().Str("TenantId", stringTenantID).Msg("Tenant settings migrated")
 	microappWeb.RespondJSON(w, http.StatusOK, "")
 }
 
