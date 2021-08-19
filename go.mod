@@ -10,6 +10,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/golang-migrate/migrate/v4 v4.2.1
+	github.com/golobby/container v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/prometheus/client_golang v1.10.0
 	github.com/rs/zerolog v1.18.0

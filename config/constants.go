@@ -42,4 +42,8 @@ const (
 	EvSuffixForEnableMetrics = "ENABLE_METRICS"
 	// EvSuffixForGormMetricsRefresh environment variable name for gorm metrics refresh interval
 	EvSuffixForGormMetricsRefresh = "GORM_METRICS_REFRESH_INTERVAL"
+	// EvSuffixForSettingsMetadata environment variable name for settings metadata path
+	EvSuffixForSettingsMetadataPath = "SETTINGS_METADATA_PATH"
+	// EvSuffixForGlobalSettingsMetadata environment variable name for global settings metadata path
+	EvSuffixForGlobalSettingsMetadataPath = "GLOBAL_SETTINGS_METADATA_PATH"
 )
