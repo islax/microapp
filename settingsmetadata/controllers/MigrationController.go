@@ -66,8 +66,9 @@ func (controller *SettingsMetadataMigrationController) migratetenants(w http.Res
 	successTenants := make([]string, 0)
 	failureTenants := make([]string, 0)
 	for _, tenantMap := range tenantSettings {
+		fmt.Println(tenantMap)
 		tenantIDStr := tenantMap["id"].(string)
-		tenantID, err := uuid.FromString(tenantMap["id"].(string))
+		tenantID, err := uuid.FromString(tenantIDStr)
 		if err != nil {
 			context.LogError(err, "Unable to get tenant id")
 			failureTenants = append(failureTenants, tenantIDStr)
@@ -81,6 +82,7 @@ func (controller *SettingsMetadataMigrationController) migratetenants(w http.Res
 				failureTenants = append(failureTenants, tenantIDStr)
 				continue
 			}
+			fmt.Println(tenant)
 			if tenant.Settings != "{}" {
 				if err := controller.repository.Add(uow, tenant); err != nil {
 					context.LogError(err, "Unable to add tenant settings.")
