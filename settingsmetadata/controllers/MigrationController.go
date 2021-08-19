@@ -73,18 +73,20 @@ func (controller *SettingsMetadataMigrationController) migratetenants(w http.Res
 			failureTenants = append(failureTenants, tenantIDStr)
 			continue
 		}
-		settings := tenantMap["settings"].(map[string]interface{})
-		tenant, err := tenantModel.NewTenant(context, tenantID, settings, controller.settingsMetadatas)
-		if err != nil {
-			context.LogError(err, "Unable to add new tenant.")
-			failureTenants = append(failureTenants, tenantIDStr)
-			continue
-		}
-		if tenant.Settings != "{}" {
-			if err := controller.repository.Add(uow, tenant); err != nil {
-				context.LogError(err, "Unable to add tenant settings.")
+		settings, ok := tenantMap["settings"].(map[string]interface{})
+		if ok {
+			tenant, err := tenantModel.NewTenant(context, tenantID, settings, controller.settingsMetadatas)
+			if err != nil {
+				context.LogError(err, "Unable to add new tenant.")
 				failureTenants = append(failureTenants, tenantIDStr)
 				continue
+			}
+			if tenant.Settings != "{}" {
+				if err := controller.repository.Add(uow, tenant); err != nil {
+					context.LogError(err, "Unable to add tenant settings.")
+					failureTenants = append(failureTenants, tenantIDStr)
+					continue
+				}
 			}
 		}
 		successTenants = append(successTenants, tenantIDStr)
