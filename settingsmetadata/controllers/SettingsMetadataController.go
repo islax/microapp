@@ -95,11 +95,6 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 		return
 	}
 
-	settingsmetadata := controller.settingsMetadatas
-	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
-		settingsmetadata = controller.globalsettingsMetadatas
-	}
-
 	tenant, err := controller.getTenant(context, uow, controller.repository, tenantID)
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant from database"))
@@ -107,7 +102,7 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 		return
 	}
 
-	err = tenant.GetTenantSettings(settingsmetadata)
+	err = tenant.GetTenantSettings(controller.settingsMetadatas)
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant settings from database"))
 		microappWeb.RespondError(w, err)
