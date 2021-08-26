@@ -95,7 +95,7 @@ func (handler *EventHandler) processTenantDelete(eventPayload *monitor.EventInfo
 }
 
 func (handler *EventHandler) checkAndInitializeSettingsMetadata() error {
-	if len(handler.settingsMetadatas) == 0 && handler.app.Config.IsSet(config.EvSuffixForSettingsMetadataPath) {
+	if len(handler.settingsMetadatas) == 0 {
 		settingMetadata, err := handler.initSettingsMetaData(config.EvSuffixForSettingsMetadataPath)
 		if err != nil {
 			return err

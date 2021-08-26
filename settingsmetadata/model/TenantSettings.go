@@ -3,6 +3,7 @@ package model
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	microappCtx "github.com/islax/microapp/context"
 	microappError "github.com/islax/microapp/error"
@@ -74,28 +75,34 @@ func (tenant *TenantSettings) SetTenantSettings(metadatas []SettingsMetaData, va
 	finalValues := make(map[string]interface{})
 	errors := make(map[string]string)
 	defaultValues, _ := tenant.GetSettings()
+	settingsLevel := "tenant"
+	if tenant.Base.ID.String() == "00000000-0000-0000-0000-000000000000" {
+		settingsLevel = "global"
+	}
 	for _, metadata := range metadatas {
-		value, ok := values[metadata.Code]
-		if ok {
-			finalValue, err := metadata.ParseAndValidate(value)
-			if err != nil {
-				mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
-			} else {
-				finalValueStr := fmt.Sprintf("%v", finalValue)
-				if finalValueStr != "" && finalValueStr != metadata.Default {
-					finalValues[metadata.Code] = finalValue
-				}
-			}
-		} else {
-			defaultValue, ok := defaultValues[metadata.Code]
+		if strings.HasPrefix(metadata.SettingsLevel, settingsLevel) {
+			value, ok := values[metadata.Code]
 			if ok {
-				finalValue, err := metadata.ParseAndValidate(defaultValue)
+				finalValue, err := metadata.ParseAndValidate(value)
 				if err != nil {
 					mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
 				} else {
 					finalValueStr := fmt.Sprintf("%v", finalValue)
 					if finalValueStr != "" && finalValueStr != metadata.Default {
 						finalValues[metadata.Code] = finalValue
+					}
+				}
+			} else {
+				defaultValue, ok := defaultValues[metadata.Code]
+				if ok {
+					finalValue, err := metadata.ParseAndValidate(defaultValue)
+					if err != nil {
+						mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
+					} else {
+						finalValueStr := fmt.Sprintf("%v", finalValue)
+						if finalValueStr != "" && finalValueStr != metadata.Default {
+							finalValues[metadata.Code] = finalValue
+						}
 					}
 				}
 			}
