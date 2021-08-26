@@ -3,7 +3,6 @@ package model
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	microappCtx "github.com/islax/microapp/context"
 	microappError "github.com/islax/microapp/error"
@@ -76,11 +75,11 @@ func (tenant *TenantSettings) SetTenantSettings(metadatas []SettingsMetaData, va
 	errors := make(map[string]string)
 	defaultValues, _ := tenant.GetSettings()
 	settingsLevel := "tenant"
-	if tenant.Base.ID.String() == "00000000-0000-0000-0000-000000000000" {
+	if tenant.ID.String() == "00000000-0000-0000-0000-000000000000" {
 		settingsLevel = "global"
 	}
 	for _, metadata := range metadatas {
-		if strings.HasPrefix(metadata.SettingsLevel, settingsLevel) {
+		if (metadata.SettingsLevel == "globaltenant" || metadata.SettingsLevel == settingsLevel) && (metadata.AccessLevel == "E" || tenant.ID.String() == "00000000-0000-0000-0000-000000000000") {
 			value, ok := values[metadata.Code]
 			if ok {
 				finalValue, err := metadata.ParseAndValidate(value)
@@ -122,10 +121,16 @@ func (tenant *TenantSettings) SetTenantSettings(metadatas []SettingsMetaData, va
 }
 
 // GetTenantSettings gets the tenant settings with default
-func (tenant *TenantSettings) GetTenantSettings(metadatas []SettingsMetaData) error {
+func (tenant *TenantSettings) GetTenantSettings(metadatas []SettingsMetaData, globalTenantSettings map[string]interface{}) error {
 	finalValues := make(map[string]interface{})
 	errors := make(map[string]string)
 	defaultValues, _ := tenant.GetSettings()
+	for key, setting := range globalTenantSettings {
+		_, ok := defaultValues[key]
+		if !ok {
+			defaultValues[key] = setting
+		}
+	}
 	settingsLevel := "tenant"
 	if tenant.Base.ID.String() == "00000000-0000-0000-0000-000000000000" {
 		settingsLevel = "global"

@@ -67,6 +67,7 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 	defer uow.Complete()
 	params := mux.Vars(r)
 	stringTenantID := params["id"]
+	globalTenantSettings := make(map[string]interface{})
 
 	tenantID, err := tenantService.GetTenantIDFromToken().GetTenantIDAsUUID(mux.Vars(r), token, stringTenantID)
 	if err != nil {
@@ -88,7 +89,17 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 		return
 	}
 
-	err = tenant.GetTenantSettings(controller.settingsMetadatas)
+	if tenantID.String() != "00000000-0000-0000-0000-000000000000" {
+		globalTenant, err := controller.getTenant(context, uow, controller.repository, uuid.FromStringOrNil("00000000-0000-0000-0000-000000000000"))
+		if err != nil {
+			context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting global tenant from database"))
+			microappWeb.RespondError(w, err)
+			return
+		}
+		globalTenantSettings, _ = globalTenant.GetSettings()
+	}
+
+	err = tenant.GetTenantSettings(controller.settingsMetadatas, globalTenantSettings)
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant settings from database"))
 		microappWeb.RespondError(w, err)

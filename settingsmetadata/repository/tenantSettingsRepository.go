@@ -43,7 +43,7 @@ func (tenantRepository *gormTenantSettingsRepository) GetTenantSettings(uow *rep
 		return nil, err
 	}
 
-	err := tenant.GetTenantSettings(tenantRepository.settingsMetadatas)
+	err := tenant.GetTenantSettings(tenantRepository.settingsMetadatas, map[string]interface{}{})
 	if err != nil {
 		return nil, err
 	}
