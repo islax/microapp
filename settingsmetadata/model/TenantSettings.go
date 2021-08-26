@@ -120,7 +120,7 @@ func (tenant *TenantSettings) GetTenantSettings(metadatas []SettingsMetaData) er
 	errors := make(map[string]string)
 	defaultValues, _ := tenant.GetSettings()
 	settingsLevel := "tenant"
-	if tenant.Base.ID.(string) == "00000000-0000-0000-0000-000000000000" {
+	if uuid.FromString(tenant.Base.ID) == "00000000-0000-0000-0000-000000000000" {
 		settingsLevel = "global"
 	}
 	for _, metadata := range metadatas {
