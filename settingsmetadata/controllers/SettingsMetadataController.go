@@ -52,7 +52,9 @@ func (controller *SettingsMetadataController) RegisterRoutes(muxRouter *mux.Rout
 }
 
 func (controller *SettingsMetadataController) getSettingsMetadata(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
-	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "settingsmetadata.get", false, false)
+	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "settingsmetadata.get", true, true)
+	uow := context.GetUOW()
+	defer uow.Complete()
 	if err := controller.checkAndInitializeSettingsMetadata(); err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "initializing settings-metadata"))
 		microappWeb.RespondError(w, err)
