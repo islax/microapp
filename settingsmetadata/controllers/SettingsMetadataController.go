@@ -58,7 +58,21 @@ func (controller *SettingsMetadataController) getSettingsMetadata(w http.Respons
 		microappWeb.RespondError(w, err)
 		return
 	}
-	err = tenant.GetTenantSettingsMetadata(controller.settingsMetadatas)
+	stringTenantID := token.TenantID.String()
+	tenantID, err := tenantService.GetTenantIDFromToken().GetTenantIDAsUUID(mux.Vars(r), token, stringTenantID)
+	if err != nil {
+		context.LogError(err, microappLog.MessageUnableToFindURLResource)
+		microappWeb.RespondError(w, err)
+		return
+	}
+
+	tenant, err := controller.getTenant(context, uow, controller.repository, tenantID)
+	if err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant from database"))
+		microappWeb.RespondError(w, err)
+		return
+	}
+	_ = tenant.GetTenantSettingsMetadata(controller.settingsMetadatas)
 
 	microappWeb.RespondJSON(w, http.StatusOK, controller.settingsMetadatas)
 }
