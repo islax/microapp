@@ -58,6 +58,8 @@ func (controller *SettingsMetadataController) getSettingsMetadata(w http.Respons
 		microappWeb.RespondError(w, err)
 		return
 	}
+	err = tenant.GetTenantSettingsMetadata(controller.settingsMetadatas)
+
 	microappWeb.RespondJSON(w, http.StatusOK, controller.settingsMetadatas)
 }
 
