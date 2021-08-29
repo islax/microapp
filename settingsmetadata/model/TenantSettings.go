@@ -174,3 +174,32 @@ func mergeToMap(dest map[string]string, src map[string]string) map[string]string
 	}
 	return dest
 }
+
+// GetTenantSettingsMetadata gets the tenant settings with default
+func (tenant *TenantSettings) GetTenantSettingsMetadata(metadatas []SettingsMetaData) error {
+	finalValues := make(map[string]interface{})
+	filteredMetadatas := []SettingsMetaData
+	settingsLevel := "tenant"
+
+	if tenant.Base.ID.String() == "00000000-0000-0000-0000-000000000000" {
+		settingsLevel = "global"
+	}
+	for _, metadata := range metadatas {
+		if metadata.SettingsLevel == "globaltenant" || metadata.SettingsLevel == settingsLevel {
+			filteredMetadatas = append(filteredMetadatas, metadata)
+		}
+	}
+
+	settings, err := json.Marshal(finalValues)
+	if err != nil {
+		return err
+	}
+	tenant.Settings = string(settings)
+
+	for _, metadata := range filteredMetadatas {
+		fmt.Println("-------------")
+		fmt.Println(metadata)
+	}
+
+	return nil
+}
