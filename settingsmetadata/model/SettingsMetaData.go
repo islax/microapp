@@ -23,6 +23,10 @@ type SettingsMetaData struct {
 	MaxValue        float32 `json:"maxValue"`
 	MinValue        float32 `json:"minValue"`
 	Hidden          bool    `json:"hidden"`
+	ModuleName      string  `json:"moduleName"`
+	SettingsLevel   string  `json:"settingsLevel"`
+	AccessLevel     string  `json:"accessLevel"`
+	ReadOnly        bool    `json:"readOnly"`
 }
 
 func inArray(val string, array []string) (ok bool, i int) {

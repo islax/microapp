@@ -25,8 +25,7 @@ func NewTenantSettingsRepository(config *config.Config) TenantSettingsRepository
 
 type gormTenantSettingsRepository struct {
 	repository.GormRepository
-	settingsMetadatas       []model.SettingsMetaData
-	globalsettingsMetadatas []model.SettingsMetaData
+	settingsMetadatas []model.SettingsMetaData
 	*config.Config
 }
 
@@ -44,12 +43,7 @@ func (tenantRepository *gormTenantSettingsRepository) GetTenantSettings(uow *rep
 		return nil, err
 	}
 
-	settingsmetadata := tenantRepository.settingsMetadatas
-	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
-		settingsmetadata = tenantRepository.globalsettingsMetadatas
-	}
-
-	err := tenant.GetTenantSettings(settingsmetadata)
+	err := tenant.GetTenantSettings(tenantRepository.settingsMetadatas, map[string]interface{}{})
 	if err != nil {
 		return nil, err
 	}
@@ -69,19 +63,12 @@ func (tenantRepository *gormTenantSettingsRepository) GetTenantSettings(uow *rep
 }
 
 func (tenantRepository *gormTenantSettingsRepository) checkAndInitializeSettingsMetadata() error {
-	if len(tenantRepository.settingsMetadatas) == 0 && tenantRepository.Config.IsSet(config.EvSuffixForSettingsMetadataPath) {
+	if len(tenantRepository.settingsMetadatas) == 0 {
 		settingMetadata, err := tenantRepository.initSettingsMetaData(config.EvSuffixForSettingsMetadataPath)
 		if err != nil {
 			return err
 		}
 		tenantRepository.settingsMetadatas = settingMetadata
-	}
-	if len(tenantRepository.globalsettingsMetadatas) == 0 && tenantRepository.Config.IsSet(config.EvSuffixForGlobalSettingsMetadataPath) {
-		globalsettingMetadata, err := tenantRepository.initSettingsMetaData(config.EvSuffixForGlobalSettingsMetadataPath)
-		if err != nil {
-			return err
-		}
-		tenantRepository.globalsettingsMetadatas = globalsettingMetadata
 	}
 	return nil
 }

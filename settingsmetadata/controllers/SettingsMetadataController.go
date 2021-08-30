@@ -31,10 +31,9 @@ func NewSettingsMetadataController(app *microapp.App, repository microappRepo.Re
 
 //SettingsMetadataController
 type SettingsMetadataController struct {
-	app                     *microapp.App
-	repository              microappRepo.Repository
-	settingsMetadatas       []tenantModel.SettingsMetaData
-	globalsettingsMetadatas []tenantModel.SettingsMetaData
+	app               *microapp.App
+	repository        microappRepo.Repository
+	settingsMetadatas []tenantModel.SettingsMetaData
 }
 
 // RegisterRoutes implements interface RouteSpecifier
@@ -45,9 +44,6 @@ func (controller *SettingsMetadataController) RegisterRoutes(muxRouter *mux.Rout
 	settingsMetadataRouter := policySettingsRouter.PathPrefix("/settings-metadata").Subrouter()
 	settingsMetadataRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.getSettingsMetadata, []string{"settingsmetadata:read"}, false)).Methods("GET")
 
-	globalSettingsMetadataRouter := policySettingsRouter.PathPrefix("/global-settings-metadata").Subrouter()
-	globalSettingsMetadataRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.getGlobalSettingsMetadata, []string{"settingsmetadata:read"}, false)).Methods("GET")
-
 	tenantSettingsRouter := policySettingsRouter.PathPrefix("/tenants/{id}/settings").Subrouter()
 	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.get, []string{"tenantsettings:read"}, false)).Methods("GET")
 	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.update, []string{"tenantsettings:write"}, false)).Methods("PUT")
@@ -55,24 +51,25 @@ func (controller *SettingsMetadataController) RegisterRoutes(muxRouter *mux.Rout
 
 }
 
-func (controller *SettingsMetadataController) getGlobalSettingsMetadata(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
-	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "globalsettingsmetadata.get", false, false)
-	if err := controller.checkAndInitializeSettingsMetadata(); err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "initializing settings-metadata"))
-		microappWeb.RespondError(w, err)
-		return
-	}
-	microappWeb.RespondJSON(w, http.StatusOK, controller.globalsettingsMetadatas)
-}
-
 func (controller *SettingsMetadataController) getSettingsMetadata(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
-	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "settingsmetadata.get", false, false)
+	context := controller.app.NewExecutionContext(token, microapp.GetCorrelationIDFromRequest(r), "settingsmetadata.get", true, true)
+	uow := context.GetUOW()
+	defer uow.Complete()
 	if err := controller.checkAndInitializeSettingsMetadata(); err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "initializing settings-metadata"))
 		microappWeb.RespondError(w, err)
 		return
 	}
-	microappWeb.RespondJSON(w, http.StatusOK, controller.settingsMetadatas)
+	stringTenantID := token.TenantID.String()
+	tenantID, err := tenantService.GetTenantIDFromToken().GetTenantIDAsUUID(mux.Vars(r), token, stringTenantID)
+	if err != nil {
+		context.LogError(err, microappLog.MessageUnableToFindURLResource)
+		microappWeb.RespondError(w, err)
+		return
+	}
+
+	settingsMetadata := GetSettingsMetadataForTenant(controller.settingsMetadatas, tenantID)
+	microappWeb.RespondJSON(w, http.StatusOK, settingsMetadata)
 }
 
 func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
@@ -81,6 +78,7 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 	defer uow.Complete()
 	params := mux.Vars(r)
 	stringTenantID := params["id"]
+	globalTenantSettings := make(map[string]interface{})
 
 	tenantID, err := tenantService.GetTenantIDFromToken().GetTenantIDAsUUID(mux.Vars(r), token, stringTenantID)
 	if err != nil {
@@ -95,11 +93,6 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 		return
 	}
 
-	settingsmetadata := controller.settingsMetadatas
-	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
-		settingsmetadata = controller.globalsettingsMetadatas
-	}
-
 	tenant, err := controller.getTenant(context, uow, controller.repository, tenantID)
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant from database"))
@@ -107,7 +100,17 @@ func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http
 		return
 	}
 
-	err = tenant.GetTenantSettings(settingsmetadata)
+	if tenantID.String() != "00000000-0000-0000-0000-000000000000" {
+		globalTenant, err := controller.getTenant(context, uow, controller.repository, uuid.FromStringOrNil("00000000-0000-0000-0000-000000000000"))
+		if err != nil {
+			context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting global tenant from database"))
+			microappWeb.RespondError(w, err)
+			return
+		}
+		globalTenantSettings, _ = globalTenant.GetSettings()
+	}
+
+	err = tenant.GetTenantSettings(controller.settingsMetadatas, globalTenantSettings)
 	if err != nil {
 		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant settings from database"))
 		microappWeb.RespondError(w, err)
@@ -142,18 +145,13 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 		return
 	}
 
-	settingsmetadata := controller.settingsMetadatas
-	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
-		settingsmetadata = controller.globalsettingsMetadatas
-	}
-
 	tenant, err := controller.getTenant(context, uow, controller.repository, tenantID)
 	if err != nil {
 		microappWeb.RespondError(w, err)
 		return
 	}
 
-	if err = tenant.Update(reqDTO.Settings, settingsmetadata); err != nil {
+	if err = tenant.Update(reqDTO.Settings, controller.settingsMetadatas); err != nil {
 		context.LogError(err, microappLog.MessageNewEntityError)
 		microappWeb.RespondError(w, err)
 		return
@@ -229,19 +227,12 @@ func (controller *SettingsMetadataController) getTenant(context microappCtx.Exec
 }
 
 func (controller *SettingsMetadataController) checkAndInitializeSettingsMetadata() error {
-	if len(controller.settingsMetadatas) == 0 && controller.app.Config.IsSet(config.EvSuffixForSettingsMetadataPath) {
+	if len(controller.settingsMetadatas) == 0 {
 		settingMetadata, err := controller.initSettingsMetaData(config.EvSuffixForSettingsMetadataPath)
 		if err != nil {
 			return err
 		}
 		controller.settingsMetadatas = settingMetadata
-	}
-	if len(controller.globalsettingsMetadatas) == 0 && controller.app.Config.IsSet(config.EvSuffixForGlobalSettingsMetadataPath) {
-		globalsettingMetadata, err := controller.initSettingsMetaData(config.EvSuffixForGlobalSettingsMetadataPath)
-		if err != nil {
-			return err
-		}
-		controller.globalsettingsMetadatas = globalsettingMetadata
 	}
 	return nil
 }
@@ -259,6 +250,21 @@ func (controller *SettingsMetadataController) initSettingsMetaData(filePath stri
 	}
 	json.Unmarshal(byteValue, &settingsmetadata)
 	return settingsmetadata, nil
+}
+
+//Filter settings metadata based on tenant id
+func GetSettingsMetadataForTenant(settingsmetadatas []tenantModel.SettingsMetaData, tenantId uuid.UUID) []tenantModel.SettingsMetaData {
+	tenantsettingsmetadata := make([]tenantModel.SettingsMetaData, 0)
+	settingsLevel := "tenant"
+	if tenantId.String() == "00000000-0000-0000-0000-000000000000" {
+		settingsLevel = "global"
+	}
+	for _, metadata := range settingsmetadatas {
+		if metadata.SettingsLevel == "globaltenant" || metadata.SettingsLevel == settingsLevel {
+			tenantsettingsmetadata = append(tenantsettingsmetadata, metadata)
+		}
+	}
+	return tenantsettingsmetadata
 }
 
 func toDTO(tenant *tenantModel.TenantSettings) tenantDTO {

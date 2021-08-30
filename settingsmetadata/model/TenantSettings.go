@@ -74,28 +74,34 @@ func (tenant *TenantSettings) SetTenantSettings(metadatas []SettingsMetaData, va
 	finalValues := make(map[string]interface{})
 	errors := make(map[string]string)
 	defaultValues, _ := tenant.GetSettings()
+	settingsLevel := "tenant"
+	if tenant.ID.String() == "00000000-0000-0000-0000-000000000000" {
+		settingsLevel = "global"
+	}
 	for _, metadata := range metadatas {
-		value, ok := values[metadata.Code]
-		if ok {
-			finalValue, err := metadata.ParseAndValidate(value)
-			if err != nil {
-				mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
-			} else {
-				finalValueStr := fmt.Sprintf("%v", finalValue)
-				if finalValueStr != "" && finalValueStr != metadata.Default {
-					finalValues[metadata.Code] = finalValue
-				}
-			}
-		} else {
-			defaultValue, ok := defaultValues[metadata.Code]
+		if (metadata.SettingsLevel == "globaltenant" || metadata.SettingsLevel == settingsLevel) && (metadata.AccessLevel == "E" || tenant.ID.String() == "00000000-0000-0000-0000-000000000000") {
+			value, ok := values[metadata.Code]
 			if ok {
-				finalValue, err := metadata.ParseAndValidate(defaultValue)
+				finalValue, err := metadata.ParseAndValidate(value)
 				if err != nil {
 					mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
 				} else {
 					finalValueStr := fmt.Sprintf("%v", finalValue)
 					if finalValueStr != "" && finalValueStr != metadata.Default {
 						finalValues[metadata.Code] = finalValue
+					}
+				}
+			} else {
+				defaultValue, ok := defaultValues[metadata.Code]
+				if ok {
+					finalValue, err := metadata.ParseAndValidate(defaultValue)
+					if err != nil {
+						mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
+					} else {
+						finalValueStr := fmt.Sprintf("%v", finalValue)
+						if finalValueStr != "" && finalValueStr != metadata.Default {
+							finalValues[metadata.Code] = finalValue
+						}
 					}
 				}
 			}
@@ -115,25 +121,37 @@ func (tenant *TenantSettings) SetTenantSettings(metadatas []SettingsMetaData, va
 }
 
 // GetTenantSettings gets the tenant settings with default
-func (tenant *TenantSettings) GetTenantSettings(metadatas []SettingsMetaData) error {
+func (tenant *TenantSettings) GetTenantSettings(metadatas []SettingsMetaData, globalTenantSettings map[string]interface{}) error {
 	finalValues := make(map[string]interface{})
 	errors := make(map[string]string)
 	defaultValues, _ := tenant.GetSettings()
+	for key, setting := range globalTenantSettings {
+		_, ok := defaultValues[key]
+		if !ok {
+			defaultValues[key] = setting
+		}
+	}
+	settingsLevel := "tenant"
+	if tenant.Base.ID.String() == "00000000-0000-0000-0000-000000000000" {
+		settingsLevel = "global"
+	}
 	for _, metadata := range metadatas {
-		defaultValue, ok := defaultValues[metadata.Code]
-		if ok {
-			finalValue, err := metadata.ParseAndValidate(defaultValue)
-			if err != nil {
-				mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
+		if metadata.SettingsLevel == "globaltenant" || metadata.SettingsLevel == settingsLevel {
+			defaultValue, ok := defaultValues[metadata.Code]
+			if ok {
+				finalValue, err := metadata.ParseAndValidate(defaultValue)
+				if err != nil {
+					mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
+				} else {
+					finalValues[metadata.Code] = finalValue
+				}
 			} else {
-				finalValues[metadata.Code] = finalValue
-			}
-		} else {
-			finalValue, err := metadata.ParseAndValidate(nil)
-			if err != nil {
-				mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
-			} else {
-				finalValues[metadata.Code] = finalValue
+				finalValue, err := metadata.ParseAndValidate(nil)
+				if err != nil {
+					mergeToMap(errors, (err.(microappError.ValidationError)).Errors)
+				} else {
+					finalValues[metadata.Code] = finalValue
+				}
 			}
 		}
 	}
