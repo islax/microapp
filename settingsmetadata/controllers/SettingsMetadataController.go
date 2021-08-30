@@ -68,15 +68,8 @@ func (controller *SettingsMetadataController) getSettingsMetadata(w http.Respons
 		return
 	}
 
-	tenant, err := controller.getTenant(context, uow, controller.repository, tenantID)
-	if err != nil {
-		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant from database"))
-		microappWeb.RespondError(w, err)
-		return
-	}
-	_ = tenant.GetTenantSettingsMetadata(controller.settingsMetadatas)
-
-	microappWeb.RespondJSON(w, http.StatusOK, controller.settingsMetadatas)
+	settingsMetadata := GetSettingsMetadataForTenant(controller.settingsMetadatas, tenantID)
+	microappWeb.RespondJSON(w, http.StatusOK, settingsMetadata)
 }
 
 func (controller *SettingsMetadataController) get(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
@@ -257,6 +250,21 @@ func (controller *SettingsMetadataController) initSettingsMetaData(filePath stri
 	}
 	json.Unmarshal(byteValue, &settingsmetadata)
 	return settingsmetadata, nil
+}
+
+//Filter settings metadata based on tenant id
+func GetSettingsMetadataForTenant(settingsmetadatas []tenantModel.SettingsMetaData, tenantId uuid.UUID) []tenantModel.SettingsMetaData {
+	tenantsettingsmetadata := make([]tenantModel.SettingsMetaData, 0)
+	settingsLevel := "tenant"
+	if tenantId.String() == "00000000-0000-0000-0000-000000000000" {
+		settingsLevel = "global"
+	}
+	for _, metadata := range settingsmetadatas {
+		if metadata.SettingsLevel == "globaltenant" || metadata.SettingsLevel == settingsLevel {
+			tenantsettingsmetadata = append(tenantsettingsmetadata, metadata)
+		}
+	}
+	return tenantsettingsmetadata
 }
 
 func toDTO(tenant *tenantModel.TenantSettings) tenantDTO {
