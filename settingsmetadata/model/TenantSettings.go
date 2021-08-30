@@ -178,14 +178,23 @@ func mergeToMap(dest map[string]string, src map[string]string) map[string]string
 // GetTenantSettingsMetadata gets the tenant settings with default
 func (tenant *TenantSettings) GetTenantSettingsMetadata(metadatas []SettingsMetaData) error {
 	finalValues := make(map[string]interface{})
-	settingsLevel := "tenant"
+	var settingsLevelTenant string
+	var settingsLevelGlobal string
+
+	settingsLevelTenant = "tenant"
 
 	if tenant.Base.ID.String() == "00000000-0000-0000-0000-000000000000" {
-		settingsLevel = "global"
+		settingsLevelGlobal = "global"
 	}
 	for index, metadata := range metadatas {
-		if metadata.SettingsLevel == "globaltenant" || metadata.SettingsLevel == settingsLevel {
-			metadatas = append(metadatas[:index], metadatas[index+1:]...)
+		if metadata.SettingsLevel == "globaltenant" || metadata.SettingsLevel == settingsLevelTenant {
+			if metadata.SettingsLevel == settingsLevelGlobal {
+				metadatas = append(metadatas[:index], metadatas[index+1:]...)
+			}
+		} else if metadata.SettingsLevel == "globaltenant" || metadata.SettingsLevel == settingsLevelGlobal {
+			if metadata.SettingsLevel == settingsLevelTenant {
+				metadatas = append(metadatas[:index], metadatas[index+1:]...)
+			}
 		}
 	}
 
