@@ -5,9 +5,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"runtime/debug"
@@ -18,7 +20,8 @@ import (
 
 	"time"
 
-	migrate "github.com/golang-migrate/migrate/v4"
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	"github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/gorilla/mux"
@@ -52,6 +55,7 @@ type App struct {
 	Name            string
 	Config          *config.Config
 	DB              *gorm.DB
+	MemcachedClient *memcache.Client
 	Router          *mux.Router
 	server          *http.Server
 	log             zerolog.Logger
@@ -100,13 +104,18 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize database, exiting the application!!")
 	}
 
+	err = app.initializeMemcache()
+	if err != nil {
+		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize memcached, exiting the application!!")
+	}
+
 	return &app
 }
 
 // New creates a new microApp
-func New(appName string, appConfigDefaults map[string]interface{}, appLog zerolog.Logger, appDB *gorm.DB, appEventDispatcher event.Dispatcher) *App {
+func New(appName string, appConfigDefaults map[string]interface{}, appLog zerolog.Logger, appDB *gorm.DB, appMemcache *memcache.Client, appEventDispatcher event.Dispatcher) *App {
 	appConfig := config.NewConfig(appConfigDefaults)
-	return &App{Name: appName, Config: appConfig, log: appLog, DB: appDB, eventDispatcher: appEventDispatcher}
+	return &App{Name: appName, Config: appConfig, log: appLog, DB: appDB, MemcachedClient: appMemcache, eventDispatcher: appEventDispatcher}
 }
 
 func (app *App) initializeDB() error {
@@ -412,5 +421,18 @@ func registerTLSconfig(ssl_ca, ssl_cert, ssl_key string) error {
 		RootCAs:      rootCertPool,
 		Certificates: clientCert,
 	})
+	return nil
+}
+
+// initializeMemcache initializes the memcached client
+func (app *App) initializeMemcache() error {
+	memcachedHost := app.Config.GetString(config.EvSuffixForMemCachedHost)
+	memcachedPort := app.Config.GetString(config.EvSuffixForMemCachedPort)
+	memcachedClient := memcache.New(net.JoinHostPort(memcachedHost, memcachedPort))
+	if memcachedClient != nil {
+		return errors.New("can not able to connect memcached client")
+	}
+	app.MemcachedClient = memcachedClient
+	app.log.Info().Msg("Memcached connected!")
 	return nil
 }

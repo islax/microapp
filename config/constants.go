@@ -42,8 +42,12 @@ const (
 	EvSuffixForEnableMetrics = "ENABLE_METRICS"
 	// EvSuffixForGormMetricsRefresh environment variable name for gorm metrics refresh interval
 	EvSuffixForGormMetricsRefresh = "GORM_METRICS_REFRESH_INTERVAL"
-	// EvSuffixForSettingsMetadata environment variable name for settings metadata path
+	// EvSuffixForSettingsMetadataPath environment variable name for settings metadata path
 	EvSuffixForSettingsMetadataPath = "SETTINGS_METADATA_PATH"
-	// EvSuffixForGlobalSettingsMetadata environment variable name for global settings metadata path
+	// EvSuffixForGlobalSettingsMetadataPath environment variable name for global settings metadata path
 	EvSuffixForGlobalSettingsMetadataPath = "GLOBAL_SETTINGS_METADATA_PATH"
+	// EvSuffixForMemCachedHost environment variable name for Memcached host
+	EvSuffixForMemCachedHost = "MEMCACHED_HOST"
+	// EvSuffixForMemCachedPort environment variable name for Memcached Port
+	EvSuffixForMemCachedPort = "MEMCACHED_PORT"
 )
