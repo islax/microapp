@@ -216,7 +216,9 @@ func (controller *SettingsMetadataController) getTenant(context microappCtx.Exec
 	tenant := &tenantModel.TenantSettings{}
 	tenant.ID = tenantID
 	queryProcessor := []microappRepo.QueryProcessor{}
-	queryProcessor = append(queryProcessor, microappRepo.Filter("id = ?", tenantID))
+	if tenantID.String() == "00000000-0000-0000-0000-000000000000" {
+		queryProcessor = append(queryProcessor, microappRepo.Filter("id = ?", tenantID))
+	}
 	if err := repository.GetFirst(uow, tenant, queryProcessor); err != nil {
 		if !err.IsRecordNotFoundError() {
 			context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant from database"))
