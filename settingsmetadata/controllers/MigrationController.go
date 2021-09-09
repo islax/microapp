@@ -75,6 +75,7 @@ func (controller *SettingsMetadataMigrationController) migratetenants(w http.Res
 		}
 		settings, ok := tenantMap["settings"].(map[string]interface{})
 		if ok {
+			settings["displayName"] = tenantMap["displayName"]
 			tenant, err := tenantModel.NewTenant(context, tenantID, settings, controller.settingsMetadatas)
 			if err != nil {
 				context.LogError(err, "Unable to add new tenant.")
