@@ -122,7 +122,7 @@ func (app *App) initializeDB() error {
 				dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: true}
 			}
 
-			if err = registerTLSconfig(app.Config.GetString("DB_SSL_CA_PATH"), app.Config.GetString("DB_SSL_CERT_PATH"), app.Config.GetString("DB_SSL_KEY_PATH")); err != nil {
+			if err = registerTLSconfig(app.Config.GetString("DB_SSL_CA_PATH"), app.Config.GetString("DB_SSL_CERT_PATH"), app.Config.GetString("DB_SSL_KEY_PATH"), app.Config.GetBool("DB_USE_CLIENT_CERTIFICATE")); err != nil {
 				app.log.Warn().Err(err).Msgf("TLS config error [%v]. Connecting without certificates", err)
 			}
 
@@ -393,7 +393,7 @@ func GetCorrelationIDFromRequest(r *http.Request) string {
 	return r.Header.Get("X-Correlation-ID")
 }
 
-func registerTLSconfig(ssl_ca, ssl_cert, ssl_key string) error {
+func registerTLSconfig(ssl_ca, ssl_cert, ssl_key string, useclientcert bool) error {
 	rootCertPool := x509.NewCertPool()
 	pem, err := ioutil.ReadFile(ssl_ca)
 	if err != nil {
@@ -403,11 +403,13 @@ func registerTLSconfig(ssl_ca, ssl_cert, ssl_key string) error {
 		return err
 	}
 	clientCert := make([]tls.Certificate, 0, 1)
-	certs, err := tls.LoadX509KeyPair(ssl_cert, ssl_key)
-	if err != nil {
-		return err
+	if useclientcert {
+		certs, err := tls.LoadX509KeyPair(ssl_cert, ssl_key)
+		if err != nil {
+			return err
+		}
+		clientCert = append(clientCert, certs)
 	}
-	clientCert = append(clientCert, certs)
 	gomysqldriver.RegisterTLSConfig("custom", &tls.Config{
 		RootCAs:      rootCertPool,
 		Certificates: clientCert,
