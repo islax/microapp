@@ -157,8 +157,8 @@ func (app *App) GetConnectionString() string {
 	dbPort := app.Config.GetString("DB_PORT")
 	dbUser := app.Config.GetString("DB_USER")
 	dbPassword := app.Config.GetString("DB_PWD")
-
-	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?multiStatements=true&charset=utf8&parseTime=True&loc=Local&tls=preferred", dbUser, dbPassword, dbHost, dbPort, dbName)
+	tlsmode := app.Config.GetString("DB_TLS_MODE")
+	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?multiStatements=true&charset=utf8&parseTime=True&loc=Local&tls=%v", dbUser, dbPassword, dbHost, dbPort, dbName, tlsmode)
 }
 
 // NewUnitOfWork creates new UnitOfWork
