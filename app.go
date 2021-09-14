@@ -432,12 +432,20 @@ func (app *App) initializeMemcache() error {
 
 	memcachedHost := app.Config.GetString(config.EvSuffixForMemCachedHost)
 	memcachedPort := app.Config.GetString(config.EvSuffixForMemCachedPort)
+
 	app.log.Debug().Msgf("connecting to %s\n",net.JoinHostPort(memcachedHost, memcachedPort))
+
 	memcachedClient := memcache.New(net.JoinHostPort(memcachedHost, memcachedPort))
 	if memcachedClient == nil {
 		return errors.New("can not able to connect memcached client")
 	}
+
+	if err := memcachedClient.Ping(); err != nil {
+		return errors.New(fmt.Sprintf("can not able to connect memcached client with err: %s", err.Error()))
+	}
+
 	app.MemcachedClient = memcachedClient
+
 	app.log.Info().Msg("Memcached connected!")
 	return nil
 }
