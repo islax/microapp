@@ -426,10 +426,15 @@ func registerTLSconfig(ssl_ca, ssl_cert, ssl_key string) error {
 
 // initializeMemcache initializes the memcached client
 func (app *App) initializeMemcache() error {
+	if !app.Config.GetBool(config.EvSuffixForMemCachedRequired) {
+		return nil
+	}
+
 	memcachedHost := app.Config.GetString(config.EvSuffixForMemCachedHost)
 	memcachedPort := app.Config.GetString(config.EvSuffixForMemCachedPort)
+	app.log.Debug().Msgf("connecting to %s\n",net.JoinHostPort(memcachedHost, memcachedPort))
 	memcachedClient := memcache.New(net.JoinHostPort(memcachedHost, memcachedPort))
-	if memcachedClient != nil {
+	if memcachedClient == nil {
 		return errors.New("can not able to connect memcached client")
 	}
 	app.MemcachedClient = memcachedClient

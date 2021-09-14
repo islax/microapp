@@ -50,4 +50,6 @@ const (
 	EvSuffixForMemCachedHost = "MEMCACHED_HOST"
 	// EvSuffixForMemCachedPort environment variable name for Memcached Port
 	EvSuffixForMemCachedPort = "MEMCACHED_PORT"
+	// EvSuffixForMemCachedRequired environment variable name for memcached required flag
+	EvSuffixForMemCachedRequired = "MEMCACHED_REQUIRED"
 )
