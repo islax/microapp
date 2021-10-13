@@ -60,10 +60,12 @@ func (controller *SettingsMetadataController) getSettingsMetadata(w http.Respons
 		microappWeb.RespondError(w, err)
 		return
 	}
-	queryParams := r.URL.Query()
 	stringTenantID := token.TenantID.String()
-	if queryParamsTenantID, ok := queryParams["tenantId"]; ok {
-		stringTenantID = queryParamsTenantID[0]
+	if token.Admin {
+		queryParams := r.URL.Query()
+		if queryParamsTenantID, ok := queryParams["tenantId"]; ok {
+			stringTenantID = queryParamsTenantID[0]
+		}
 	}
 	tenantID, err := tenantService.GetTenantIDFromToken().GetTenantIDAsUUID(mux.Vars(r), token, stringTenantID)
 	if err != nil {
