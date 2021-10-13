@@ -61,6 +61,12 @@ func (controller *SettingsMetadataController) getSettingsMetadata(w http.Respons
 		return
 	}
 	stringTenantID := token.TenantID.String()
+	if token.Admin {
+		queryParams := r.URL.Query()
+		if queryParamsTenantID, ok := queryParams["tenantId"]; ok {
+			stringTenantID = queryParamsTenantID[0]
+		}
+	}
 	tenantID, err := tenantService.GetTenantIDFromToken().GetTenantIDAsUUID(mux.Vars(r), token, stringTenantID)
 	if err != nil {
 		context.LogError(err, microappLog.MessageUnableToFindURLResource)
