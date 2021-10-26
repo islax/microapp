@@ -182,8 +182,16 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 
 	uow.Commit()
 	responseDTO := toDTO(tenant)
+
+	err = tenant.GetTenantSettings(controller.settingsMetadatas, map[string]interface{}{})
+	if err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant settings from metadata"))
+		microappWeb.RespondError(w, err)
+		return
+	}
+
 	context.LoggerEventActionCompletion().Str("TenantId", responseDTO.ID.String()).Msg("Tenant settings updated")
-	controller.app.DispatchEvent(token.Raw, context.GetCorrelationID(), strings.ToLower(strings.ReplaceAll(controller.app.Name, " ", ""))+".settingsupdated", responseDTO)
+	controller.app.DispatchEvent(token.Raw, context.GetCorrelationID(), strings.ToLower(strings.ReplaceAll(controller.app.Name, " ", ""))+".settingsupdated", toDTO(tenant))
 	microappWeb.RespondJSON(w, http.StatusOK, responseDTO)
 }
 
