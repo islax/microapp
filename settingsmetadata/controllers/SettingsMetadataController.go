@@ -46,7 +46,7 @@ func (controller *SettingsMetadataController) RegisterRoutes(muxRouter *mux.Rout
 
 	tenantSettingsRouter := policySettingsRouter.PathPrefix("/tenants/{id}/settings").Subrouter()
 	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.get, []string{"tenantSettings:read"}, false)).Methods("GET")
-	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.update, []string{"tenantsettings:write"}, false)).Methods("PUT")
+	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.update, []string{"tenantSettings:write"}, false)).Methods("PUT")
 	tenantSettingsRouter.HandleFunc("/{settingName}", microappSecurity.Protect(controller.app.Config, controller.getByName, []string{"tenantSettings:read"}, false)).Methods("GET")
 
 }
