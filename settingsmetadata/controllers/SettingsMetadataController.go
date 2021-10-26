@@ -189,6 +189,7 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 		microappWeb.RespondError(w, err)
 		return
 	}
+	fmt.Println(tenant)
 
 	context.LoggerEventActionCompletion().Str("TenantId", responseDTO.ID.String()).Msg("Tenant settings updated")
 	controller.app.DispatchEvent(token.Raw, context.GetCorrelationID(), strings.ToLower(strings.ReplaceAll(controller.app.Name, " ", ""))+".settingsupdated", toDTO(tenant))
