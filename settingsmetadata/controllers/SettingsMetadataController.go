@@ -46,7 +46,7 @@ func (controller *SettingsMetadataController) RegisterRoutes(muxRouter *mux.Rout
 
 	tenantSettingsRouter := policySettingsRouter.PathPrefix("/tenants/{id}/settings").Subrouter()
 	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.get, []string{"tenantSettings:read"}, false)).Methods("GET")
-	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.update, []string{"tenantsettings:write"}, false)).Methods("PUT")
+	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.update, []string{"tenantSettings:write"}, false)).Methods("PUT")
 	tenantSettingsRouter.HandleFunc("/{settingName}", microappSecurity.Protect(controller.app.Config, controller.getByName, []string{"tenantSettings:read"}, false)).Methods("GET")
 
 }
@@ -182,8 +182,16 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 
 	uow.Commit()
 	responseDTO := toDTO(tenant)
+
+	err = tenant.GetTenantSettings(controller.settingsMetadatas, map[string]interface{}{})
+	if err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant settings from metadata"))
+		microappWeb.RespondError(w, err)
+		return
+	}
+
 	context.LoggerEventActionCompletion().Str("TenantId", responseDTO.ID.String()).Msg("Tenant settings updated")
-	controller.app.DispatchEvent(token.Raw, context.GetCorrelationID(), strings.ToLower(strings.ReplaceAll(controller.app.Name, " ", ""))+".settingsupdated", responseDTO)
+	controller.app.DispatchEvent(token.Raw, context.GetCorrelationID(), strings.ToLower(strings.ReplaceAll(controller.app.Name, " ", ""))+".settingsupdated", toDTO(tenant))
 	microappWeb.RespondJSON(w, http.StatusOK, responseDTO)
 }
 
