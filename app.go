@@ -444,6 +444,15 @@ func (app *App) initializeMemcache() error {
 		return errors.New(fmt.Sprintf("can not able to connect memcached client with err: %s", err.Error()))
 	}
 
+	// setting dummy value just to verify if connection established with memcached server and server is available
+	if err := memcachedClient.Set(&memcache.Item{
+		Key:        "foo",
+		Value:      []byte("bar"),
+		Expiration: int32(time.Now().Add(2 * time.Second).Unix()),
+	}); err != nil {
+		return errors.New(fmt.Sprintf("can not able to connect memcached client with err: %s", err.Error()))
+	}
+
 	app.MemcachedClient = memcachedClient
 
 	app.log.Info().Msg("Memcached connected!")
