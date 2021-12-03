@@ -29,6 +29,7 @@ type JwtToken struct {
 	ExternalIDType string      `json:"externalIdType,omitempty"`
 	Scopes         []string    `json:"scope,omitempty"`
 	Admin          bool        `json:"admin,omitempty"`
+	PolicyId       bool        `json:"policyId,omitempty"`
 	Raw            string      `json:"-"`
 	jwt.StandardClaims
 }
