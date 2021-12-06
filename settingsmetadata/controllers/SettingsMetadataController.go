@@ -39,15 +39,14 @@ type SettingsMetadataController struct {
 // RegisterRoutes implements interface RouteSpecifier
 func (controller *SettingsMetadataController) RegisterRoutes(muxRouter *mux.Router) {
 	apiRouter := muxRouter.PathPrefix("/api").Subrouter()
-	policySettingsRouter := apiRouter.PathPrefix(fmt.Sprintf("/%s", strings.ToLower(controller.app.Name))).Subrouter()
 
-	settingsMetadataRouter := policySettingsRouter.PathPrefix("/settings-metadata").Subrouter()
+	settingsMetadataRouter := apiRouter.PathPrefix(fmt.Sprintf("/%s/settings-metadata", strings.ToLower(controller.app.Name))).Subrouter()
 	settingsMetadataRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.getSettingsMetadata, []string{"settingsmetadata:read"}, false)).Methods("GET")
-
-	tenantSettingsRouter := policySettingsRouter.PathPrefix("/tenants/{id}/settings").Subrouter()
-	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.get, []string{"tenantSettings:read"}, false)).Methods("GET")
-	tenantSettingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.update, []string{"tenantSettings:write"}, false)).Methods("PUT")
-	tenantSettingsRouter.HandleFunc("/{settingName}", microappSecurity.Protect(controller.app.Config, controller.getByName, []string{"tenantSettings:read"}, false)).Methods("GET")
+	
+	settingsRouter := apiRouter.PathPrefix(fmt.Sprintf("/tenants/{id}/%s-settings", strings.ToLower(controller.app.Name))).Subrouter()
+	settingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.get, []string{"tenantSettings:read"}, false)).Methods("GET")
+	settingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.update, []string{"tenantSettings:write"}, false)).Methods("PUT")
+	settingsRouter.HandleFunc("/{settingName}", microappSecurity.Protect(controller.app.Config, controller.getByName, []string{"tenantSettings:read"}, false)).Methods("GET")
 
 }
 
