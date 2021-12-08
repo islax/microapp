@@ -42,8 +42,12 @@ func (controller *SettingsMetadataController) RegisterRoutes(muxRouter *mux.Rout
 
 	settingsMetadataRouter := apiRouter.PathPrefix(fmt.Sprintf("/%s/settings-metadata", strings.ToLower(controller.app.Name))).Subrouter()
 	settingsMetadataRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.getSettingsMetadata, []string{"settingsmetadata:read"}, false)).Methods("GET")
-	
-	settingsRouter := apiRouter.PathPrefix(fmt.Sprintf("/tenants/{id}/%s-settings", strings.ToLower(controller.app.Name))).Subrouter()
+
+	pathLabel := strings.ToLower(controller.app.Name)
+	if strings.ToLower(controller.app.Name) == "tenant" {
+		pathLabel = "general"
+	}
+	settingsRouter := apiRouter.PathPrefix(fmt.Sprintf("/tenants/{id}/%s-settings", pathLabel)).Subrouter()
 	settingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.get, []string{"tenantSettings:read"}, false)).Methods("GET")
 	settingsRouter.HandleFunc("", microappSecurity.Protect(controller.app.Config, controller.update, []string{"tenantSettings:write"}, false)).Methods("PUT")
 	settingsRouter.HandleFunc("/{settingName}", microappSecurity.Protect(controller.app.Config, controller.getByName, []string{"tenantSettings:read"}, false)).Methods("GET")
