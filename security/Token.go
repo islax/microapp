@@ -3,22 +3,24 @@ package security
 import (
 	"strings"
 
-	jwt "github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt"
 	uuid "github.com/satori/go.uuid"
 )
 
-// Appliance ExternalID Type
-const Appliance = "Appliance"
-
-// Session ExternalID Type
-const Session = "Session"
-
-// User ExternalID Type
-const User = "User"
+const (
+	// ApplianceExternalIdType indicates Appliance ExternalID Type
+	ApplianceExternalIdType = "Appliance"
+	// SessionExternalIdType indicates Session ExternalID Type
+	SessionExternalIdType = "Session"
+	// UserExternalIdType indicates User ExternalID Type
+	UserExternalIdType = "User"
+	// PartnerExternalIdType indicates Partner ExternalID Type
+	PartnerExternalIdType = "Partner"
+)
 
 // JwtToken represents the parsed Token from Authentication Header
 type JwtToken struct {
-	// UserID is id of user matchimg the token
+	// UserID is id of user matching the token
 	UserID         uuid.UUID   `json:"user,omitempty"`
 	UserName       string      `json:"name,omitempty"`
 	DisplayName    string      `json:"displayName,omitempty"`
@@ -29,6 +31,8 @@ type JwtToken struct {
 	ExternalIDType string      `json:"externalIdType,omitempty"`
 	Scopes         []string    `json:"scope,omitempty"`
 	Admin          bool        `json:"admin,omitempty"`
+	PolicyID       uuid.UUID   `json:"policyId,omitempty"`  // PolicyID is id of policy matching the token
+	PartnerID      uuid.UUID   `json:"partnerId,omitempty"` // PartnerID is id of partner matching the token
 	Raw            string      `json:"-"`
 	jwt.StandardClaims
 }

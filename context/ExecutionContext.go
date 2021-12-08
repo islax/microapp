@@ -63,6 +63,14 @@ func NewExecutionContext(token *security.JwtToken, correlationID string, action 
 			executionCtxLogger = executionCtxLogger.With().Str("externalIdType", token.ExternalIDType).Logger()
 		}
 
+		if token.PolicyID != uuid.Nil {
+			executionCtxLogger = executionCtxLogger.With().Str("policyId", token.PolicyID.String()).Logger()
+		}
+
+		if token.PartnerID != uuid.Nil {
+			executionCtxLogger = executionCtxLogger.With().Str("partnerId", token.PartnerID.String()).Logger()
+		}
+
 	} else {
 		executionCtxLogger = logger.With().
 			Str("action", action).
