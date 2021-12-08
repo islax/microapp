@@ -7,14 +7,16 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// Appliance ExternalID Type
-const Appliance = "Appliance"
-
-// Session ExternalID Type
-const Session = "Session"
-
-// User ExternalID Type
-const User = "User"
+const (
+	// ApplianceExternalIdType indicates Appliance ExternalID Type
+	ApplianceExternalIdType = "Appliance"
+	// SessionExternalIdType indicates Session ExternalID Type
+	SessionExternalIdType = "Session"
+	// UserExternalIdType indicates User ExternalID Type
+	UserExternalIdType = "User"
+	// PartnerExternalIdType indicates Partner ExternalID Type
+	PartnerExternalIdType = "Partner"
+)
 
 // JwtToken represents the parsed Token from Authentication Header
 type JwtToken struct {
