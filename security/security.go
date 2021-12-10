@@ -63,7 +63,7 @@ func GetTokenFromRawAuthHeader(config *config.Config, rawAuthHeaderToken string)
 	})
 
 	if err != nil { //Malformed token, returns with http code 403 as usual
-		fmt.Println("Malformed token, returns with http code 403 as usual")
+		fmt.Printf("Malformed token, returns with http code 403 as usual, err:%s\n", err.Error())
 		return nil, errors.New("Key_InvalidAuthToken")
 	}
 
