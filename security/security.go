@@ -2,6 +2,7 @@ package security
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -42,10 +43,12 @@ func Protect(config *config.Config, handlerFunc func(w http.ResponseWriter, r *h
 // rawAuthHeaderToken should be of format `Bearer {token-body}`
 func GetTokenFromRawAuthHeader(config *config.Config, rawAuthHeaderToken string) (*JwtToken, error) {
 	if rawAuthHeaderToken == "" { //Token is missing, returns with error code 403 Unauthorized
+		fmt.Println("Token is missing, returns with error code 403 Unauthorized")
 		return nil, errors.New("Key_MissingAuthToken")
 	}
 	splitted := strings.Split(rawAuthHeaderToken, " ") //The token normally comes in format `Bearer {token-body}`, we check if the retrieved token matched this requirement
 	if len(splitted) != 2 {
+		fmt.Println("The token normally comes in format `Bearer {token-body}`, we check if the retrieved token matched this requirement")
 		return nil, errors.New("Key_InvalidAuthToken")
 	}
 
@@ -60,10 +63,12 @@ func GetTokenFromRawAuthHeader(config *config.Config, rawAuthHeaderToken string)
 	})
 
 	if err != nil { //Malformed token, returns with http code 403 as usual
+		fmt.Println("Malformed token, returns with http code 403 as usual")
 		return nil, errors.New("Key_InvalidAuthToken")
 	}
 
 	if !token.Valid { //Token is invalid, maybe not signed on this server
+		fmt.Println("Token is invalid, maybe not signed on this server")
 		return nil, errors.New("Key_InvalidAuthToken")
 	}
 
