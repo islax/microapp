@@ -205,7 +205,7 @@ func (controller *SettingsMetadataController) getByName(w http.ResponseWriter, r
 
 	params := mux.Vars(r)
 	stringTenantID := params["id"]
-	//var settingsName interface{}
+	globalTenantSettings := make(map[string]interface{})
 	tenantID, err := tenantService.GetTenantIDFromToken().GetTenantIDAsUUID(params, token, stringTenantID)
 	if err != nil {
 		context.LogError(err, microappLog.MessageUnableToFindURLResource)
@@ -213,8 +213,32 @@ func (controller *SettingsMetadataController) getByName(w http.ResponseWriter, r
 		return
 	}
 
+	if err := controller.checkAndInitializeSettingsMetadata(); err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "initializing settings-metadata"))
+		microappWeb.RespondError(w, err)
+		return
+	}
+
 	tenant, err := controller.getTenant(context, uow, controller.repository, tenantID)
 	if err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant from database"))
+		microappWeb.RespondError(w, err)
+		return
+	}
+
+	if tenantID.String() != "00000000-0000-0000-0000-000000000000" {
+		globalTenant, err := controller.getTenant(context, uow, controller.repository, uuid.FromStringOrNil("00000000-0000-0000-0000-000000000000"))
+		if err != nil {
+			context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting global tenant from database"))
+			microappWeb.RespondError(w, err)
+			return
+		}
+		globalTenantSettings, _ = globalTenant.GetSettings()
+	}
+
+	err = tenant.GetTenantSettings(controller.settingsMetadatas, globalTenantSettings)
+	if err != nil {
+		context.LogError(err, fmt.Sprintf(microappLog.MessageGenericErrorTemplate, "getting tenant settings from database"))
 		microappWeb.RespondError(w, err)
 		return
 	}
