@@ -250,7 +250,6 @@ func (controller *SettingsMetadataController) getByName(w http.ResponseWriter, r
 		return
 	}
 
-	fmt.Println(settings)
 	settingsParameter := map[string]interface{}{params["settingName"]: settings[params["settingName"]]}
 	microappWeb.RespondJSON(w, http.StatusOK, settingsParameter)
 }
