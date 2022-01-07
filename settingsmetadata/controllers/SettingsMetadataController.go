@@ -195,7 +195,7 @@ func (controller *SettingsMetadataController) update(w http.ResponseWriter, r *h
 
 	context.LoggerEventActionCompletion().Str("TenantId", responseDTO.ID.String()).Msg("Tenant settings updated")
 	controller.app.DispatchEvent(token.Raw, context.GetCorrelationID(), strings.ToLower(strings.ReplaceAll(controller.app.Name, " ", ""))+".settingsupdated", toDTO(tenant))
-	microappWeb.RespondJSON(w, http.StatusOK, responseDTO)
+	microappWeb.RespondJSON(w, http.StatusOK, nil)
 }
 
 func (controller *SettingsMetadataController) getByName(w http.ResponseWriter, r *http.Request, token *microappSecurity.JwtToken) {
