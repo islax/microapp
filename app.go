@@ -470,7 +470,11 @@ func (app *App) setTLSClientConfig() error {
 		return nil
 	}
 
-	certPool := x509.NewCertPool()
+	certPool, err := x509.SystemCertPool()
+	if err != nil {
+		return errors.New(fmt.Sprintf("unable to load system certificates, err: %s", err.Error()))
+	}
+
 	if app.Config.GetBool(config.EvSuffixForEnableTLS) {
 		pemBytes, err := ioutil.ReadFile(app.Config.GetString(config.EvSuffixForTLSCert))
 		if err != nil {
