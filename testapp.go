@@ -271,6 +271,12 @@ func (testApp *TestApp) GetAdminToken(tenantID string, userID string, scope []st
 	return testApp.generateToken(tenantID, userID, "", "", uuid.UUID{}.String(), "", scope, true)
 }
 
+// GetPartnerTokenFromAPIKey returns a test partner token
+func (testApp *TestApp) GetPartnerTokenFromAPIKey(username string, name string, partnerID string, scope []string) string {
+	userGroupIds := make([]uuid.UUID, 0)
+	return testApp.generatePartnerToken("00000000-0000-0000-0000-000000000000", "", userGroupIds, "00000000-0000-0000-0000-000000000000", username, name, partnerID, "Partner", "00000000-0000-0000-0000-000000000000", "00000000-0000-0000-0000-000000000000", scope, true, partnerID)
+}
+
 // GetAll gets all from DB
 func (testApp *TestApp) GetAll(out interface{}, preloads []string, whereClause string, whereParams []interface{}, orderBy string) error {
 	db := testApp.application.DB
@@ -365,6 +371,38 @@ func (testApp *TestApp) generateToken(tenantID string, userID string, username s
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
+	tokenString, err := token.SignedString(jwtSecret)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return tokenString
+}
+
+func (testApp *TestApp) generatePartnerToken(tenantID string, tenantName string, usergroupIds []uuid.UUID, userID string, username string, name string, externalID string, externalIDType string, identityProviderID string, policyID string, scope []string, admin bool, partnerID string) string {
+	signBytes, _ := ioutil.ReadFile(testApp.application.Config.GetString("JWT_PRIVATE_KEY_PATH"))
+	jwtSecret, _ := jwt.ParseRSAPrivateKeyFromPEM(signBytes)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS512, jwt.MapClaims{
+		"iss":                "http://isla.cyberinc.com",
+		"aud":                "http://isla.cyberinc.com",
+		"iat":                time.Now().Unix(),
+		"exp":                time.Now().Add(time.Minute * 60).Unix(),
+		"tenant":             tenantID,
+		"tenantName":         tenantName,
+		"user":               userID,
+		"usergroupIds":       usergroupIds,
+		"admin":              admin,
+		"name":               username,
+		"displayName":        name,
+		"scope":              scope,
+		"externalId":         externalID,
+		"externalIdType":     externalIDType,
+		"identityProvider":   "",
+		"identityProviderID": identityProviderID,
+		"policyId":           policyID,
+		"partnerId":          partnerID,
+	})
 	tokenString, err := token.SignedString(jwtSecret)
 
 	if err != nil {
