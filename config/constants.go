@@ -52,4 +52,12 @@ const (
 	EvSuffixForMemCachedPort = "MEMCACHED_PORT"
 	// EvSuffixForMemCachedRequired environment variable name for memcached required flag
 	EvSuffixForMemCachedRequired = "MEMCACHED_REQUIRED"
+	// EvSuffixForSkipInsecureTLSVerification environment variable name for skipping insecure tls verification
+	EvSuffixForSkipInsecureTLSVerification = "TLS_INSECURE_SKIP_VERIFY"
+	// EvSuffixForEnableTLS environment variable name for enabling tls
+	EvSuffixForEnableTLS = "ENABLE_TLS"
+	// EvSuffixForTLSCert environment variable name for tls certificate
+	EvSuffixForTLSCert = "TLS_CRT"
+	// EvSuffixForTLSKey environment variable name for tls private key
+	EvSuffixForTLSKey = "TLS_KEY"
 )

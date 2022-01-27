@@ -230,9 +230,8 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 
 //Start http server and start listening to the requests
 func (app *App) Start() {
-
-	if app.Config.GetString("ENABLE_TLS") == "true" {
-		app.StartSecure(app.Config.GetString("TLS_CRT"), app.Config.GetString("TLS_KEY"))
+	if app.Config.GetBool(config.EvSuffixForEnableTLS) {
+		app.StartSecure(app.Config.GetString(config.EvSuffixForTLSCert), app.Config.GetString(config.EvSuffixForTLSKey))
 	} else {
 		if err := app.server.ListenAndServe(); err != nil {
 			if err != http.ErrServerClosed {
@@ -465,23 +464,21 @@ func (app *App) initializeMemcache() error {
 }
 
 func (app *App) setTLSClientConfig() error {
-	tlsConfig := &tls.Config{}
-
-	insecureSkipVerification := app.Config.GetBool("ISLA_TLS_INSECURE_SKIP_VERIFY")
+	insecureSkipVerification := app.Config.GetBool(config.EvSuffixForSkipInsecureTLSVerification)
 	if insecureSkipVerification {
-		tlsConfig.InsecureSkipVerify = true
+		http.DefaultTransport.(*http.Transport).TLSClientConfig.InsecureSkipVerify = true
 		return nil
 	}
 
-	var certPool *x509.CertPool
-	pemBytes, err := ioutil.ReadFile(app.Config.GetString("ISLA_TLS_CRT"))
-	if err != nil {
-		return errors.New(fmt.Sprintf("unable to read TLS_CERT with err: %s", err.Error()))
+	certPool := x509.NewCertPool()
+	if app.Config.GetBool(config.EvSuffixForEnableTLS) {
+		pemBytes, err := ioutil.ReadFile(app.Config.GetString(config.EvSuffixForTLSCert))
+		if err != nil {
+			return errors.New(fmt.Sprintf("unable to read TLS_CERT with err: %s", err.Error()))
+		}
+		certPool.AppendCertsFromPEM(pemBytes)
 	}
 
-	certPool = x509.NewCertPool()
-	certPool.AppendCertsFromPEM(pemBytes)
-
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = tlsConfig
+	http.DefaultTransport.(*http.Transport).TLSClientConfig.RootCAs = certPool
 	return nil
 }
