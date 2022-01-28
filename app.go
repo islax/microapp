@@ -109,10 +109,11 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize memcached, exiting the application!!")
 	}
 
-	err = app.setTLSClientConfig()
+	tlsConfig, err := app.setTLSClientConfig()
 	if err != nil {
 		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to set TLS Client Config, exiting the application!!")
 	}
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = tlsConfig
 
 	return &app
 }
@@ -463,26 +464,28 @@ func (app *App) initializeMemcache() error {
 	return nil
 }
 
-func (app *App) setTLSClientConfig() error {
-	insecureSkipVerification := app.Config.GetBool(config.EvSuffixForSkipInsecureTLSVerification)
-	if insecureSkipVerification {
-		http.DefaultTransport.(*http.Transport).TLSClientConfig.InsecureSkipVerify = true
-		return nil
+func (app *App) setTLSClientConfig() (*tls.Config, error) {
+	tlsConfig := &tls.Config{}
+	
+	if app.Config.GetBool(config.EvSuffixForSkipInsecureTLSVerification) {
+		tlsConfig.InsecureSkipVerify = true
+		return tlsConfig, nil
 	}
 
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
-		return errors.New(fmt.Sprintf("unable to load system certificates, err: %s", err.Error()))
+		return nil, errors.New(fmt.Sprintf("unable to load system certificates, err: %s", err.Error()))
 	}
 
 	if app.Config.GetBool(config.EvSuffixForEnableTLS) {
 		pemBytes, err := ioutil.ReadFile(app.Config.GetString(config.EvSuffixForTLSCert))
 		if err != nil {
-			return errors.New(fmt.Sprintf("unable to read TLS_CERT with err: %s", err.Error()))
+			return nil, errors.New(fmt.Sprintf("unable to read TLS_CERT with err: %s", err.Error()))
 		}
 		certPool.AppendCertsFromPEM(pemBytes)
 	}
 
-	http.DefaultTransport.(*http.Transport).TLSClientConfig.RootCAs = certPool
-	return nil
+	tlsConfig.RootCAs = certPool
+
+	return tlsConfig, nil
 }
