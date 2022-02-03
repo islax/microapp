@@ -466,7 +466,6 @@ func (app *App) initializeMemcache() error {
 
 func (app *App) setTLSClientConfig() (*tls.Config, error) {
 	tlsConfig := &tls.Config{}
-	tlsConfig.ServerName = app.Config.GetStringWithDefault("TLS_SERVER_NAME", "core-isla-tls")
 
 	if app.Config.GetBool(config.EvSuffixForSkipInsecureTLSVerification) {
 		tlsConfig.InsecureSkipVerify = true
@@ -479,6 +478,8 @@ func (app *App) setTLSClientConfig() (*tls.Config, error) {
 	}
 
 	if app.Config.GetBool(config.EvSuffixForEnableTLS) {
+		tlsConfig.ServerName = app.Config.GetString(config.EvSuffixForTLSServerName)
+
 		pemBytes, err := ioutil.ReadFile(app.Config.GetString(config.EvSuffixForTLSCert))
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("unable to read TLS_CERT with err: %s", err.Error()))

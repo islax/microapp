@@ -56,6 +56,8 @@ const (
 	EvSuffixForSkipInsecureTLSVerification = "TLS_INSECURE_SKIP_VERIFY"
 	// EvSuffixForEnableTLS environment variable name for enabling tls
 	EvSuffixForEnableTLS = "ENABLE_TLS"
+	// EvSuffixForTLSServerName environment variable name for tls server name
+	EvSuffixForTLSServerName = "TLS_SERVER_NAME"
 	// EvSuffixForTLSCert environment variable name for tls certificate
 	EvSuffixForTLSCert = "TLS_CRT"
 	// EvSuffixForTLSKey environment variable name for tls private key
