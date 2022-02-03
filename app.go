@@ -466,7 +466,8 @@ func (app *App) initializeMemcache() error {
 
 func (app *App) setTLSClientConfig() (*tls.Config, error) {
 	tlsConfig := &tls.Config{}
-	
+	tlsConfig.ServerName = app.Config.GetStringWithDefault("TLS_SERVER_NAME", "core-isla-tls")
+
 	if app.Config.GetBool(config.EvSuffixForSkipInsecureTLSVerification) {
 		tlsConfig.InsecureSkipVerify = true
 		return tlsConfig, nil
