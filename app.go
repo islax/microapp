@@ -109,6 +109,12 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize memcached, exiting the application!!")
 	}
 
+	tlsConfig, err := app.setTLSClientConfig()
+	if err != nil {
+		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to set TLS Client Config, exiting the application!!")
+	}
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = tlsConfig
+
 	return &app
 }
 
@@ -131,7 +137,7 @@ func (app *App) initializeDB() error {
 				dbconf.NamingStrategy = schema.NamingStrategy{SingularTable: true}
 			}
 
-			if err = registerTLSconfig(app.Config.GetString("DB_SSL_CA_PATH"), app.Config.GetString("DB_SSL_CERT_PATH"), app.Config.GetString("DB_SSL_KEY_PATH")); err != nil {
+			if err = registerTLSConfig(app.Config.GetString("DB_SSL_CA_PATH"), app.Config.GetString("DB_SSL_CERT_PATH"), app.Config.GetString("DB_SSL_KEY_PATH")); err != nil {
 				app.log.Warn().Err(err).Msgf("TLS config error [%v]. Connecting without certificates", err)
 			}
 
@@ -225,9 +231,8 @@ func (app *App) Initialize(routeSpecifiers []RouteSpecifier) {
 
 //Start http server and start listening to the requests
 func (app *App) Start() {
-
-	if app.Config.GetString("ENABLE_TLS") == "true" {
-		app.StartSecure(app.Config.GetString("TLS_CRT"), app.Config.GetString("TLS_KEY"))
+	if app.Config.GetBool(config.EvSuffixForEnableTLS) {
+		app.StartSecure(app.Config.GetString(config.EvSuffixForTLSCert), app.Config.GetString(config.EvSuffixForTLSKey))
 	} else {
 		if err := app.server.ListenAndServe(); err != nil {
 			if err != http.ErrServerClosed {
@@ -402,9 +407,9 @@ func GetCorrelationIDFromRequest(r *http.Request) string {
 	return r.Header.Get("X-Correlation-ID")
 }
 
-func registerTLSconfig(ssl_ca, ssl_cert, ssl_key string) error {
+func registerTLSConfig(sslCA, sslCert, sslKey string) error {
 	rootCertPool := x509.NewCertPool()
-	pem, err := ioutil.ReadFile(ssl_ca)
+	pem, err := ioutil.ReadFile(sslCA)
 	if err != nil {
 		return err
 	}
@@ -412,7 +417,7 @@ func registerTLSconfig(ssl_ca, ssl_cert, ssl_key string) error {
 		return err
 	}
 	clientCert := make([]tls.Certificate, 0, 1)
-	certs, err := tls.LoadX509KeyPair(ssl_cert, ssl_key)
+	certs, err := tls.LoadX509KeyPair(sslCert, sslKey)
 	if err != nil {
 		return err
 	}
@@ -433,7 +438,7 @@ func (app *App) initializeMemcache() error {
 	memcachedHost := app.Config.GetString(config.EvSuffixForMemCachedHost)
 	memcachedPort := app.Config.GetString(config.EvSuffixForMemCachedPort)
 
-	app.log.Debug().Msgf("connecting to %s\n",net.JoinHostPort(memcachedHost, memcachedPort))
+	app.log.Debug().Msgf("connecting to %s\n", net.JoinHostPort(memcachedHost, memcachedPort))
 
 	memcachedClient := memcache.New(net.JoinHostPort(memcachedHost, memcachedPort))
 	if memcachedClient == nil {
@@ -457,4 +462,32 @@ func (app *App) initializeMemcache() error {
 
 	app.log.Info().Msg("Memcached connected!")
 	return nil
+}
+
+func (app *App) setTLSClientConfig() (*tls.Config, error) {
+	tlsConfig := &tls.Config{}
+
+	if app.Config.GetBool(config.EvSuffixForSkipInsecureTLSVerification) {
+		tlsConfig.InsecureSkipVerify = true
+		return tlsConfig, nil
+	}
+
+	certPool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("unable to load system certificates, err: %s", err.Error()))
+	}
+
+	if app.Config.GetBool(config.EvSuffixForEnableTLS) {
+		tlsConfig.ServerName = app.Config.GetString(config.EvSuffixForTLSServerName)
+
+		pemBytes, err := ioutil.ReadFile(app.Config.GetString(config.EvSuffixForTLSCert))
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("unable to read TLS_CERT with err: %s", err.Error()))
+		}
+		certPool.AppendCertsFromPEM(pemBytes)
+	}
+
+	tlsConfig.RootCAs = certPool
+
+	return tlsConfig, nil
 }
