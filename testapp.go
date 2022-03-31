@@ -34,6 +34,7 @@ type TestApp struct {
 	application             *App
 	controllerRouteProvider func(*App) []RouteSpecifier
 	dbInitializer           func(db *gorm.DB)
+	queryHandler            *dotsql.DotSql
 }
 
 // NewTestApp returns new instance of TestApp
