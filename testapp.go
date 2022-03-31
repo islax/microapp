@@ -2,10 +2,12 @@ package microapp
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -123,6 +125,54 @@ func loadQueries(files []string) *dotsql.DotSql {
 
 	handler := dotsql.Merge(sqlFiles...)
 	return handler
+}
+
+// Setup executes queries for initial setup.
+func (testApp *TestApp) Setup(data map[string][]interface{}) {
+	if len(data) != 0 {
+		for name, args := range data {
+			testApp.Exec(name, args)
+		}
+	}
+}
+
+// Exec executes given query in input.
+func (testApp *TestApp) Exec(name string, args []interface{}) {
+	mySqldb, _ := testApp.application.DB.DB()
+	r, err := testApp.queryHandler.Exec(mySqldb, name, args...)
+	if err != nil {
+		panic(err)
+	}
+	_, err = r.LastInsertId()
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = r.RowsAffected()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+// QueryRow executes given query in input and returns single result.
+func (testApp *TestApp) QueryRow(name string, args []interface{}) (*sql.Row, error) {
+
+	mySqldb, _ := testApp.application.DB.DB()
+	row, err := testApp.queryHandler.QueryRow(mySqldb, name, args...)
+	if err != nil {
+		panic(err)
+	}
+	return row, err
+}
+
+// Query executes given query in input and returns results.
+func (testApp *TestApp) Query(name string, args []interface{}) (*sql.Rows, error) {
+
+	mySqldb, _ := testApp.application.DB.DB()
+	rows, err := testApp.queryHandler.Query(mySqldb, name, args...)
+	if err != nil {
+		panic(err)
+	}
+	return rows, err
 }
 
 // Initialize prepares the app for testing
