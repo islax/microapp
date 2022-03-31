@@ -258,6 +258,10 @@ func (testApp *TestApp) AssertEqualWithFieldsToIgnore(t *testing.T, expected int
 				}
 				// t.Logf("Actual assert field: %v", actualFieldName)
 				actualField := actualElem.FieldByName(actualFieldName)
+				if !actualField.IsValid() {
+					t.Errorf("Expected field %v is not set!", expectedFieldName)
+					break
+				}
 				if actualField.Kind() == reflect.Ptr {
 					actualField = actualField.Elem()
 				}
@@ -308,17 +312,21 @@ func (testApp *TestApp) AssertEqualWithFieldsToCheck(t *testing.T, expected inte
 
 // AssertErrorResponse checks if the http response contains expected errorKey, errorField and errorMessage
 func (testApp *TestApp) AssertErrorResponse(t *testing.T, response *httptest.ResponseRecorder, expectedErrorKey string, expectedErrorField string, expectedError string) {
-	testApp.CheckResponseCode(t, http.StatusBadRequest, response.Code)
 	var errData map[string]interface{}
 	if err := json.Unmarshal(response.Body.Bytes(), &errData); err != nil {
 		t.Errorf("Unable to parse response: %v", err)
 	}
-	if errData["errorKey"] != expectedErrorKey {
+	if errData["errorKey"] != expectedErrorKey && (errData["errorKey"] != nil) {
 		t.Errorf("Expected errorKey [%v], Got [%v]!", expectedErrorKey, errData["errorKey"])
 	}
-	errors := errData["errors"].(map[string]interface{})
-	if fmt.Sprintf("%v", errors[expectedErrorField]) != expectedError {
-		t.Errorf("Expected error [%v], Got [%v]!", expectedError, errors[expectedErrorField])
+	if errData["errors"] != nil {
+		errors := errData["errors"].(map[string]interface{})
+		if fmt.Sprintf("%v", errors[expectedErrorField]) != expectedError {
+			t.Errorf("Expected error [%v], Got [%v]!", expectedError, errors[expectedErrorField])
+		}
+	}
+	if errData["error"] != expectedErrorKey && (errData["error"] != nil) {
+		t.Errorf("Expected error [%v], Got [%v]!", expectedErrorKey, errData["error"])
 	}
 }
 
