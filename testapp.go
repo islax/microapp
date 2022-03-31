@@ -76,7 +76,7 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 
 // NewTestApplication returns new instance of TestApp
 func NewTestApplication(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose, isSingularTable bool, sqlFiles []string) *TestApp {
-	dbFile := "./test_islax.db?cache=shared&_busy_timeout=60000&parseTime=True"
+	dbFile := "./test_islax.db?cache=shared&_busy_timeout=60000"
 
 	dbConf := &gorm.Config{PrepareStmt: true}
 	if verbose {
