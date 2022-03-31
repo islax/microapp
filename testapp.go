@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"gorm.io/gorm/schema"
-
 	microappError "github.com/islax/microapp/error"
+	"github.com/qustavo/dotsql"
+	"gorm.io/gorm/schema"
 
 	uuid "github.com/satori/go.uuid"
 
@@ -69,6 +69,59 @@ func NewTestApp(appName string, controllerRouteProvider func(*App) []RouteSpecif
 	application := New(appName, map[string]interface{}{"API_PORT": randomAPIPort, "JWT_PRIVATE_KEY_PATH": "certs/star.dev.local.key", "JWT_PUBLIC_KEY_PATH": "certs/star.dev.local.crt"}, zerolog.New(os.Stdout), db, nil, nil)
 
 	return &TestApp{application: application, controllerRouteProvider: controllerRouteProvider, dbInitializer: dbInitializer}
+}
+
+// NewTestApplication returns new instance of TestApp
+func NewTestApplication(appName string, controllerRouteProvider func(*App) []RouteSpecifier, dbInitializer func(db *gorm.DB), verbose, isSingularTable bool, sqlFiles []string) *TestApp {
+	dbFile := "./test_islax.db?cache=shared&_busy_timeout=60000&parseTime=True"
+
+	dbConf := &gorm.Config{PrepareStmt: true}
+	if verbose {
+		newLogger := logger.Default.LogMode(logger.Info)
+		dbConf.Logger = newLogger
+	} else {
+		dbConf = &gorm.Config{}
+	}
+
+	dbConf.NamingStrategy = schema.NamingStrategy{SingularTable: isSingularTable}
+
+	db, err := gorm.Open(sqlite.Open(dbFile), dbConf)
+	if err != nil {
+		panic(err)
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		panic(err)
+	}
+
+	sqlDB.Exec("PRAGMA journal_mode=WAL;")
+	sqlDB.SetMaxOpenConns(15)
+	sqlDB.SetMaxIdleConns(0)
+	sqlDB.SetConnMaxLifetime(time.Minute * 5)
+
+	rand.Seed(time.Now().UnixNano())
+
+	// Loads queries from sql file
+	queryHandler := loadQueries(sqlFiles)
+
+	randomAPIPort := fmt.Sprintf("10%v%v%v", rand.Intn(9), rand.Intn(9), rand.Intn(9)) // Generating random API port so that if multiple tests can run parallel
+	application := New(appName, map[string]interface{}{"LICENSE_MODE": "CLOUD", "API_PORT": randomAPIPort, "JWT_PRIVATE_KEY_PATH": "certs/star.dev.local.key", "JWT_PUBLIC_KEY_PATH": "certs/star.dev.local.crt"}, zerolog.New(os.Stdout), db, nil, nil)
+
+	return &TestApp{application: application, controllerRouteProvider: controllerRouteProvider, dbInitializer: dbInitializer, queryHandler: queryHandler}
+}
+
+func loadQueries(files []string) *dotsql.DotSql {
+	var sqlFiles []*dotsql.DotSql
+	for _, file := range files {
+		dot, err := dotsql.LoadFromFile(file)
+		if err != nil {
+			panic(err)
+		}
+		sqlFiles = append(sqlFiles, dot)
+	}
+
+	handler := dotsql.Merge(sqlFiles...)
+	return handler
 }
 
 // Initialize prepares the app for testing
