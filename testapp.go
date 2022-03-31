@@ -178,6 +178,13 @@ func (testApp *TestApp) Query(name string, args []interface{}) (*sql.Rows, error
 // Initialize prepares the app for testing
 func (testApp *TestApp) Initialize() {
 	testApp.application.Initialize(testApp.controllerRouteProvider(testApp.application))
+	testApp.PrepareEmptyTables()
+	go testApp.application.Start()
+}
+
+// Init prepares the app for testing
+func (testApp *TestApp) Init() {
+	testApp.application.Initialize(testApp.controllerRouteProvider(testApp.application))
 	//testApp.PrepareEmptyTables()
 	go testApp.application.Start()
 }
