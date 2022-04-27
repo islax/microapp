@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	microappCtx "github.com/islax/microapp/context"
@@ -154,7 +155,7 @@ func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url 
 
 // DoGet is a generic method to carry out RESTful calls to the other external microservices in ISLA
 func (apiClient *APIClient) DoGet(context microappCtx.ExecutionContext, requestString string, rawToken string) (map[string]interface{}, error) {
-	response, err := apiClient.doRequest(context, requestString, http.MethodGet, rawToken, nil)
+	response, err := apiClient.doRequest(context, url.QueryEscape(requestString), http.MethodGet, rawToken, nil)
 	if err != nil {
 		return nil, err
 	}
