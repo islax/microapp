@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	microappCtx "github.com/islax/microapp/context"
@@ -127,10 +128,10 @@ func (apiClient *APIClient) DoRequestWithResponseParam(context microappCtx.Execu
 	return nil
 }
 
-func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url string, requestMethod string, rawToken string, payload map[string]interface{}) (interface{}, error) {
-	apiURL := apiClient.BaseURL + url
+func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, uri string, requestMethod string, rawToken string, payload map[string]interface{}) (interface{}, error) {
+	apiURL := apiClient.BaseURL + uri
 
-	response, apiClientErr := apiClient.DoRequestBasic(context, url.QueryEscape(url), requestMethod, rawToken, payload)
+	response, apiClientErr := apiClient.DoRequestBasic(context, url.QueryEscape(uri), requestMethod, rawToken, payload)
 	if apiClientErr != nil {
 		return nil, apiClientErr
 	}
