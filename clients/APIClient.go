@@ -35,12 +35,12 @@ func (apiClient *APIClient) getJSONRequestBody(payload interface{}) (io.Reader, 
 }
 
 // DoRequestBasic ...
-func (apiClient *APIClient) DoRequestBasic(context microappCtx.ExecutionContext, url string, requestMethod string, rawToken string, payload interface{}) (*http.Response, microappError.APIClientError) {
-	apiURL := apiClient.BaseURL + url
+func (apiClient *APIClient) DoRequestBasic(context microappCtx.ExecutionContext, uri string, requestMethod string, rawToken string, payload interface{}) (*http.Response, microappError.APIClientError) {
+	apiURL := apiClient.BaseURL + uri
 
 	payloadAsIOReader, err := apiClient.getJSONRequestBody(payload)
 	if err != nil {
-		return nil, microappError.NewAPIClientError(apiURL, nil, nil, fmt.Errorf("unable to encode payload: %w", err))
+		return nil, microappError.NewAPIClientError(url.QueryEscape(apiURL), nil, nil, fmt.Errorf("unable to encode payload: %w", err))
 	}
 
 	// Not checking for error here, as request and apiURL are internal values and body is already checked for err above.
@@ -128,10 +128,10 @@ func (apiClient *APIClient) DoRequestWithResponseParam(context microappCtx.Execu
 	return nil
 }
 
-func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, uri string, requestMethod string, rawToken string, payload map[string]interface{}) (interface{}, error) {
-	apiURL := apiClient.BaseURL + uri
+func (apiClient *APIClient) doRequest(context microappCtx.ExecutionContext, url string, requestMethod string, rawToken string, payload map[string]interface{}) (interface{}, error) {
+	apiURL := apiClient.BaseURL + url
 
-	response, apiClientErr := apiClient.DoRequestBasic(context, url.QueryEscape(uri), requestMethod, rawToken, payload)
+	response, apiClientErr := apiClient.DoRequestBasic(context, url, requestMethod, rawToken, payload)
 	if apiClientErr != nil {
 		return nil, apiClientErr
 	}
