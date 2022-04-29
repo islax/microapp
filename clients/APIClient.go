@@ -40,11 +40,11 @@ func (apiClient *APIClient) DoRequestBasic(context microappCtx.ExecutionContext,
 
 	payloadAsIOReader, err := apiClient.getJSONRequestBody(payload)
 	if err != nil {
-		return nil, microappError.NewAPIClientError(url.QueryEscape(apiURL), nil, nil, fmt.Errorf("unable to encode payload: %w", err))
+		return nil, microappError.NewAPIClientError(apiURL, nil, nil, fmt.Errorf("unable to encode payload: %w", err))
 	}
 
 	// Not checking for error here, as request and apiURL are internal values and body is already checked for err above.
-	request, _ := http.NewRequest(requestMethod, apiURL, payloadAsIOReader)
+	request, _ := http.NewRequest(requestMethod, url.QueryEscape(apiURL), payloadAsIOReader)
 
 	// Set Authorization header
 	if rawToken != "" {
