@@ -36,7 +36,7 @@ func (apiClient *APIClient) getJSONRequestBody(payload interface{}) (io.Reader, 
 
 // DoRequestBasic ...
 func (apiClient *APIClient) DoRequestBasic(context microappCtx.ExecutionContext, uri string, requestMethod string, rawToken string, payload interface{}) (*http.Response, microappError.APIClientError) {
-	apiURL := apiClient.BaseURL + uri
+	apiURL := apiClient.BaseURL + url.QueryEscape(uri)uri
 
 	payloadAsIOReader, err := apiClient.getJSONRequestBody(payload)
 	if err != nil {
@@ -44,7 +44,7 @@ func (apiClient *APIClient) DoRequestBasic(context microappCtx.ExecutionContext,
 	}
 
 	// Not checking for error here, as request and apiURL are internal values and body is already checked for err above.
-	request, _ := http.NewRequest(requestMethod, url.QueryEscape(apiURL), payloadAsIOReader)
+	request, _ := http.NewRequest(requestMethod, apiURL, payloadAsIOReader)
 
 	// Set Authorization header
 	if rawToken != "" {
