@@ -36,7 +36,7 @@ func (apiClient *APIClient) getJSONRequestBody(payload interface{}) (io.Reader, 
 
 // DoRequestBasic ...
 func (apiClient *APIClient) DoRequestBasic(context microappCtx.ExecutionContext, uri string, requestMethod string, rawToken string, payload interface{}) (*http.Response, microappError.APIClientError) {
-	apiURL := apiClient.BaseURL + url.QueryEscape(uri)uri
+	apiURL := apiClient.BaseURL + url.QueryEscape(uri)
 
 	payloadAsIOReader, err := apiClient.getJSONRequestBody(payload)
 	if err != nil {
