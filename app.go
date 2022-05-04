@@ -60,6 +60,7 @@ type App struct {
 	server          *http.Server
 	log             zerolog.Logger
 	eventDispatcher event.Dispatcher
+	isCloud         bool
 }
 
 // NewWithEnvValues creates a new application with environment variable values for initializing database, event dispatcher and logger.
@@ -98,7 +99,9 @@ func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) 
 	//TODO: Need to wait till eventDispatcher is ready
 	time.Sleep(5 * time.Second)
 
-	app := App{Name: appName, Config: appConfig, log: *appLogger, eventDispatcher: appEventDispatcher}
+	isCloud := strings.ToUpper(appConfig.GetString("LICENSE_MODE")) == "CLOUD"
+
+	app := App{Name: appName, Config: appConfig, log: *appLogger, eventDispatcher: appEventDispatcher, isCloud: isCloud}
 	err = app.initializeDB()
 	if err != nil {
 		consoleOnlyLogger.Fatal().Err(err).Msg("Failed to initialize database, exiting the application!!")
@@ -329,6 +332,10 @@ func (app *App) Stop() {
 			sqlDB.Close()
 		}
 	}
+}
+
+func (app *App) IsTenantTypeCloud() bool {
+	return app.isCloud
 }
 
 type httpStatusRecorder struct {
