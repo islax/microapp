@@ -331,6 +331,10 @@ func (app *App) Stop() {
 	}
 }
 
+func (app *App) IsOnCloud() bool {
+	return (strings.ToUpper(app.Config.GetString("LICENSE_MODE")) == "CLOUD")
+}
+
 type httpStatusRecorder struct {
 	http.ResponseWriter
 	status int
