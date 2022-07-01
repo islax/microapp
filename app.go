@@ -62,6 +62,17 @@ type App struct {
 	eventDispatcher event.Dispatcher
 }
 
+type MysqlLogger struct {
+}
+
+func (ml MysqlLogger) Printf(format string, v ...interface{}) {
+	fmt.Printf("MYSQL MIGRATIONLOG: "+format+"\n", v)
+}
+
+func (ml MysqlLogger) Verbose() bool {
+	return true
+}
+
 // NewWithEnvValues creates a new application with environment variable values for initializing database, event dispatcher and logger.
 func NewWithEnvValues(appName string, appConfigDefaults map[string]interface{}) *App {
 	appConfig := config.NewConfig(appConfigDefaults)
@@ -302,6 +313,7 @@ func (app *App) MigrateDB() {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Unable to initialize DB instance for migration, exiting the application!")
 	}
+	m.Log = MysqlLogger{}
 	err = m.Up()
 	if err != nil {
 		if err.Error() == "no change" {
