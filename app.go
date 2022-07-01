@@ -66,7 +66,7 @@ type MysqlLogger struct {
 }
 
 func (ml MysqlLogger) Printf(format string, v ...interface{}) {
-	fmt.Printf("MYSQL MIGRATIONLOG: "+format+"\n", v)
+	fmt.Printf("MYSQL MIGRATIONLOG: "+format, v)
 }
 
 func (ml MysqlLogger) Verbose() bool {
@@ -314,6 +314,13 @@ func (app *App) MigrateDB() {
 		logger.Fatal().Err(err).Msg("Unable to initialize DB instance for migration, exiting the application!")
 	}
 	m.Log = MysqlLogger{}
+	if m.Log != nil && m.Log.Verbose() {
+		fmt.Printf("log test\n")
+		m.Log.Printf("logger working")
+	} else {
+		fmt.Printf("logger not working")
+		fmt.Printf("%+v %+v\n", m.Log, m.Log.Verbose())
+	}
 	err = m.Up()
 	if err != nil {
 		if err.Error() == "no change" {
