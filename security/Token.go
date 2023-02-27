@@ -25,6 +25,7 @@ type JwtToken struct {
 	UserName       string      `json:"name,omitempty"`
 	DisplayName    string      `json:"displayName,omitempty"`
 	UserGroupIDs   []uuid.UUID `json:"usergroupIds,omitempty"`
+	UserGroupNames []string    `json:"usergroupNames,omitempty"`
 	TenantID       uuid.UUID   `json:"tenant,omitempty"`
 	TenantName     string      `json:"tenantName,omitempty"`
 	ExternalID     string      `json:"externalId,omitempty"`
