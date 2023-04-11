@@ -87,8 +87,9 @@ func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface
 		}
 	case "button":
 		return nil, nil
+	case "image":
+		return nil, nil
 	}
-
 	errors[metadata.Code] = microappError.ErrorCodeInvalidValue
 	return nil, microappError.NewInvalidFieldsError(errors)
 }
