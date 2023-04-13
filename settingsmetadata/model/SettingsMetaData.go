@@ -30,6 +30,7 @@ type SettingsMetaData struct {
 	ShowPrompt        bool    `json:"showPrompt"`
 	CardAnchorOptions bool    `json:"cardAnchorOptions"`
 	ImageSrc          string  `json:"imageSrc"`
+	RouterLink        string  `json:"routerLink"`
 }
 
 func inArray(val string, array []string) (ok bool, i int) {
