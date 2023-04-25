@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b
-	github.com/containerd/containerd v1.6.12 // indirect
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/golang-migrate/migrate/v4 v4.15.2
@@ -22,4 +21,8 @@ require (
 	gorm.io/gorm v1.21.4
 )
 
-replace github.com/containerd/containerd v1.6.1 => github.com/containerd/containerd v1.6.12
+replace github.com/containerd/containerd v1.6.1 => github.com/containerd/containerd v1.6.18
+
+replace github.com/docker/docker v20.10.13+incompatible => github.com/docker/docker v20.10.24+incompatible
+
+replace golang.org/x/net => golang.org/x/net v0.7.0
