@@ -10,25 +10,27 @@ import (
 
 // SettingsMetaData contains the metadata regarding settings
 type SettingsMetaData struct {
-	Code            string       `json:"code"`
-	DisplayName     string       `json:"displayName"`
-	Description     string       `json:"description"`
-	GroupName       string       `json:"groupName"`
-	DisplaySequence int          `json:"displaySequence"`
-	Type            string       `json:"type"`
-	TypeParam       string       `json:"typeParam"`
-	Default         string       `json:"default"`
-	Required        bool         `json:"required"`
-	Validation      string       `json:"validation"`
-	MaxValue        float32      `json:"maxValue"`
-	MinValue        float32      `json:"minValue"`
-	Hidden          bool         `json:"hidden"`
-	ModuleName      string       `json:"moduleName"`
-	SettingsLevel   string       `json:"settingsLevel"`
-	AccessLevel     string       `json:"accessLevel"`
-	ReadOnly        bool         `json:"readOnly"`
-	ShowPrompt      bool         `json:"showPrompt"`
-	PromptDetail    PromptDetail `json:"promptDetail"`
+	Code              string  `json:"code"`
+	DisplayName       string  `json:"displayName"`
+	Description       string  `json:"description"`
+	GroupName         string  `json:"groupName"`
+	DisplaySequence   int     `json:"displaySequence"`
+	Type              string  `json:"type"`
+	TypeParam         string  `json:"typeParam"`
+	Default           string  `json:"default"`
+	Required          bool    `json:"required"`
+	Validation        string  `json:"validation"`
+	MaxValue          float32 `json:"maxValue"`
+	MinValue          float32 `json:"minValue"`
+	Hidden            bool    `json:"hidden"`
+	ModuleName        string  `json:"moduleName"`
+	SettingsLevel     string  `json:"settingsLevel"`
+	AccessLevel       string  `json:"accessLevel"`
+	ReadOnly          bool    `json:"readOnly"`
+	ShowPrompt        bool    `json:"showPrompt"`
+	CardAnchorOptions bool    `json:"cardAnchorOptions"`
+	ImageSrc          string  `json:"imageSrc"`
+	RouterLink        string  `json:"routerLink"`
 }
 
 func inArray(val string, array []string) (ok bool, i int) {
@@ -87,8 +89,9 @@ func (metadata *SettingsMetaData) ParseAndValidate(value interface{}) (interface
 		}
 	case "button":
 		return nil, nil
+	case "image":
+		return nil, nil
 	}
-
 	errors[metadata.Code] = microappError.ErrorCodeInvalidValue
 	return nil, microappError.NewInvalidFieldsError(errors)
 }
