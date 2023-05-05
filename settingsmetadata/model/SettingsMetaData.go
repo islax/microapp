@@ -31,6 +31,7 @@ type SettingsMetaData struct {
 	CardAnchorOptions bool    `json:"cardAnchorOptions"`
 	ImageSrc          string  `json:"imageSrc"`
 	RouterLink        string  `json:"routerLink"`
+	IgnoreReset       bool    `json:"ignoreReset"`
 }
 
 func inArray(val string, array []string) (ok bool, i int) {
